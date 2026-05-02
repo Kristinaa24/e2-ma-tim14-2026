@@ -1,3 +1,10 @@
 <resources>
     <string name="app_name">Slagalica</string>
+
+    <string name="profile">Profile</string>
+    <string name="avatar_placeholder">Avatar</string>
+    <string name="profile_info_placeholder">Profile info</string>
+    <string name="change_avatar">Change avatar</string>
+    <string name="statistics_placeholder">Statistics</string>
+    <string name="logout">Logout</string>
 </resources>
