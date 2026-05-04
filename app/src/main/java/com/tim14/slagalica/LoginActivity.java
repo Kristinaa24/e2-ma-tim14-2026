@@ -14,7 +14,7 @@ public class LoginActivity extends AppCompatActivity {
     private static final String TAG = "LoginActivity";
 
     private EditText emailInput, passwordInput;
-    private Button loginButton, registerButton, resetPasswordButton;
+    private Button loginButton, registerButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,7 +26,6 @@ public class LoginActivity extends AppCompatActivity {
         passwordInput = findViewById(R.id.passwordInput);
         loginButton = findViewById(R.id.loginButton);
         registerButton = findViewById(R.id.registerButton);
-        resetPasswordButton = findViewById(R.id.resetPasswordButton);
 
         loginButton.setOnClickListener(v -> {
             String emailOrUsername = emailInput.getText().toString();
@@ -48,9 +47,7 @@ public class LoginActivity extends AppCompatActivity {
                 startActivity(new Intent(this, RegisterActivity.class))
         );
 
-        resetPasswordButton.setOnClickListener(v ->
-                Toast.makeText(this, "Reset password not implemented yet", Toast.LENGTH_SHORT).show()
-        );
+
     }
 
     @Override protected void onStart() { super.onStart(); Log.d(TAG, "onStart"); }

@@ -15,6 +15,7 @@ public class ProfileActivity extends AppCompatActivity {
 
     private TextView profileInfo, statisticsInfo;
     private Button changeAvatarButton, logoutButton;
+    private Button changePasswordButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -30,6 +31,7 @@ public class ProfileActivity extends AppCompatActivity {
         statisticsInfo = findViewById(R.id.statisticsInfo);
         changeAvatarButton = findViewById(R.id.changeAvatarButton);
         logoutButton = findViewById(R.id.logoutButton);
+        changePasswordButton = findViewById(R.id.changePasswordButton);
 
         if (SessionManager.currentUser == null) {
             SessionManager.currentUser = new User("Kristina", "kristinadivnic2003@gmail.com", "Vojvodina", 5, 120, 2);
@@ -106,6 +108,11 @@ public class ProfileActivity extends AppCompatActivity {
             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(intent);
             finish();
+        });
+
+        changePasswordButton.setOnClickListener(v -> {
+            Intent intent = new Intent(ProfileActivity.this, ResetPasswordActivity.class);
+            startActivity(intent);
         });
     }
 
