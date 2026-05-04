@@ -45,7 +45,7 @@ public class LoginActivity extends AppCompatActivity {
         });
 
         registerButton.setOnClickListener(v ->
-                Toast.makeText(this, "Register not implemented yet", Toast.LENGTH_SHORT).show()
+                startActivity(new Intent(this, RegisterActivity.class))
         );
 
         resetPasswordButton.setOnClickListener(v ->
