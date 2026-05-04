@@ -1,103 +1,233 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0B3D91"
-    android:padding="24dp">
+    android:background="#0B3D91">
 
-    <TextView
-        android:id="@+id/titleText"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/moj_broj"
-        android:textColor="#FFFFFF"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:orientation="vertical"
+        android:padding="12dp">
 
-    <TextView
-        android:id="@+id/targetLabelText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/target_number_label"
-        android:textColor="#FFFFFF"
-        android:textSize="20sp"
-        app:layout_constraintTop_toBottomOf="@id/titleText"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="40dp" />
+        <TextView
+            android:id="@+id/titleText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/moj_broj"
+            android:textColor="#FFFFFF"
+            android:textSize="28sp"
+            android:textStyle="bold"
+            android:gravity="center" />
 
-    <TextView
-        android:id="@+id/targetNumberText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/target_number_972"
-        android:textColor="#FFFFFF"
-        android:textSize="42sp"
-        android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@id/targetLabelText"
-        app:layout_constraintStart_toStartOf="parent" />
+        <TextView
+            android:id="@+id/roundText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/round_one_of_two"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:gravity="center"
+            android:layout_marginTop="12dp" />
 
-    <TextView
-        android:id="@+id/numbersLabelText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/offered_numbers_label"
-        android:textColor="#FFFFFF"
-        android:textSize="20sp"
-        app:layout_constraintTop_toBottomOf="@id/targetNumberText"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="32dp" />
+        <TextView
+            android:id="@+id/currentPlayerText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/current_player_one_moj_broj"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:gravity="center" />
 
-    <TextView
-        android:id="@+id/numbersText"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="@string/offered_numbers"
-        android:textColor="#FFFF00"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@id/numbersLabelText"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        <TextView
+            android:id="@+id/timerText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/time_60"
+            android:textColor="#FFFF00"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            android:layout_marginTop="12dp" />
 
-    <EditText
-        android:id="@+id/expressionInput"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:hint="@string/enter_result_hint"
-        android:textColor="#FFFFFF"
-        android:textColorHint="#DDDDDD"
-        android:inputType="text"
-        app:layout_constraintTop_toBottomOf="@id/numbersText"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="32dp" />
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/target_number_label"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:layout_marginTop="12dp" />
 
-    <Button
-        android:id="@+id/checkButton"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="@string/check"
-        app:layout_constraintTop_toBottomOf="@id/expressionInput"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="24dp" />
+        <TextView
+            android:id="@+id/targetNumberText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/target_number_placeholder"
+            android:textColor="#FFFFFF"
+            android:textSize="44sp"
+            android:textStyle="bold"
+            android:gravity="center" />
 
-    <TextView
-        android:id="@+id/resultText"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text=""
-        android:textColor="#FFFFFF"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@id/checkButton"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        android:layout_marginTop="24dp" />
+        <Button
+            android:id="@+id/stopTargetButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/stop_target_number"
+            android:layout_marginTop="8dp" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/offered_numbers_label"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:layout_marginTop="12dp" />
+
+        <GridLayout
+            android:id="@+id/numbersGrid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="3"
+            android:layout_marginTop="8dp">
+
+            <Button
+                android:id="@+id/numberButton1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:text="@string/number_placeholder" />
+
+            <Button
+                android:id="@+id/numberButton2"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:text="@string/number_placeholder" />
+
+            <Button
+                android:id="@+id/numberButton3"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:text="@string/number_placeholder" />
+
+            <Button
+                android:id="@+id/numberButton4"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:text="@string/number_placeholder" />
+
+            <Button
+                android:id="@+id/numberButton5"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:text="@string/number_placeholder" />
+
+            <Button
+                android:id="@+id/numberButton6"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:text="@string/number_placeholder" />
+        </GridLayout>
+
+        <Button
+            android:id="@+id/stopNumbersButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/stop_numbers"
+            android:layout_marginTop="8dp" />
+
+        <GridLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="3"
+            android:layout_marginTop="10dp">
+
+            <Button
+                android:id="@+id/plusButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:text="+" />
+
+            <Button
+                android:id="@+id/minusButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:text="-" />
+
+            <Button
+                android:id="@+id/multiplyButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:text="*" />
+
+            <Button
+                android:id="@+id/divideButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:text="/" />
+
+            <Button
+                android:id="@+id/openBracketButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:text="(" />
+
+            <Button
+                android:id="@+id/closeBracketButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_columnWeight="1"
+                android:text=")" />
+        </GridLayout>
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/expression_label"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:layout_marginTop="8dp" />
+
+        <EditText
+            android:id="@+id/expressionInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="@string/enter_expression_hint"
+            android:textColor="#FFFFFF"
+            android:textColorHint="#DDDDDD"
+            android:inputType="text" />
+
+        <Button
+            android:id="@+id/checkButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/check"
+            android:layout_marginTop="6dp" />
+
+        <Button
+            android:id="@+id/clearButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/clear" />
+
+        <TextView
+            android:id="@+id/resultText"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/moj_broj_rules"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:layout_marginTop="8dp" />
+
+    </LinearLayout>
+</ScrollView>
