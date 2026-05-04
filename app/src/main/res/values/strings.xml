@@ -63,4 +63,11 @@
     <string name="shape_of_you">Shape of You</string>
     <string name="blinding_lights">Blinding Lights</string>
     <string name="mirrors">Mirrors</string>
+
+    <string name="email_or_username">Email or username</string>
+    <string name="password">Password</string>
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="reset_password">Reset password</string>
+
 </resources>
