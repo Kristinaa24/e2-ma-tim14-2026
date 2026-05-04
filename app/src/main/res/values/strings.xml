@@ -5,4 +5,14 @@
     <string name="login">Login</string>
     <string name="register">Register</string>
     <string name="reset_password">Reset password</string>
+
+
+    <!-- Register -->
+    <string name="username">Username</string>
+    <string name="email">Email</string>
+    <string name="region">Region</string>
+    <string name="repeat_password">Repeat password</string>
+    <string name="registration_success">Registration successful</string>
+    <string name="passwords_not_match">Passwords do not match</string>
+    <string name="back_to_login">Back to login</string>
 </resources>
