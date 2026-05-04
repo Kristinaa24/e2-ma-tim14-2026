@@ -100,6 +100,17 @@
     <string name="wrong_moj_broj">Netačno. Pokušaj ponovo.</string>
     <string name="correct">Tačno!</string>
     <string name="wrong">Netačno.</string>
+    <string name="round_one_of_two">Round 1 / 2</string>
+    <string name="current_player_one_moj_broj">Current player: Player 1</string>
+    <string name="time_60">Time: 60s</string>
+    <string name="stop_target_number">STOP broj</string>
+    <string name="stop_numbers">STOP brojevi</string>
+    <string name="expression_label">Izraz:</string>
+    <string name="enter_expression_hint">Unesi izraz, npr. (25+5)*20</string>
+    <string name="clear">Obriši</string>
+    <string name="moj_broj_rules">Pomoću ponuđenih brojeva i operacija +, -, *, /, (, ) pokušaj da dobiješ traženi broj.</string>
+    <string name="target_number_placeholder">---</string>
+    <string name="number_placeholder">?</string>
 
 
 
