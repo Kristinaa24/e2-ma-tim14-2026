@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Slagalica</string>
+    <string name="email_or_username">Email or username</string>
+    <string name="password">Password</string>
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="reset_password">Reset password</string>
 </resources>
