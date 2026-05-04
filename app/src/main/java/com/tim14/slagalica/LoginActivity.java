@@ -27,6 +27,7 @@ public class LoginActivity extends AppCompatActivity {
         loginButton = findViewById(R.id.loginButton);
         registerButton = findViewById(R.id.registerButton);
 
+
         loginButton.setOnClickListener(v -> {
             String emailOrUsername = emailInput.getText().toString();
 
@@ -46,6 +47,8 @@ public class LoginActivity extends AppCompatActivity {
         registerButton.setOnClickListener(v ->
                 startActivity(new Intent(this, RegisterActivity.class))
         );
+
+
 
 
     }

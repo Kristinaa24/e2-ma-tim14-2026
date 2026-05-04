@@ -88,4 +88,23 @@
 
 
     <string name="change_password">Change password</string>
+
+    <string name="moj_broj">Moj broj</string>
+    <string name="target_number_label">Traženi broj:</string>
+    <string name="offered_numbers_label">Ponuđeni brojevi:</string>
+    <string name="offered_numbers">5   3   8   5   20   25</string>
+    <string name="target_number_972">972</string>
+    <string name="enter_result_hint">Unesi rezultat, npr. 972</string>
+    <string name="check">Proveri</string>
+    <string name="correct_moj_broj">Tačno! Dobila si moj broj.</string>
+    <string name="wrong_moj_broj">Netačno. Pokušaj ponovo.</string>
+    <string name="correct">Tačno!</string>
+    <string name="wrong">Netačno.</string>
+
+
+
+    <string name="home_title">Slagalica - Home</string>
+    <string name="user_info_placeholder">User info</string>
+    <string name="korak_po_korak">Korak po korak</string>
+    <string name="user_info_format">User: %1$s&#10;Email: %2$s&#10;Region: %3$s&#10;Tokens: %4$d&#10;Stars: %5$d&#10;League: %6$d</string>
 </resources>

@@ -13,8 +13,8 @@ public class HomeActivity extends AppCompatActivity {
     private Button profileButton;
     private Button koZnaZnaButton;
     private Button spojniceButton;
-
     private Button korakPoKorakButton;
+    private Button mojBrojButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,6 +26,7 @@ public class HomeActivity extends AppCompatActivity {
         koZnaZnaButton = findViewById(R.id.koZnaZnaButton);
         spojniceButton = findViewById(R.id.spojniceButton);
         korakPoKorakButton = findViewById(R.id.korakPoKorakButton);
+        mojBrojButton = findViewById(R.id.mojBrojButton);
 
         if (SessionManager.currentUser == null) {
             SessionManager.currentUser =
@@ -34,33 +35,34 @@ public class HomeActivity extends AppCompatActivity {
 
         User user = SessionManager.currentUser;
 
-        userInfoText.setText(
-                "User: " + user.username +
-                        "\nEmail: " + user.email +
-                        "\nRegion: " + user.region +
-                        "\nTokens: " + user.tokens +
-                        "\nStars: " + user.stars +
-                        "\nLeague: " + user.league
+        userInfoText.setText(getString(
+                R.string.user_info_format,
+                user.username,
+                user.email,
+                user.region,
+                user.tokens,
+                user.stars,
+                user.league
+        ));
+
+        profileButton.setOnClickListener(v ->
+                startActivity(new Intent(HomeActivity.this, ProfileActivity.class))
         );
 
-        profileButton.setOnClickListener(v -> {
-            Intent intent = new Intent(HomeActivity.this, ProfileActivity.class);
-            startActivity(intent);
-        });
+        koZnaZnaButton.setOnClickListener(v ->
+                startActivity(new Intent(HomeActivity.this, KoZnaZnaActivity.class))
+        );
 
-        koZnaZnaButton.setOnClickListener(v -> {
-            Intent intent = new Intent(HomeActivity.this, KoZnaZnaActivity.class);
-            startActivity(intent);
-        });
+        spojniceButton.setOnClickListener(v ->
+                startActivity(new Intent(HomeActivity.this, SpojniceActivity.class))
+        );
 
-        spojniceButton.setOnClickListener(v -> {
-            Intent intent = new Intent(HomeActivity.this, SpojniceActivity.class);
-            startActivity(intent);
-        });
+        korakPoKorakButton.setOnClickListener(v ->
+                startActivity(new Intent(HomeActivity.this, KorakPoKorakActivity.class))
+        );
 
-        korakPoKorakButton.setOnClickListener(v -> {
-            Intent intent = new Intent(HomeActivity.this, KorakPoKorakActivity.class);
-            startActivity(intent);
-        });
+        mojBrojButton.setOnClickListener(v ->
+                startActivity(new Intent(HomeActivity.this, MojBrojActivity.class))
+        );
     }
 }
