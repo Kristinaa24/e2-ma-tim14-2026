@@ -22,6 +22,10 @@ public class ProfileActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_profile);
 
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
+
         profileInfo = findViewById(R.id.profileInfo);
         statisticsInfo = findViewById(R.id.statisticsInfo);
         changeAvatarButton = findViewById(R.id.changeAvatarButton);
@@ -39,7 +43,7 @@ public class ProfileActivity extends AppCompatActivity {
                         "\nRegion: " + u.region +
                         "\nTokens: " + u.tokens +
                         "\nStars: " + u.stars +
-                        "\nLeague: 🥈 Silver League"
+                        "\nQR code: Available for friend invite"
         );
 
         statisticsInfo.setText(
@@ -97,7 +101,18 @@ public class ProfileActivity extends AppCompatActivity {
         logoutButton.setOnClickListener(v -> {
             SessionManager.currentUser = null;
             Toast.makeText(this, "Logout", Toast.LENGTH_SHORT).show();
+
+            Intent intent = new Intent(ProfileActivity.this, HomeActivity.class);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+            finish();
         });
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        finish();
+        return true;
     }
 
     @Override protected void onStart() { super.onStart(); Log.d(TAG, "onStart"); }
