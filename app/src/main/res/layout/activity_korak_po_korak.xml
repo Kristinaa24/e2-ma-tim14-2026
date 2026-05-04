@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="#102A43">
+
+    <TextView
+        android:id="@+id/kpkTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Korak po korak"
+        android:textColor="#FFFFFF"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:gravity="center" />
+
+    <TextView
+        android:id="@+id/timerText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Time: 70s"
+        android:textColor="#FFD700"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginTop="12dp" />
+
+    <TextView
+        android:id="@+id/scoreText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Score: 0"
+        android:textColor="#FFFFFF"
+        android:textSize="20sp"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/step1Text"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="1. Nebesko telo"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:background="#1E4E79" />
+
+    <TextView
+        android:id="@+id/step2Text"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text=""
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:background="#1E4E79"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/step3Text"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text=""
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:background="#1E4E79"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/step4Text"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text=""
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:background="#1E4E79"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/step5Text"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text=""
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:background="#1E4E79"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/step6Text"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text=""
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:background="#1E4E79"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/step7Text"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text=""
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:background="#1E4E79"
+        android:layout_marginTop="8dp" />
+
+    <EditText
+        android:id="@+id/answerInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Enter final answer"
+        android:textColor="#FFFFFF"
+        android:textColorHint="#CCCCCC"
+        android:layout_marginTop="20dp" />
+
+    <Button
+        android:id="@+id/nextStepButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Next step" />
+
+    <Button
+        android:id="@+id/submitButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Submit answer" />
+
+</LinearLayout>

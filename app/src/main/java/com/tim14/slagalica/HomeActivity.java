@@ -14,6 +14,8 @@ public class HomeActivity extends AppCompatActivity {
     private Button koZnaZnaButton;
     private Button spojniceButton;
 
+    private Button korakPoKorakButton;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -23,6 +25,7 @@ public class HomeActivity extends AppCompatActivity {
         profileButton = findViewById(R.id.profileButton);
         koZnaZnaButton = findViewById(R.id.koZnaZnaButton);
         spojniceButton = findViewById(R.id.spojniceButton);
+        korakPoKorakButton = findViewById(R.id.korakPoKorakButton);
 
         if (SessionManager.currentUser == null) {
             SessionManager.currentUser =
@@ -52,6 +55,11 @@ public class HomeActivity extends AppCompatActivity {
 
         spojniceButton.setOnClickListener(v -> {
             Intent intent = new Intent(HomeActivity.this, SpojniceActivity.class);
+            startActivity(intent);
+        });
+
+        korakPoKorakButton.setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, KorakPoKorakActivity.class);
             startActivity(intent);
         });
     }
