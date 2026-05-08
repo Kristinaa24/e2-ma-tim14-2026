@@ -5,6 +5,8 @@ import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
+import android.view.View;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -16,7 +18,8 @@ public class RegisterActivity extends AppCompatActivity {
     private EditText passwordInput;
     private EditText repeatPasswordInput;
     private Button registerButton;
-    private Button backToLoginButton;
+    private TextView registerErrorText;
+    private TextView backToLoginText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,7 +32,8 @@ public class RegisterActivity extends AppCompatActivity {
         passwordInput = findViewById(R.id.passwordInput);
         repeatPasswordInput = findViewById(R.id.repeatPasswordInput);
         registerButton = findViewById(R.id.registerButton);
-        backToLoginButton = findViewById(R.id.backToLoginButton);
+        registerErrorText = findViewById(R.id.registerErrorText);
+        backToLoginText = findViewById(R.id.backToLoginText);
 
         registerButton.setOnClickListener(v -> {
             String username = usernameInput.getText().toString();
@@ -38,36 +42,33 @@ public class RegisterActivity extends AppCompatActivity {
             String password = passwordInput.getText().toString();
             String repeatPassword = repeatPasswordInput.getText().toString();
 
-            if (username.isEmpty() || email.isEmpty() || password.isEmpty()) {
-                Toast.makeText(this, "Fill all fields", Toast.LENGTH_SHORT).show();
+            registerErrorText.setVisibility(View.GONE);
+
+            if (username.isEmpty() || email.isEmpty() || region.isEmpty() || password.isEmpty() || repeatPassword.isEmpty()) {
+                registerErrorText.setText(getString(R.string.fill_all_fields));
+                registerErrorText.setVisibility(View.VISIBLE);
                 return;
             }
 
             if (!password.equals(repeatPassword)) {
-                Toast.makeText(this, "Passwords do not match", Toast.LENGTH_SHORT).show();
+                registerErrorText.setText(getString(R.string.passwords_do_not_match));
+                registerErrorText.setVisibility(View.VISIBLE);
                 return;
             }
 
-            SessionManager.currentUser = new User(
-                    username,
-                    email,
-                    region,
-                    5,
-                    0,
-                    1
-            );
 
-            Toast.makeText(this, "Registration successful", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.registration_successful), Toast.LENGTH_LONG).show();
 
-            Intent intent = new Intent(RegisterActivity.this, HomeActivity.class);
-            startActivity(intent);
-            finish();
-        });
-
-        backToLoginButton.setOnClickListener(v -> {
             Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
             startActivity(intent);
             finish();
         });
+
+        backToLoginText.setOnClickListener(v -> {
+            Intent intent = new Intent(RegisterActivity.this, LoginActivity.class);
+            startActivity(intent);
+            finish();
+        });
+
     }
 }
