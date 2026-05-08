@@ -86,7 +86,11 @@
     <string name="passwords_not_match">Passwords do not match</string>
     <string name="back_to_login">Back to login</string>
     <string name="not_registered">Don\'t have an account yet?</string>
-
+    <string name="fill_all_fields">Fill all fields</string>
+    <string name="passwords_do_not_match">Passwords do not match</string>
+    <string name="registration_successful">
+    Registration successful. Check your email to activate your account.
+    </string>
     <string name="forgot_password">Forgot password?</string>
     <string name="old_password">Old password</string>
     <string name="new_password">New password</string>
