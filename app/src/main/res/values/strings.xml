@@ -126,4 +126,8 @@
     <string name="user_info_format">User: %1$s&#10;Email: %2$s&#10;Region: %3$s&#10;Tokens: %4$d&#10;Stars: %5$d&#10;League: %6$d</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
 </resources>
