@@ -3,14 +3,13 @@ package com.tim14.slagalica;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.Button;
-import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
 public class HomeActivity extends AppCompatActivity {
 
-    private TextView userInfoText;
-    private Button profileButton;
+    private Button avatarProfileButton;
+    private Button startGameButton;
     private Button koZnaZnaButton;
     private Button spojniceButton;
     private Button korakPoKorakButton;
@@ -21,8 +20,8 @@ public class HomeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        userInfoText = findViewById(R.id.userInfoText);
-        profileButton = findViewById(R.id.profileButton);
+        avatarProfileButton = findViewById(R.id.avatarProfileButton);
+        startGameButton = findViewById(R.id.startGameButton);
         koZnaZnaButton = findViewById(R.id.koZnaZnaButton);
         spojniceButton = findViewById(R.id.spojniceButton);
         korakPoKorakButton = findViewById(R.id.korakPoKorakButton);
@@ -33,20 +32,12 @@ public class HomeActivity extends AppCompatActivity {
                     new User("TestPlayer", "test@mail.com", "Vojvodina", 5, 120, 2);
         }
 
-        User user = SessionManager.currentUser;
-
-        userInfoText.setText(getString(
-                R.string.user_info_format,
-                user.username,
-                user.email,
-                user.region,
-                user.tokens,
-                user.stars,
-                user.league
-        ));
-
-        profileButton.setOnClickListener(v ->
+        avatarProfileButton.setOnClickListener(v ->
                 startActivity(new Intent(HomeActivity.this, ProfileActivity.class))
+        );
+
+        startGameButton.setOnClickListener(v ->
+                startActivity(new Intent(HomeActivity.this, KoZnaZnaActivity.class))
         );
 
         koZnaZnaButton.setOnClickListener(v ->

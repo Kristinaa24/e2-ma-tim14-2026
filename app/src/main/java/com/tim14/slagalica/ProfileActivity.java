@@ -6,6 +6,7 @@ import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+import com.tim14.slagalica.fragments.StatisticsFragment;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -13,25 +14,21 @@ public class ProfileActivity extends AppCompatActivity {
 
     private static final String TAG = "ProfileActivity";
 
-    private TextView profileInfo, statisticsInfo;
-    private Button changeAvatarButton, logoutButton;
-    private Button changePasswordButton;
+    private TextView profileInfo;
+    private Button changeAvatarButton, logoutButton, changePasswordButton, viewStatisticsButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_profile);
 
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
+        Log.d(TAG, "onCreate");
 
         profileInfo = findViewById(R.id.profileInfo);
-        statisticsInfo = findViewById(R.id.statisticsInfo);
         changeAvatarButton = findViewById(R.id.changeAvatarButton);
         logoutButton = findViewById(R.id.logoutButton);
         changePasswordButton = findViewById(R.id.changePasswordButton);
+        viewStatisticsButton = findViewById(R.id.viewStatisticsButton);
 
         if (SessionManager.currentUser == null) {
             SessionManager.currentUser = new User("Kristina", "kristinadivnic2003@gmail.com", "Vojvodina", 5, 120, 2);
@@ -45,68 +42,24 @@ public class ProfileActivity extends AppCompatActivity {
                         "\nRegion: " + u.region +
                         "\nTokens: " + u.tokens +
                         "\nStars: " + u.stars +
+                        "\nLeague: Silver League 🥈" +
+                        "\nAvatar frame: Silver" +
                         "\nQR code: Available for friend invite"
-        );
-
-        statisticsInfo.setText(
-                "Statistics:" +
-                        "\n\nAverage score per game:" +
-                        "\n• Ko zna zna: 34 / 50" +
-                        "\n• Spojnice: 14 / 20" +
-                        "\n• Asocijacije: 38 / 60" +
-                        "\n• Skočko: 25 / 40" +
-                        "\n• Korak po korak: 18 / 40" +
-                        "\n• Moj broj: 7 / 20" +
-
-                        "\n\nKo zna zna:" +
-                        "\n• Correct answers: 42" +
-                        "\n• Wrong answers: 18" +
-
-                        "\n\nMoj broj:" +
-                        "\n• Exact target number found: 40%" +
-
-                        "\n\nKorak po korak:" +
-                        "\n• Step 1: 5%" +
-                        "\n• Step 2: 8%" +
-                        "\n• Step 3: 12%" +
-                        "\n• Step 4: 20%" +
-                        "\n• Step 5: 25%" +
-                        "\n• Step 6: 18%" +
-                        "\n• Step 7: 12%" +
-
-                        "\n\nAsocijacije:" +
-                        "\n• Solved: 9" +
-                        "\n• Unsolved: 4" +
-
-                        "\n\nSkočko:" +
-                        "\n• Attempt 1: 5%" +
-                        "\n• Attempt 2: 10%" +
-                        "\n• Attempt 3: 20%" +
-                        "\n• Attempt 4: 25%" +
-                        "\n• Attempt 5: 25%" +
-                        "\n• Attempt 6: 15%" +
-
-                        "\n\nSpojnice:" +
-                        "\n• Successfully connected pairs: 60%" +
-
-                        "\n\nGames:" +
-                        "\n• Total played games: 12" +
-                        "\n• Wins: 7" +
-                        "\n• Losses: 5" +
-                        "\n• Win rate: 58%" +
-                        "\n• Loss rate: 42%"
         );
 
         changeAvatarButton.setOnClickListener(v ->
                 Toast.makeText(this, "Avatar change screen placeholder.", Toast.LENGTH_SHORT).show());
 
-        logoutButton.setOnClickListener(v -> {
-            SessionManager.currentUser = null;
-            Toast.makeText(this, "Logout", Toast.LENGTH_SHORT).show();
+        viewStatisticsButton.setOnClickListener(v -> showStatisticsFragment());
 
-            Intent intent = new Intent(ProfileActivity.this, HomeActivity.class);
-            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
+        logoutButton.setOnClickListener(v -> {
+
+            SessionManager.currentUser = null;
+
+            Intent intent = new Intent(ProfileActivity.this, LoginActivity.class);
+
             startActivity(intent);
+
             finish();
         });
 
@@ -116,10 +69,15 @@ public class ProfileActivity extends AppCompatActivity {
         });
     }
 
-    @Override
-    public boolean onSupportNavigateUp() {
-        finish();
-        return true;
+    private void showStatisticsFragment() {
+        StatisticsFragment fragment = new StatisticsFragment();
+
+        getSupportFragmentManager()
+                .beginTransaction()
+                .setTransition(androidx.fragment.app.FragmentTransaction.TRANSIT_FRAGMENT_OPEN)
+                .replace(R.id.statisticsFragmentContainer, fragment)
+                .addToBackStack(null)
+                .commit();
     }
 
     @Override protected void onStart() { super.onStart(); Log.d(TAG, "onStart"); }

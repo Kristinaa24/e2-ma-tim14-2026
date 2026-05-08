@@ -2,7 +2,7 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FCF6FF"
+    android:background="@color/slagalica_blue"
     android:fillViewport="true">
 
     <LinearLayout
@@ -12,28 +12,31 @@
         android:padding="24dp">
 
         <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="@color/slagalica_dark_blue"
+            android:gravity="center"
+            android:padding="14dp"
             android:text="@string/spojnice"
-            android:textColor="#3D3944"
+            android:textColor="@color/slagalica_yellow"
             android:textSize="30sp"
             android:textStyle="bold" />
 
         <LinearLayout
-            android:orientation="vertical"
-            android:background="#FFFFFF"
-            android:elevation="3dp"
-            android:padding="14dp"
-            android:layout_marginTop="14dp"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:background="@color/slagalica_card"
+            android:elevation="3dp"
+            android:orientation="vertical"
+            android:padding="14dp">
 
             <TextView
                 android:id="@+id/roundText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/round_one"
-                android:textColor="#3D3944"
+                android:textColor="@color/slagalica_text"
                 android:textSize="18sp"
                 android:textStyle="bold" />
 
@@ -42,7 +45,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/current_player_one"
-                android:textColor="#3D3944"
+                android:textColor="@color/slagalica_text"
                 android:textSize="17sp" />
 
             <TextView
@@ -50,7 +53,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/time_30"
-                android:textColor="#3D3944"
+                android:textColor="@color/slagalica_text"
                 android:textSize="17sp" />
         </LinearLayout>
 
@@ -65,11 +68,12 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:background="#FFFFFF"
+                android:background="@color/slagalica_card"
                 android:elevation="3dp"
+                android:gravity="center"
                 android:padding="12dp"
                 android:text="@string/player_one_zero"
-                android:textColor="#3D3944"
+                android:textColor="@color/slagalica_text"
                 android:textStyle="bold" />
 
             <TextView
@@ -78,11 +82,12 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="10dp"
                 android:layout_weight="1"
-                android:background="#FFFFFF"
+                android:background="@color/slagalica_card"
                 android:elevation="3dp"
+                android:gravity="center"
                 android:padding="12dp"
                 android:text="@string/player_two_zero"
-                android:textColor="#3D3944"
+                android:textColor="@color/slagalica_text"
                 android:textStyle="bold" />
         </LinearLayout>
 
@@ -91,11 +96,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:background="#FFFFFF"
+            android:background="@color/slagalica_card"
             android:elevation="3dp"
             android:padding="14dp"
             android:text="@string/spojnice_rules"
-            android:textColor="#3D3944"
+            android:textColor="@color/slagalica_text"
             android:textSize="15sp" />
 
         <TextView
@@ -103,11 +108,11 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
-            android:background="#FFFFFF"
+            android:background="@color/slagalica_light_blue"
             android:elevation="3dp"
             android:padding="12dp"
             android:text="@string/second_chance_message"
-            android:textColor="#3D3944"
+            android:textColor="@color/slagalica_text"
             android:textSize="15sp"
             android:textStyle="bold" />
 
@@ -127,31 +132,46 @@
                     android:id="@+id/left1Button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/adele" />
+                    android:backgroundTint="@color/slagalica_card"
+                    android:text="@string/adele"
+                    android:textColor="@color/slagalica_dark_blue"
+                    android:textStyle="bold" />
 
                 <Button
                     android:id="@+id/left2Button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/lady_gaga" />
+                    android:backgroundTint="@color/slagalica_card"
+                    android:text="@string/lady_gaga"
+                    android:textColor="@color/slagalica_dark_blue"
+                    android:textStyle="bold" />
 
                 <Button
                     android:id="@+id/left3Button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/ariana_grande" />
+                    android:backgroundTint="@color/slagalica_card"
+                    android:text="@string/ariana_grande"
+                    android:textColor="@color/slagalica_dark_blue"
+                    android:textStyle="bold" />
 
                 <Button
                     android:id="@+id/left4Button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/taylor_swift" />
+                    android:backgroundTint="@color/slagalica_card"
+                    android:text="@string/taylor_swift"
+                    android:textColor="@color/slagalica_dark_blue"
+                    android:textStyle="bold" />
 
                 <Button
                     android:id="@+id/left5Button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/beyonce" />
+                    android:backgroundTint="@color/slagalica_card"
+                    android:text="@string/beyonce"
+                    android:textColor="@color/slagalica_dark_blue"
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <LinearLayout
@@ -165,31 +185,46 @@
                     android:id="@+id/right1Button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/halo" />
+                    android:backgroundTint="@color/slagalica_card"
+                    android:text="@string/halo"
+                    android:textColor="@color/slagalica_dark_blue"
+                    android:textStyle="bold" />
 
                 <Button
                     android:id="@+id/right2Button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/hello" />
+                    android:backgroundTint="@color/slagalica_card"
+                    android:text="@string/hello"
+                    android:textColor="@color/slagalica_dark_blue"
+                    android:textStyle="bold" />
 
                 <Button
                     android:id="@+id/right3Button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/shake_it_off" />
+                    android:backgroundTint="@color/slagalica_card"
+                    android:text="@string/shake_it_off"
+                    android:textColor="@color/slagalica_dark_blue"
+                    android:textStyle="bold" />
 
                 <Button
                     android:id="@+id/right4Button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/bad_romance" />
+                    android:backgroundTint="@color/slagalica_card"
+                    android:text="@string/bad_romance"
+                    android:textColor="@color/slagalica_dark_blue"
+                    android:textStyle="bold" />
 
                 <Button
                     android:id="@+id/right5Button"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/seven_rings" />
+                    android:backgroundTint="@color/slagalica_card"
+                    android:text="@string/seven_rings"
+                    android:textColor="@color/slagalica_dark_blue"
+                    android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
 
@@ -198,25 +233,31 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="14dp"
-            android:background="#FFFFFF"
+            android:background="@color/slagalica_card"
             android:elevation="3dp"
             android:padding="12dp"
             android:text="@string/selected_pair_none"
-            android:textColor="#3D3944" />
+            android:textColor="@color/slagalica_text"
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/confirmConnectionButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/confirm_connection" />
+            android:layout_marginTop="12dp"
+            android:backgroundTint="@color/slagalica_yellow"
+            android:text="@string/confirm_connection"
+            android:textColor="@color/slagalica_dark_blue"
+            android:textStyle="bold" />
 
         <Button
             android:id="@+id/spojniceQuitButton"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:backgroundTint="#FF6B6B"
+            android:backgroundTint="@color/slagalica_red"
             android:text="@string/quit_game"
-            android:textColor="#FFFFFF" />
+            android:textColor="@color/white"
+            android:textStyle="bold" />
 
     </LinearLayout>
 

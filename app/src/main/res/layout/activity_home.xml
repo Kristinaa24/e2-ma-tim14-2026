@@ -1,85 +1,155 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".HomeActivity">
+    android:background="@color/slagalica_blue"
+    android:fillViewport="true">
 
-    <TextView
-        android:id="@+id/homeTitle"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/home_title"
-        android:textSize="26sp"
-        android:textStyle="bold"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toTopOf="@id/userInfoText"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/userInfoText"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="@string/user_info_placeholder"
-        android:textSize="18sp"
-        android:gravity="center"
-        android:layout_margin="24dp"
-        app:layout_constraintTop_toBottomOf="@id/homeTitle"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="70dp"
+            android:paddingTop="18dp"
+            android:background="@color/slagalica_light_blue"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="4dp">
 
-    <Button
-        android:id="@+id/profileButton"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="@string/profile"
-        android:layout_margin="24dp"
-        app:layout_constraintTop_toBottomOf="@id/userInfoText"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
 
-    <Button
-        android:id="@+id/koZnaZnaButton"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="@string/ko_zna_zna"
-        android:layout_margin="24dp"
-        app:layout_constraintTop_toBottomOf="@id/profileButton"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+            <Button
+                android:id="@+id/playMenuButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:backgroundTint="@color/slagalica_yellow"
+                android:text="Play"
+                android:textColor="@color/slagalica_dark_blue"
+                android:textStyle="bold" />
 
-    <Button
-        android:id="@+id/spojniceButton"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="@string/spojnice"
-        android:layout_margin="24dp"
-        app:layout_constraintTop_toBottomOf="@id/koZnaZnaButton"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+            <Button
+                android:id="@+id/friendsMenuButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:backgroundTint="@color/slagalica_light_blue"
+                android:text="Friends"
+                android:textColor="@color/slagalica_dark_blue"
+                android:textStyle="bold" />
 
-    <Button
-        android:id="@+id/korakPoKorakButton"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="@string/korak_po_korak"
-        android:layout_margin="24dp"
-        app:layout_constraintTop_toBottomOf="@id/spojniceButton"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+            <Button
+                android:id="@+id/rankingMenuButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:backgroundTint="@color/slagalica_light_blue"
+                android:text="Ranking"
+                android:textColor="@color/slagalica_dark_blue"
+                android:textStyle="bold" />
 
-    <Button
-        android:id="@+id/mojBrojButton"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:text="@string/moj_broj"
-        android:layout_margin="24dp"
-        app:layout_constraintTop_toBottomOf="@id/korakPoKorakButton"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+            <Button
+                android:id="@+id/avatarProfileButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:backgroundTint="@color/slagalica_light_blue"
+                android:text="👤"
+                android:textColor="@color/slagalica_dark_blue"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="18dp">
+
+            <TextView
+                android:id="@+id/homeTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@color/slagalica_dark_blue"
+                android:gravity="center"
+                android:padding="16dp"
+                android:text="SLAGALICA"
+                android:textColor="@color/slagalica_yellow"
+                android:textSize="32sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/startGameButton"
+                android:layout_width="match_parent"
+                android:layout_height="72dp"
+                android:layout_marginTop="24dp"
+                android:backgroundTint="@color/slagalica_yellow"
+                android:text="START GAME"
+                android:textColor="@color/slagalica_dark_blue"
+                android:textSize="24sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:background="@color/slagalica_card"
+                android:elevation="4dp"
+                android:padding="14dp"
+                android:text="Weekly ranking\n\n1. Jovana   31 ⭐\n2. Igor     16 ⭐\n3. Lola     15 ⭐"
+                android:textColor="@color/slagalica_text"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:gravity="center"
+                android:text="Choose a game"
+                android:textColor="@color/slagalica_yellow"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/koZnaZnaButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/slagalica_card"
+                android:text="@string/ko_zna_zna"
+                android:textColor="@color/slagalica_dark_blue"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/spojniceButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/slagalica_card"
+                android:text="@string/spojnice"
+                android:textColor="@color/slagalica_dark_blue"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/korakPoKorakButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/slagalica_card"
+                android:text="@string/korak_po_korak"
+                android:textColor="@color/slagalica_dark_blue"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/mojBrojButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/slagalica_card"
+                android:text="@string/moj_broj"
+                android:textColor="@color/slagalica_dark_blue"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+</ScrollView>
