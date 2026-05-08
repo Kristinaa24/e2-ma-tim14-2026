@@ -11,6 +11,8 @@
     <string name="qr_code">QR CODE</string>
     <string name="league_icon">League icon: 🥈</string>
     <string name="avatar_frame">Avatar frame: Silver</string>
+    <string name="view_statistics">View statistics</string>
+    <string name="player_statistics">Player statistics</string>
 
     <string name="ko_zna_zna">Ko zna zna</string>
     <string name="time_25">Game time: 25s</string>
@@ -28,6 +30,7 @@
     <string name="rules">Rules</string>
     <string name="simulate_opponent">Simulate faster Player 2 answer</string>
     <string name="ko_zna_zna_rules">Correct answer: +10 | Wrong answer: -5&#10;\nEach question lasts 5 seconds. Faster correct player gets points.</string>
+    <string name="player_two_answer">Player 2 answer</string>
 
     <string name="spojnice">Spojnice</string>
     <string name="round_one">Round 1 / 2</string>
@@ -113,9 +116,10 @@
     <string name="number_placeholder">?</string>
 
 
-
     <string name="home_title">Slagalica - Home</string>
     <string name="user_info_placeholder">User info</string>
     <string name="korak_po_korak">Korak po korak</string>
     <string name="user_info_format">User: %1$s&#10;Email: %2$s&#10;Region: %3$s&#10;Tokens: %4$d&#10;Stars: %5$d&#10;League: %6$d</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>
