@@ -2,7 +2,6 @@ package com.tim14.slagalica;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
@@ -11,7 +10,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class LoginActivity extends AppCompatActivity {
 
-    private static final String TAG = "LoginActivity";
 
     private EditText emailInput, passwordInput;
     private Button loginButton, registerButton;
@@ -19,7 +17,6 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_login);
 
         emailInput = findViewById(R.id.emailInput);
@@ -30,17 +27,28 @@ public class LoginActivity extends AppCompatActivity {
 
         loginButton.setOnClickListener(v -> {
             String emailOrUsername = emailInput.getText().toString();
+            String password = passwordInput.getText().toString();
+
+            if (emailOrUsername.isEmpty()) {
+                showToast(getString(R.string.enter_email_username));
+                return;
+            }
+
+            if (password.isEmpty()) {
+                showToast(getString(R.string.enter_password));
+                return;
+            }
 
             SessionManager.currentUser = new User(
                     "TestPlayer",
-                    emailOrUsername.isEmpty() ? "test@mail.com" : emailOrUsername,
+                    emailOrUsername,
                     "Vojvodina",
                     5,
                     120,
                     2
             );
 
-            Toast.makeText(this, "Login successful.", Toast.LENGTH_SHORT).show();
+            showToast(getString(R.string.login_successful));
             startActivity(new Intent(this, HomeActivity.class));
         });
 
@@ -52,11 +60,8 @@ public class LoginActivity extends AppCompatActivity {
 
 
     }
+    private void showToast(String text) {
+        Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
+    }
 
-    @Override protected void onStart() { super.onStart(); Log.d(TAG, "onStart"); }
-    @Override protected void onRestart() { super.onRestart(); Log.d(TAG, "onRestart"); }
-    @Override protected void onResume() { super.onResume(); Log.d(TAG, "onResume"); }
-    @Override protected void onPause() { super.onPause(); Log.d(TAG, "onPause"); }
-    @Override protected void onStop() { super.onStop(); Log.d(TAG, "onStop"); }
-    @Override protected void onDestroy() { super.onDestroy(); Log.d(TAG, "onDestroy"); }
 }

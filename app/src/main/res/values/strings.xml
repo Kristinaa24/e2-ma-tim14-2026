@@ -69,6 +69,9 @@
     <string name="login">Login</string>
     <string name="register">Register</string>
     <string name="reset_password">Reset password</string>
+    <string name="login_successful">Login successful</string>
+    <string name="enter_email_username">Enter email or username.</string>
+    <string name="enter_password">Enter password.</string>
 
 
     <!-- Register -->
@@ -79,6 +82,7 @@
     <string name="registration_success">Registration successful</string>
     <string name="passwords_not_match">Passwords do not match</string>
     <string name="back_to_login">Back to login</string>
+    <string name="not_registered">Don\'t have an account yet?</string>
 
 
     <string name="old_password">Old password</string>
