@@ -295,21 +295,25 @@ public class SpojniceActivity extends AppCompatActivity {
     }
 
     private void disableLeftButton(String left) {
-        if (left.equals(left1Button.getText().toString())) left1Button.setEnabled(false);
-        if (left.equals(left2Button.getText().toString())) left2Button.setEnabled(false);
-        if (left.equals(left3Button.getText().toString())) left3Button.setEnabled(false);
-        if (left.equals(left4Button.getText().toString())) left4Button.setEnabled(false);
-        if (left.equals(left5Button.getText().toString())) left5Button.setEnabled(false);
+        if (left.equals(left1Button.getText().toString())) fadeSolvedButton(left1Button);
+        if (left.equals(left2Button.getText().toString())) fadeSolvedButton(left2Button);
+        if (left.equals(left3Button.getText().toString())) fadeSolvedButton(left3Button);
+        if (left.equals(left4Button.getText().toString())) fadeSolvedButton(left4Button);
+        if (left.equals(left5Button.getText().toString())) fadeSolvedButton(left5Button);
     }
 
     private void disableRightButton(String right) {
-        if (right.equals(right1Button.getText().toString())) right1Button.setEnabled(false);
-        if (right.equals(right2Button.getText().toString())) right2Button.setEnabled(false);
-        if (right.equals(right3Button.getText().toString())) right3Button.setEnabled(false);
-        if (right.equals(right4Button.getText().toString())) right4Button.setEnabled(false);
-        if (right.equals(right5Button.getText().toString())) right5Button.setEnabled(false);
+        if (right.equals(right1Button.getText().toString())) fadeSolvedButton(right1Button);
+        if (right.equals(right2Button.getText().toString())) fadeSolvedButton(right2Button);
+        if (right.equals(right3Button.getText().toString())) fadeSolvedButton(right3Button);
+        if (right.equals(right4Button.getText().toString())) fadeSolvedButton(right4Button);
+        if (right.equals(right5Button.getText().toString())) fadeSolvedButton(right5Button);
     }
 
+    private void fadeSolvedButton(Button button) {
+        button.setEnabled(false);
+        button.setAlpha(0.45f);
+    }
     private void enableAllPairButtons() {
         left1Button.setEnabled(true);
         left2Button.setEnabled(true);
@@ -322,6 +326,18 @@ public class SpojniceActivity extends AppCompatActivity {
         right3Button.setEnabled(true);
         right4Button.setEnabled(true);
         right5Button.setEnabled(true);
+
+        left1Button.setAlpha(1f);
+        left2Button.setAlpha(1f);
+        left3Button.setAlpha(1f);
+        left4Button.setAlpha(1f);
+        left5Button.setAlpha(1f);
+
+        right1Button.setAlpha(1f);
+        right2Button.setAlpha(1f);
+        right3Button.setAlpha(1f);
+        right4Button.setAlpha(1f);
+        right5Button.setAlpha(1f);
     }
 
     private void endGame() {
@@ -366,7 +382,6 @@ public class SpojniceActivity extends AppCompatActivity {
         super.onDestroy();
 
         cancelRoundTimer();
-        selectedPairText.removeCallbacks(null);
 
         Log.d(TAG, "onDestroy");
     }

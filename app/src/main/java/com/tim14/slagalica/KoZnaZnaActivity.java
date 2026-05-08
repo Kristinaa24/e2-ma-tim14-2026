@@ -1,6 +1,5 @@
 package com.tim14.slagalica;
 
-import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.Log;
@@ -17,7 +16,7 @@ public class KoZnaZnaActivity extends AppCompatActivity {
     private TextView gameTimerText, questionTimerText, questionCounterText;
     private TextView questionText, playerOneScoreText, playerTwoScoreText, ruleInfoText;
     private Button answerAButton, answerBButton, answerCButton, answerDButton;
-    private Button simulateOpponentButton, quitButton;
+    private Button playerTwoAnswerButton, quitButton;
 
     private int questionIndex = 0;
     private int playerOneScore = 0;
@@ -53,10 +52,6 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_ko_zna_zna);
 
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        }
-
         gameTimerText = findViewById(R.id.gameTimerText);
         questionTimerText = findViewById(R.id.questionTimerText);
         questionCounterText = findViewById(R.id.questionCounterText);
@@ -71,7 +66,7 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         answerCButton = findViewById(R.id.answerCButton);
         answerDButton = findViewById(R.id.answerDButton);
 
-        simulateOpponentButton = findViewById(R.id.simulateOpponentButton);
+        playerTwoAnswerButton = findViewById(R.id.playerTwoAnswerButton);
         quitButton = findViewById(R.id.koZnaZnaQuitButton);
 
         ruleInfoText.setText(getString(R.string.ko_zna_zna_rules));
@@ -81,7 +76,7 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         answerCButton.setOnClickListener(v -> checkPlayerOneAnswer(2));
         answerDButton.setOnClickListener(v -> checkPlayerOneAnswer(3));
 
-        simulateOpponentButton.setOnClickListener(v -> simulateOpponentAnswer());
+        playerTwoAnswerButton.setOnClickListener(v -> playerTwoAnswered());
         quitButton.setOnClickListener(v -> finish());
 
         startGameTimer();
@@ -181,7 +176,7 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         answerAButton.postDelayed(this::goToNextQuestion, 900);
     }
 
-    private void simulateOpponentAnswer() {
+    private void playerTwoAnswered() {
         if (questionAnswered || gameFinished) {
             return;
         }
@@ -191,7 +186,7 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         cancelQuestionTimer();
 
         playerTwoScore += 10;
-        Toast.makeText(this, "Player 2 was faster! +10", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Player 2 answered first! +10", Toast.LENGTH_SHORT).show();
         updateScores();
 
         answerAButton.postDelayed(this::goToNextQuestion, 900);
@@ -221,7 +216,7 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         cancelQuestionTimer();
 
         disableAnswerButtons();
-        simulateOpponentButton.setEnabled(false);
+        playerTwoAnswerButton.setEnabled(false);
 
         Toast.makeText(this,
                 "End of game. Player 1: " + playerOneScore + " | Player 2: " + playerTwoScore,
@@ -240,6 +235,7 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         answerBButton.setEnabled(true);
         answerCButton.setEnabled(true);
         answerDButton.setEnabled(true);
+        playerTwoAnswerButton.setEnabled(true);
     }
 
     private void disableAnswerButtons() {
@@ -247,6 +243,7 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         answerBButton.setEnabled(false);
         answerCButton.setEnabled(false);
         answerDButton.setEnabled(false);
+        playerTwoAnswerButton.setEnabled(false);
     }
 
     private void cancelGameTimer() {
@@ -277,11 +274,6 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         Log.d(TAG, "onDestroy");
     }
 
-    @Override
-    public boolean onSupportNavigateUp() {
-        finish();
-        return true;
-    }
 
     @Override protected void onStart() { super.onStart(); Log.d(TAG, "onStart"); }
     @Override protected void onRestart() { super.onRestart(); Log.d(TAG, "onRestart"); }
