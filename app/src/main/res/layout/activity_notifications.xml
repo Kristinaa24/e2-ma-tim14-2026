@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/slagalica_blue"
+    android:orientation="vertical">
+
+    <!-- Top Navigation Menu (copied from home for consistency) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="70dp"
+        android:background="@color/slagalica_light_blue"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="4dp">
+
+        <Button
+            android:id="@+id/playMenuButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:backgroundTint="@color/slagalica_light_blue"
+            android:text="Play"
+            android:textColor="@color/slagalica_dark_blue"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/friendsMenuButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:backgroundTint="@color/slagalica_light_blue"
+            android:text="Friends"
+            android:textColor="@color/slagalica_dark_blue"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/rankingMenuButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:backgroundTint="@color/slagalica_light_blue"
+            android:text="Ranking"
+            android:textColor="@color/slagalica_dark_blue"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/notificationsMenuButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:backgroundTint="@color/slagalica_yellow"
+            android:text="🔔"
+            android:textColor="@color/slagalica_dark_blue"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/avatarProfileButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:backgroundTint="@color/slagalica_light_blue"
+            android:text="👤"
+            android:textColor="@color/slagalica_dark_blue"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="@string/notifications"
+            android:textColor="@color/slagalica_yellow"
+            android:textSize="26sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnAllNotifications"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:backgroundTint="@color/slagalica_yellow"
+                android:text="@string/all_notifications"
+                android:textColor="@color/slagalica_dark_blue" />
+
+            <Button
+                android:id="@+id/btnUnreadNotifications"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/slagalica_light_blue"
+                android:text="@string/unread_notifications"
+                android:textColor="@color/slagalica_dark_blue" />
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/notificationsRecyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="16dp"
+            android:layout_weight="1" />
+
+        <TextView
+            android:id="@+id/emptyNotificationsText"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="@string/no_notifications"
+            android:textColor="@color/white"
+            android:visibility="gone" />
+    </LinearLayout>
+
+</LinearLayout>

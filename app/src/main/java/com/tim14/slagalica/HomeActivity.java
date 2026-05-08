@@ -14,6 +14,9 @@ public class HomeActivity extends AppCompatActivity {
     private Button spojniceButton;
     private Button korakPoKorakButton;
     private Button mojBrojButton;
+    private Button asocijacijeButton;
+    private Button skockoButton;
+    private Button notificationsMenuButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -26,6 +29,9 @@ public class HomeActivity extends AppCompatActivity {
         spojniceButton = findViewById(R.id.spojniceButton);
         korakPoKorakButton = findViewById(R.id.korakPoKorakButton);
         mojBrojButton = findViewById(R.id.mojBrojButton);
+        asocijacijeButton = findViewById(R.id.asocijacijeButton);
+        skockoButton = findViewById(R.id.skockoButton);
+        notificationsMenuButton = findViewById(R.id.notificationsMenuButton);
 
         if (SessionManager.currentUser == null) {
             SessionManager.currentUser =
@@ -34,6 +40,10 @@ public class HomeActivity extends AppCompatActivity {
 
         avatarProfileButton.setOnClickListener(v ->
                 startActivity(new Intent(HomeActivity.this, ProfileActivity.class))
+        );
+
+        notificationsMenuButton.setOnClickListener(v ->
+                startActivity(new Intent(HomeActivity.this, NotificationsActivity.class))
         );
 
         startGameButton.setOnClickListener(v ->
@@ -54,6 +64,14 @@ public class HomeActivity extends AppCompatActivity {
 
         mojBrojButton.setOnClickListener(v ->
                 startActivity(new Intent(HomeActivity.this, MojBrojActivity.class))
+        );
+
+        asocijacijeButton.setOnClickListener(v ->
+                startActivity(new Intent(HomeActivity.this, AsocijacijeActivity.class))
+        );
+
+        skockoButton.setOnClickListener(v ->
+                startActivity(new Intent(HomeActivity.this, SkockoActivity.class))
         );
     }
 }
