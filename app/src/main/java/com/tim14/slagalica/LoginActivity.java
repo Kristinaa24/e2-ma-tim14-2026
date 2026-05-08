@@ -16,7 +16,7 @@ public class LoginActivity extends AppCompatActivity {
     private EditText emailInput, passwordInput;
     private Button loginButton, registerButton;
     private TextView errorText;
-    private TextView forgotPasswordText;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,7 +28,7 @@ public class LoginActivity extends AppCompatActivity {
         loginButton = findViewById(R.id.loginButton);
         registerButton = findViewById(R.id.registerButton);
         errorText = findViewById(R.id.errorText);
-        forgotPasswordText = findViewById(R.id.forgotPasswordText);
+
 
 
         loginButton.setOnClickListener(v -> {
@@ -64,16 +64,14 @@ public class LoginActivity extends AppCompatActivity {
         registerButton.setOnClickListener(v ->
                 startActivity(new Intent(this, RegisterActivity.class))
         );
-        forgotPasswordText.setOnClickListener(v ->
-                startActivity(new Intent(this, ResetPasswordActivity.class))
-        );
+
 
 
 
 
     }
     private void showToast(String text) {
-        Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, text, Toast.LENGTH_LONG).show();
     }
 
 }
