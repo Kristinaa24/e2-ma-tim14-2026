@@ -5,6 +5,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.content.Intent;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -76,9 +77,22 @@ public class MojBrojActivity extends AppCompatActivity {
             String expression = expressionInput.getText().toString().trim();
 
             if (expression.isEmpty()) {
-                Toast.makeText(this, "Unesi izraz.", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Enter expression.", Toast.LENGTH_SHORT).show();
             } else {
-                resultText.setText("Uneti izraz: " + expression);
+                resultText.setText("Entered expression: " + expression);
+
+                Toast.makeText(this, "Match finished!", Toast.LENGTH_SHORT).show();
+
+                resultText.postDelayed(() -> {
+                    Intent intent = new Intent(
+                            MojBrojActivity.this,
+                            HomeActivity.class
+                    );
+
+                    startActivity(intent);
+                    finish();
+
+                }, 2000);
             }
         });
     }

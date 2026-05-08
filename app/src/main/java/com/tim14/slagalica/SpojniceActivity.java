@@ -6,6 +6,7 @@ import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.content.Intent;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -357,7 +358,17 @@ public class SpojniceActivity extends AppCompatActivity {
                 "End of Spojnice. Player 1: " + playerOneScore + " | Player 2: " + playerTwoScore,
                 Toast.LENGTH_LONG).show();
 
-        selectedPairText.postDelayed(() -> finish(), 3000);
+        selectedPairText.postDelayed(() -> {
+
+            Intent intent = new Intent(
+                    SpojniceActivity.this,
+                    KorakPoKorakActivity.class
+            );
+
+            startActivity(intent);
+            finish();
+
+        }, 3000);
     }
 
     private void updateHeader() {

@@ -5,6 +5,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.content.Intent;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -91,6 +92,18 @@ public class KorakPoKorakActivity extends AppCompatActivity {
             step7Text.setText(steps[6]);
 
             Toast.makeText(this, "Correct answer!", Toast.LENGTH_SHORT).show();
+
+            scoreText.postDelayed(() -> {
+
+                Intent intent = new Intent(
+                        KorakPoKorakActivity.this,
+                        MojBrojActivity.class
+                );
+
+                startActivity(intent);
+                finish();
+
+            }, 2000);
         }
     }
 }

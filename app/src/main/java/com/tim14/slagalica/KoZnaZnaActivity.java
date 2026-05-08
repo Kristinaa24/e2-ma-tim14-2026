@@ -6,6 +6,7 @@ import android.util.Log;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.content.Intent;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -222,7 +223,17 @@ public class KoZnaZnaActivity extends AppCompatActivity {
                 "End of game. Player 1: " + playerOneScore + " | Player 2: " + playerTwoScore,
                 Toast.LENGTH_LONG).show();
 
-        questionText.postDelayed(() -> finish(), 3000);
+        questionText.postDelayed(() -> {
+
+            Intent intent = new Intent(
+                    KoZnaZnaActivity.this,
+                    SpojniceActivity.class
+            );
+
+            startActivity(intent);
+            finish();
+
+        }, 3000);
     }
 
     private void updateScores() {
