@@ -52,7 +52,6 @@ public class HomeActivity extends AppCompatActivity {
         asocijacijeButton = findViewById(R.id.asocijacijeButton);
         skockoButton = findViewById(R.id.skockoButton);
         notificationsMenuButton = findViewById(R.id.notificationsMenuButton);
-        topStatsLayout = findViewById(R.id.topStatsLayout);
         logoutButton = findViewById(R.id.logoutButton);
 
         tvProfile = findViewById(R.id.tvProfile);
