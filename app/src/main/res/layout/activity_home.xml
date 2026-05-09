@@ -13,7 +13,6 @@
         android:orientation="vertical"
         android:background="@color/slagalica_blue">
 
-        <!-- Toolbar -->
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/homeToolbar"
             android:layout_width="match_parent"
@@ -22,13 +21,14 @@
             app:title="Slagalica"
             app:titleTextColor="@color/slagalica_dark_blue" />
 
-        <!-- Status Bar -->
         <LinearLayout
+            android:id="@+id/topStatsLayout"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="@color/slagalica_dark_blue"
             android:orientation="horizontal"
             android:padding="6dp">
+
             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🪙 5" android:textColor="@color/slagalica_yellow" android:textSize="14sp" android:gravity="center" android:textStyle="bold" />
             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="⭐ 120" android:textColor="@color/slagalica_yellow" android:textSize="14sp" android:gravity="center" android:textStyle="bold" />
             <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🥈 Silver" android:textColor="@color/slagalica_yellow" android:textSize="14sp" android:gravity="center" android:textStyle="bold" />
@@ -40,25 +40,25 @@
             android:orientation="vertical"
             android:padding="12dp">
 
-            <!-- Welcome Panel -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:padding="16dp"
                 android:background="@drawable/bg_home_panel">
+
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Ready for battle?" android:textColor="@color/slagalica_yellow" android:textSize="22sp" android:textStyle="bold" />
                 <Button android:id="@+id/startGameButton" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="12dp" android:backgroundTint="@color/slagalica_yellow" android:text="START GAME" android:textColor="@color/slagalica_dark_blue" android:textSize="20sp" android:textStyle="bold" />
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="Players online: 37/74" android:textColor="@color/white" android:textSize="13sp" />
             </LinearLayout>
 
-            <!-- Navigation Buttons Bar -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:orientation="horizontal"
                 android:weightSum="4">
+
                 <TextView android:id="@+id/tvProfile" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:layout_marginEnd="4dp" android:gravity="center" android:text="👤\nProfile" android:textColor="@color/slagalica_dark_blue" android:textSize="12sp" android:textStyle="bold" android:background="@drawable/bg_home_card" />
                 <TextView android:id="@+id/tvFriends" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:layout_marginHorizontal="4dp" android:gravity="center" android:text="👥\nFriends" android:textColor="@color/slagalica_dark_blue" android:textSize="12sp" android:textStyle="bold" android:background="@drawable/bg_home_card" />
                 <TextView android:id="@+id/tvRanking" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:layout_marginHorizontal="4dp" android:gravity="center" android:text="🏆\nRank" android:textColor="@color/slagalica_dark_blue" android:textSize="12sp" android:textStyle="bold" android:background="@drawable/bg_home_card" />
@@ -67,11 +67,11 @@
 
             <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Available games" android:textColor="@color/slagalica_yellow" android:textSize="18sp" android:textStyle="bold" />
 
-            <!-- Games List (Vertical) -->
             <ScrollView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_marginTop="8dp">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -89,14 +89,35 @@
         </LinearLayout>
     </LinearLayout>
 
-    <com.google.android.material.navigation.NavigationView
-        android:id="@+id/navigationView"
+    <LinearLayout
         android:layout_width="280dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
-        android:background="@color/slagalica_card"
-        app:headerLayout="@layout/nav_header"
-        app:itemIconTint="@color/slagalica_dark_blue"
-        app:itemTextColor="@color/slagalica_dark_blue"
-        app:menu="@menu/nav_menu" />
+        android:orientation="vertical"
+        android:background="@color/slagalica_card">
+
+        <com.google.android.material.navigation.NavigationView
+            android:id="@+id/navigationView"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@color/slagalica_card"
+            app:headerLayout="@layout/nav_header"
+            app:itemIconTint="@color/slagalica_dark_blue"
+            app:itemTextColor="@color/slagalica_dark_blue"
+            app:menu="@menu/nav_menu" />
+
+        <Button
+            android:id="@+id/logoutButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_margin="16dp"
+            android:backgroundTint="@color/slagalica_red"
+            android:text="Logout"
+            android:textAllCaps="false"
+            android:textColor="@color/white"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
 </androidx.drawerlayout.widget.DrawerLayout>

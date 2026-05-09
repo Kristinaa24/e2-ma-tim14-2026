@@ -10,6 +10,8 @@ import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.drawerlayout.widget.DrawerLayout;
+import android.view.View;
+import android.widget.LinearLayout;
 
 import com.google.android.material.navigation.NavigationView;
 
@@ -22,8 +24,10 @@ public class HomeActivity extends AppCompatActivity {
     private Button mojBrojButton;
     private Button asocijacijeButton;
     private Button skockoButton;
+    private Button logoutButton;
     private TextView notificationsMenuButton;
     private TextView tvProfile, tvFriends, tvRanking;
+    private LinearLayout topStatsLayout;
 
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
@@ -39,7 +43,7 @@ public class HomeActivity extends AppCompatActivity {
         drawerLayout = findViewById(R.id.drawerLayout);
         navigationView = findViewById(R.id.navigationView);
         homeToolbar = findViewById(R.id.homeToolbar);
-        
+
         startGameButton = findViewById(R.id.startGameButton);
         koZnaZnaButton = findViewById(R.id.koZnaZnaButton);
         spojniceButton = findViewById(R.id.spojniceButton);
@@ -48,10 +52,29 @@ public class HomeActivity extends AppCompatActivity {
         asocijacijeButton = findViewById(R.id.asocijacijeButton);
         skockoButton = findViewById(R.id.skockoButton);
         notificationsMenuButton = findViewById(R.id.notificationsMenuButton);
-        
+        topStatsLayout = findViewById(R.id.topStatsLayout);
+        logoutButton = findViewById(R.id.logoutButton);
+
         tvProfile = findViewById(R.id.tvProfile);
         tvFriends = findViewById(R.id.tvFriends);
         tvRanking = findViewById(R.id.tvRanking);
+        boolean isGuest = getIntent().getBooleanExtra("IS_GUEST", false);
+
+        if (isGuest) {
+            tvProfile.setVisibility(View.GONE);
+            tvFriends.setVisibility(View.GONE);
+            tvRanking.setVisibility(View.GONE);
+            notificationsMenuButton.setVisibility(View.GONE);
+            topStatsLayout.setVisibility(View.GONE);
+            navigationView.getMenu().findItem(R.id.nav_profile).setVisible(false);
+            logoutButton.setVisibility(View.GONE);
+        }
+        else {
+
+            navigationView.getMenu().findItem(R.id.nav_login).setVisible(false);
+            navigationView.getMenu().findItem(R.id.nav_register).setVisible(false);
+            logoutButton.setVisibility(View.VISIBLE);
+        }
 
         // Setup Toolbar & Drawer
         setSupportActionBar(homeToolbar);
@@ -73,6 +96,7 @@ public class HomeActivity extends AppCompatActivity {
                 startActivity(new Intent(HomeActivity.this, LoginActivity.class));
             } else if (id == R.id.nav_register) {
                 startActivity(new Intent(HomeActivity.this, RegisterActivity.class));
+
             }
             drawerLayout.closeDrawers();
             return true;
@@ -117,5 +141,11 @@ public class HomeActivity extends AppCompatActivity {
         skockoButton.setOnClickListener(v ->
                 startActivity(new Intent(HomeActivity.this, SkockoActivity.class))
         );
+
+        logoutButton.setOnClickListener(v -> {
+            Intent intent = new Intent(HomeActivity.this, WelcomeActivity.class);
+            startActivity(intent);
+            finish();
+        });
     }
 }
