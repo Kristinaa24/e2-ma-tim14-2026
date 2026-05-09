@@ -1,0 +1,181 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/slagalica_blue"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:padding="18dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:text="@string/ko_zna_zna"
+            android:textSize="30sp"
+            android:textStyle="bold"
+            android:textColor="@color/slagalica_yellow"
+            android:gravity="center"
+            android:background="@color/slagalica_dark_blue"
+            android:padding="14dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <LinearLayout
+            android:orientation="vertical"
+            android:background="@color/slagalica_card"
+            android:elevation="4dp"
+            android:padding="14dp"
+            android:layout_marginTop="14dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/gameTimerText"
+                android:text="@string/time_25"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:textColor="@color/slagalica_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:id="@+id/questionTimerText"
+                android:text="@string/question_time_5"
+                android:textSize="17sp"
+                android:textColor="@color/slagalica_text"
+                android:layout_marginTop="4dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:id="@+id/questionCounterText"
+                android:text="@string/question_counter"
+                android:textSize="17sp"
+                android:textStyle="bold"
+                android:textColor="@color/slagalica_text"
+                android:layout_marginTop="4dp"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+
+            <TextView
+                android:id="@+id/playerOneScoreText"
+                android:text="@string/player_one_score"
+                android:background="@color/slagalica_card"
+                android:elevation="4dp"
+                android:padding="12dp"
+                android:textStyle="bold"
+                android:textColor="@color/slagalica_text"
+                android:gravity="center"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:id="@+id/playerTwoScoreText"
+                android:text="@string/player_two_score"
+                android:background="@color/slagalica_card"
+                android:elevation="4dp"
+                android:padding="12dp"
+                android:textStyle="bold"
+                android:textColor="@color/slagalica_text"
+                android:gravity="center"
+                android:layout_marginStart="10dp"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/ruleInfoText"
+            android:text="@string/rules"
+            android:textSize="15sp"
+            android:textColor="@color/slagalica_text"
+            android:background="@color/slagalica_light_blue"
+            android:elevation="4dp"
+            android:padding="14dp"
+            android:layout_marginTop="16dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <TextView
+            android:id="@+id/questionText"
+            android:text="@string/question_placeholder"
+            android:textSize="21sp"
+            android:textStyle="bold"
+            android:textColor="@color/slagalica_dark_blue"
+            android:background="@color/slagalica_yellow"
+            android:elevation="4dp"
+            android:padding="18dp"
+            android:gravity="center"
+            android:layout_marginTop="22dp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/answerAButton"
+            android:text="@string/answer_a"
+            android:layout_marginTop="14dp"
+            android:backgroundTint="@color/slagalica_card"
+            android:textColor="@color/slagalica_dark_blue"
+            android:textStyle="bold"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/answerBButton"
+            android:text="@string/answer_b"
+            android:backgroundTint="@color/slagalica_card"
+            android:textColor="@color/slagalica_dark_blue"
+            android:textStyle="bold"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/answerCButton"
+            android:text="@string/answer_c"
+            android:backgroundTint="@color/slagalica_card"
+            android:textColor="@color/slagalica_dark_blue"
+            android:textStyle="bold"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/answerDButton"
+            android:text="@string/answer_d"
+            android:backgroundTint="@color/slagalica_card"
+            android:textColor="@color/slagalica_dark_blue"
+            android:textStyle="bold"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/playerTwoAnswerButton"
+            android:text="@string/player_two_answer"
+            android:layout_marginTop="16dp"
+            android:backgroundTint="@color/slagalica_light_blue"
+            android:textColor="@color/slagalica_dark_blue"
+            android:textStyle="bold"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+        <Button
+            android:id="@+id/koZnaZnaQuitButton"
+            android:text="@string/quit_game"
+            android:backgroundTint="@color/slagalica_red"
+            android:textColor="@color/white"
+            android:textStyle="bold"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" />
+
+    </LinearLayout>
+
+</ScrollView>

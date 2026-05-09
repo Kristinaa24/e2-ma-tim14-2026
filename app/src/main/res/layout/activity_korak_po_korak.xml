@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="20dp"
+    android:background="@color/slagalica_dark_blue">
+
+    <TextView
+        android:id="@+id/kpkTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/korak_po_korak"
+        android:textColor="@color/slagalica_yellow"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:gravity="center" />
+
+    <TextView
+        android:id="@+id/timerText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/time_70"
+        android:textColor="@color/slagalica_yellow"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginTop="12dp" />
+
+    <TextView
+        android:id="@+id/scoreText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/score_0"
+        android:textColor="@color/white"
+        android:textSize="20sp"
+        android:gravity="center"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/step1Text"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="@string/step_1_sunce"
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:background="@color/slagalica_blue" />
+
+    <TextView
+        android:id="@+id/step2Text"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text=""
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:background="@color/slagalica_blue"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/step3Text"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text=""
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:background="@color/slagalica_blue"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/step4Text"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text=""
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:background="@color/slagalica_blue"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/step5Text"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text=""
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:background="@color/slagalica_blue"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/step6Text"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text=""
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:background="@color/slagalica_blue"
+        android:layout_marginTop="8dp" />
+
+    <TextView
+        android:id="@+id/step7Text"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text=""
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:background="@color/slagalica_blue"
+        android:layout_marginTop="8dp" />
+
+    <EditText
+        android:id="@+id/answerInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="@string/enter_final_answer"
+        android:textColor="@color/white"
+        android:textColorHint="@color/light_gray"
+        android:layout_marginTop="20dp" />
+
+    <Button
+        android:id="@+id/nextStepButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/next_step" />
+
+    <Button
+        android:id="@+id/submitButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/submit_answer" />
+
+
+    <Button
+        android:id="@+id/quitGameButton"
+        android:layout_width="220dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="14dp"
+        android:text="@string/quit_game"
+        android:backgroundTint="@color/slagalica_red"
+        android:textColor="@color/white"
+        android:textStyle="bold" />
+
+</LinearLayout>

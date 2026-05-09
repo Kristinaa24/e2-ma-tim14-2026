@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+
+    <color name="slagalica_blue">#123C8C</color>
+    <color name="slagalica_dark_blue">#0B2463</color>
+    <color name="slagalica_light_blue">#DCEBFF</color>
+    <color name="slagalica_yellow">#FFD84D</color>
+    <color name="slagalica_red">#E53935</color>
+    <color name="slagalica_card">#FFFFFF</color>
+    <color name="slagalica_text">#1E2A44</color>
+    <color name="light_gray">#DDDDDD</color>
+</resources>

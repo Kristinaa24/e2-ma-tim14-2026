@@ -1,0 +1,155 @@
+<resources>
+    <string name="app_name">Slagalica</string>
+
+    <string name="profile">Profile</string>
+    <string name="avatar_placeholder">Avatar</string>
+    <string name="profile_info_placeholder">Profile info</string>
+    <string name="change_avatar">Change avatar</string>
+    <string name="statistics_placeholder">Statistics</string>
+    <string name="logout">Logout</string>
+    <string name="silver_league">Silver League</string>
+    <string name="qr_code">QR CODE</string>
+    <string name="league_icon">League icon: 🥈</string>
+    <string name="avatar_frame">Avatar frame: Silver</string>
+    <string name="view_statistics">View statistics</string>
+    <string name="player_statistics">Player statistics</string>
+
+    <string name="ko_zna_zna">Ko zna zna</string>
+    <string name="time_25">Game time: 25s</string>
+    <string name="question_time_5">Question time: 5s</string>
+    <string name="question_counter">Question 1 / 5</string>
+    <string name="question_placeholder">Question</string>
+    <string name="answer_a">Answer A</string>
+    <string name="answer_b">Answer B</string>
+    <string name="answer_c">Answer C</string>
+    <string name="answer_d">Answer D</string>
+    <string name="quit_game">Quit game</string>
+    <string name="player_one_score">Player 1 score: 0</string>
+    <string name="player_two_score">Player 2 score: 0</string>
+    <string name="rules">Rules</string>
+    <string name="simulate_opponent">Simulate faster Player 2 answer</string>
+    <string name="ko_zna_zna_rules">Correct answer: +10 | Wrong answer: -5&#10;\nEach question lasts 5 seconds. Faster correct player gets points.</string>
+    <string name="player_two_answer">Player 2 answer</string>
+
+    <string name="spojnice">Spojnice</string>
+    <string name="round_one">Round 1 / 2</string>
+    <string name="current_player_one">Current player: Player 1</string>
+    <string name="time_30">Time: 30s</string>
+    <string name="player_one_zero">Player 1: 0</string>
+    <string name="player_two_zero">Player 2: 0</string>
+    <string name="spojnice_rules">Connect singers with their songs. Each correct connection gives +2 points.</string>
+    <string name="selected_pair_none">Selected pair: none</string>
+    <string name="confirm_connection">Confirm connection</string>
+    <string name="second_chance_message">Second chance: other player connects the remaining pairs.</string>
+
+    <string name="adele">Adele</string>
+    <string name="lady_gaga">Lady Gaga</string>
+    <string name="ariana_grande">Ariana Grande</string>
+    <string name="taylor_swift">Taylor Swift</string>
+    <string name="beyonce">Beyonce</string>
+
+    <string name="hello">Hello</string>
+    <string name="bad_romance">Bad Romance</string>
+    <string name="seven_rings">7 Rings</string>
+    <string name="shake_it_off">Shake It Off</string>
+    <string name="halo">Halo</string>
+
+    <string name="bruno_mars">Bruno Mars</string>
+    <string name="michael_jackson">Michael Jackson</string>
+    <string name="ed_sheeran">Ed Sheeran</string>
+    <string name="the_weeknd">The Weeknd</string>
+    <string name="justin_timberlake">Justin Timberlake</string>
+
+    <string name="uptown_funk">Uptown Funk</string>
+    <string name="billie_jean">Billie Jean</string>
+    <string name="shape_of_you">Shape of You</string>
+    <string name="blinding_lights">Blinding Lights</string>
+    <string name="mirrors">Mirrors</string>
+
+    <string name="email_or_username">Email or username</string>
+    <string name="password">Password</string>
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="reset_password">Reset password</string>
+    <string name="login_successful">Login successful</string>
+    <string name="enter_email_username">Enter email or username.</string>
+    <string name="enter_password">Enter password.</string>
+
+
+    <!-- Register -->
+    <string name="username">Username</string>
+    <string name="email">Email</string>
+    <string name="region">Region</string>
+    <string name="repeat_password">Repeat password</string>
+    <string name="registration_success">Registration successful</string>
+    <string name="passwords_not_match">Passwords do not match</string>
+    <string name="back_to_login">Back to login</string>
+    <string name="not_registered">Don\'t have an account yet?</string>
+    <string name="fill_all_fields">Fill all fields</string>
+    <string name="passwords_do_not_match">Passwords do not match</string>
+    <string name="registration_successful">
+    Registration successful. Check your email to activate your account.
+    </string>
+    <string name="reset_your_password">Reset your password</string>
+    <string name="forgot_password">Forgot password?</string>
+    <string name="old_password">Old password</string>
+    <string name="new_password">New password</string>
+    <string name="repeat_new_password">Repeat new password</string>
+    <string name="confirm">Confirm</string>
+    <string name="new_passwords_do_not_match">New passwords do not match</string>
+    <string name="password_changed_successfully">Password changed successfully</string>
+
+    <string name="change_password">Change password</string>
+
+    <string name="moj_broj">Moj broj</string>
+    <string name="target_number_label">Traženi broj:</string>
+    <string name="offered_numbers_label">Ponuđeni brojevi:</string>
+    <string name="offered_numbers">5   3   8   5   20   25</string>
+    <string name="target_number_972">972</string>
+    <string name="enter_result_hint">Unesi rezultat, npr. 972</string>
+    <string name="check">Proveri</string>
+    <string name="correct_moj_broj">Tačno! Dobila si moj broj.</string>
+    <string name="wrong_moj_broj">Netačno. Pokušaj ponovo.</string>
+    <string name="correct">Tačno!</string>
+    <string name="wrong">Netačno.</string>
+    <string name="round_one_of_two">Round 1 / 2</string>
+    <string name="current_player_one_moj_broj">Current player: Player 1</string>
+    <string name="time_60">Time: 60s</string>
+    <string name="stop_target_number">STOP broj</string>
+    <string name="stop_numbers">STOP brojevi</string>
+    <string name="expression_label">Izraz:</string>
+    <string name="enter_expression_hint">Unesi izraz, npr. (25+5)*20</string>
+    <string name="clear">Obriši</string>
+    <string name="moj_broj_rules">Pomoću ponuđenih brojeva i operacija +, -, *, /, (, ) pokušaj da dobiješ traženi broj.</string>
+    <string name="target_number_placeholder">---</string>
+    <string name="number_placeholder">/?</string>
+
+
+    <string name="home_title">Slagalica - Home</string>
+    <string name="user_info_placeholder">User info</string>
+    <string name="korak_po_korak">Korak po korak</string>
+    <string name="time_70">Time: 70s</string>
+    <string name="score_0">Score: 0</string>
+    <string name="step_1_sunce">1. Nebesko telo</string>
+    <string name="enter_final_answer">Enter final answer</string>
+    <string name="next_step">Next step</string>
+    <string name="submit_answer">Submit answer</string>
+    <string name="user_info_format">User: %1$s&#10;Email: %2$s&#10;Region: %3$s&#10;Tokens: %4$d&#10;Stars: %5$d&#10;League: %6$d</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="enter_expression">Enter expression.</string>
+    <string name="match_finished">Match finished!</string>
+    <string name="entered_expression">Entered expression: %1$s</string>
+    <string name="confirm_password_change">Confirm password change</string>
+    <string name="confirm_password_change_message">
+    Are you sure you want to change your password?
+</string>
+
+    <string name="yes">YES</string>
+    <string name="no">NO</string>
+
+</resources>

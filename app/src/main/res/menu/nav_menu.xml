@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:showIn="navigation_view">
+
+    <group android:checkableBehavior="single">
+
+        <item
+            android:id="@+id/nav_profile"
+            android:title="Profile"
+            android:icon="@drawable/baseline_person_24"
+            android:orderInCategory="100" />
+
+        <item
+            android:id="@+id/nav_login"
+            android:title="Login"
+            android:icon="@drawable/baseline_login_24"
+            android:orderInCategory="200" />
+
+        <item
+            android:id="@+id/nav_register"
+            android:title="Register"
+            android:icon="@drawable/baseline_app_registration_24"
+            android:orderInCategory="300" />
+
+    </group>
+
+</menu>

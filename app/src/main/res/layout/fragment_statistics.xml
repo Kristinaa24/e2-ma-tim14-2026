@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#99000000"
+    android:padding="18dp">
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:background="@color/slagalica_dark_blue">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="18dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:background="@color/slagalica_light_blue"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="14dp"
+                android:paddingEnd="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:text="@string/player_statistics"
+                    android:textColor="@color/slagalica_dark_blue"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+
+                <Button
+                    android:id="@+id/closeStatisticsButton"
+                    android:layout_width="52dp"
+                    android:layout_height="44dp"
+                    android:backgroundTint="@color/slagalica_red"
+                    android:text="X"
+                    android:textColor="@color/white"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="130dp"
+                    android:layout_weight="1"
+                    android:background="@color/slagalica_blue"
+                    android:gravity="center"
+                    android:text="Success\n60%"
+                    android:textColor="@color/white"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="130dp"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:background="@color/slagalica_blue"
+                    android:gravity="center"
+                    android:text="Games played\n12"
+                    android:textColor="@color/white"
+                    android:textSize="24sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:background="@color/slagalica_card"
+                android:padding="14dp"
+                android:text="Average score per game:\n\nKo zna zna: 34 / 50\nSpojnice: 14 / 20\nAsocijacije: 38 / 60\nSkočko: 25 / 40\nKorak po korak: 18 / 40\nMoj broj: 7 / 20"
+                android:textColor="@color/slagalica_text"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@color/slagalica_card"
+                android:padding="14dp"
+                android:text="Ko zna zna:\nCorrect answers: 42\nWrong answers: 18\n\nMoj broj:\nExact target number found: 40%\n\nSpojnice:\nSuccessfully connected pairs: 60%"
+                android:textColor="@color/slagalica_text"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@color/slagalica_card"
+                android:padding="14dp"
+                android:text="Korak po korak:\nStep 1: 5%\nStep 2: 8%\nStep 3: 12%\nStep 4: 20%\nStep 5: 25%\nStep 6: 18%\nStep 7: 12%"
+                android:textColor="@color/slagalica_text"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@color/slagalica_card"
+                android:padding="14dp"
+                android:text="Asocijacije:\nSolved: 9\nUnsolved: 4\n\nSkočko:\nAttempt 1: 5%\nAttempt 2: 10%\nAttempt 3: 20%\nAttempt 4: 25%\nAttempt 5: 25%\nAttempt 6: 15%"
+                android:textColor="@color/slagalica_text"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:background="@color/slagalica_yellow"
+                android:padding="14dp"
+                android:text="Total played games: 12\nWins: 7\nLosses: 5\nWin rate: 58%\nLoss rate: 42%"
+                android:textColor="@color/slagalica_dark_blue"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+        </LinearLayout>
+    </ScrollView>
+
+</FrameLayout>
