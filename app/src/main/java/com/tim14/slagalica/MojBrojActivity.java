@@ -150,17 +150,114 @@ public class MojBrojActivity extends AppCompatActivity {
             return;
         }
 
-        resultText.setText(getString(R.string.entered_expression, expression));
+        String targetText = targetNumberText.getText().toString().trim();
 
-        Toast.makeText(this, getString(R.string.match_finished), Toast.LENGTH_SHORT).show();
+        if (targetText.isEmpty() || targetText.equals("?")) {
+            Toast.makeText(this, "Generate target number first.", Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-        resultText.postDelayed(() -> {
-            Intent intent = new Intent(MojBrojActivity.this, HomeActivity.class);
+        int targetNumber = Integer.parseInt(targetText);
 
-            intent.putExtra("IS_GUEST", isGuest);
+        try {
+            int result = evaluateSimpleExpression(expression);
 
-            startActivity(intent);
-            finish();
-        }, 2000);
+            if (result == targetNumber) {
+                resultText.setText("Result: " + result + " - Correct answer!");
+                Toast.makeText(this, "Correct answer!", Toast.LENGTH_SHORT).show();
+            } else {
+                resultText.setText("Result: " + result + " - Wrong answer!");
+                Toast.makeText(this, "Wrong answer!", Toast.LENGTH_SHORT).show();
+            }
+
+        } catch (Exception e) {
+            Toast.makeText(this, "Invalid expression.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+
+    private int evaluateSimpleExpression(String expression) {
+        return (int) new Object() {
+            int position = -1;
+            int currentChar;
+
+            void nextChar() {
+                currentChar = (++position < expression.length()) ? expression.charAt(position) : -1;
+            }
+
+            boolean eat(int charToEat) {
+                while (currentChar == ' ') {
+                    nextChar();
+                }
+
+                if (currentChar == charToEat) {
+                    nextChar();
+                    return true;
+                }
+
+                return false;
+            }
+
+            int parse() {
+                nextChar();
+                int result = parseExpression();
+
+                if (position < expression.length()) {
+                    throw new RuntimeException("Unexpected character");
+                }
+
+                return result;
+            }
+
+            int parseExpression() {
+                int result = parseTerm();
+
+                while (true) {
+                    if (eat('+')) {
+                        result += parseTerm();
+                    } else if (eat('-')) {
+                        result -= parseTerm();
+                    } else {
+                        return result;
+                    }
+                }
+            }
+
+            int parseTerm() {
+                int result = parseFactor();
+
+                while (true) {
+                    if (eat('*')) {
+                        result *= parseFactor();
+                    } else if (eat('/')) {
+                        result /= parseFactor();
+                    } else {
+                        return result;
+                    }
+                }
+            }
+
+            int parseFactor() {
+                if (eat('+')) return parseFactor();
+                if (eat('-')) return -parseFactor();
+
+                int result;
+
+                if (eat('(')) {
+                    result = parseExpression();
+                    eat(')');
+                } else {
+                    int startPosition = this.position;
+
+                    while (currentChar >= '0' && currentChar <= '9') {
+                        nextChar();
+                    }
+
+                    result = Integer.parseInt(expression.substring(startPosition, this.position));
+                }
+
+                return result;
+            }
+        }.parse();
     }
 }
