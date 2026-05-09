@@ -102,25 +102,25 @@
     <string name="change_password">Change password</string>
 
     <string name="moj_broj">Moj broj</string>
-    <string name="target_number_label">Traženi broj:</string>
-    <string name="offered_numbers_label">Ponuđeni brojevi:</string>
+    <string name="target_number_label">Target number:</string>
+    <string name="offered_numbers_label">Offered numbers:</string>
     <string name="offered_numbers">5   3   8   5   20   25</string>
     <string name="target_number_972">972</string>
-    <string name="enter_result_hint">Unesi rezultat, npr. 972</string>
-    <string name="check">Proveri</string>
-    <string name="correct_moj_broj">Tačno! Dobila si moj broj.</string>
-    <string name="wrong_moj_broj">Netačno. Pokušaj ponovo.</string>
-    <string name="correct">Tačno!</string>
-    <string name="wrong">Netačno.</string>
+    <string name="enter_result_hint">Enter result, e.g. 972</string>
+    <string name="check">Check</string>
+    <string name="correct_moj_broj">Correct! You got my number.</string>
+    <string name="wrong_moj_broj">Incorrect. Try again.</string>
+    <string name="correct">Correct!</string>
+    <string name="wrong">Incorrect.</string>
     <string name="round_one_of_two">Round 1 / 2</string>
     <string name="current_player_one_moj_broj">Current player: Player 1</string>
     <string name="time_60">Time: 60s</string>
-    <string name="stop_target_number">STOP broj</string>
-    <string name="stop_numbers">STOP brojevi</string>
-    <string name="expression_label">Izraz:</string>
-    <string name="enter_expression_hint">Unesi izraz, npr. (25+5)*20</string>
-    <string name="clear">Obriši</string>
-    <string name="moj_broj_rules">Pomoću ponuđenih brojeva i operacija +, -, *, /, (, ) pokušaj da dobiješ traženi broj.</string>
+    <string name="stop_target_number">STOP number</string>
+    <string name="stop_numbers">STOP numbers</string>
+    <string name="expression_label">Expression:</string>
+    <string name="enter_expression_hint">Enter expression, e.g. (25+5)*20</string>
+    <string name="clear">Clear</string>
+    <string name="moj_broj_rules">Using offered numbers and operations +, -, *, /, (, ) try to get the target number.</string>
     <string name="target_number_placeholder">---</string>
     <string name="number_placeholder">/?</string>
 
@@ -136,14 +136,14 @@
     <string name="submit_answer">Submit answer</string>
     <string name="user_info_format">User: %1$s&#10;Email: %2$s&#10;Region: %3$s&#10;Tokens: %4$d&#10;Stars: %5$d&#10;League: %6$d</string>
 
-    <!-- Asocijacije -->
+    <!-- Associations -->
     <string name="asocijacije">Asocijacije</string>
-    <string name="column_a">KOLONA A</string>
-    <string name="column_b">KOLONA B</string>
-    <string name="column_c">KOLONA C</string>
-    <string name="column_d">KOLONA D</string>
-    <string name="final_solution">KONAČNO REŠENJE</string>
-    <string name="enter_solution_hint">Unesi rešenje...</string>
+    <string name="column_a">COLUMN A</string>
+    <string name="column_b">COLUMN B</string>
+    <string name="column_c">COLUMN C</string>
+    <string name="column_d">COLUMN D</string>
+    <string name="final_solution">FINAL SOLUTION</string>
+    <string name="enter_solution_hint">Enter solution...</string>
 
     <!-- Skočko -->
     <string name="skocko">Skočko</string>
@@ -153,14 +153,15 @@
     <string name="heart_symbol">❤️</string>
     <string name="triangle_symbol">🔺</string>
     <string name="star_symbol">⭐</string>
-    <string name="submit_combination">Proveri</string>
+    <string name="submit_combination">Check</string>
 
     <!-- Notifications -->
-    <string name="notifications">Notifikacije</string>
-    <string name="all_notifications">Sve</string>
-    <string name="read_notifications">Pročitane</string>
-    <string name="unread_notifications">Nepročitane</string>
-    <string name="no_notifications">Nema novih notifikacija.</string>
+    <string name="notifications">Notifications</string>
+    <string name="all_notifications">All</string>
+    <string name="read_notifications">Read</string>
+    <string name="unread_notifications">Unread</string>
+    <string name="no_notifications">No new notifications.</string>
+    <string name="back_to_home">Back to Home</string>
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
