@@ -13,7 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/slagalica_light_blue"
-        app:title="Notifikacije"
+        app:title="@string/notifications"
         app:titleTextColor="@color/slagalica_dark_blue" />
 
     <!-- Filters Bar (Requirement 11.d) -->
@@ -85,7 +85,7 @@
         android:layout_height="wrap_content"
         android:layout_margin="12dp"
         android:backgroundTint="@color/slagalica_yellow"
-        android:text="Nazad na početnu"
+        android:text="@string/back_to_home"
         android:textColor="@color/slagalica_dark_blue"
         android:textStyle="bold" />
 
