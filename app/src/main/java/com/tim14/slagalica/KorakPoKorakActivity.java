@@ -15,6 +15,7 @@ public class KorakPoKorakActivity extends AppCompatActivity {
     private TextView step1Text, step2Text, step3Text, step4Text, step5Text, step6Text, step7Text;
     private EditText answerInput;
     private Button nextStepButton, submitButton;
+    private Button quitGameButton;
 
     private int currentStep = 1;
     private int score = 0;
@@ -49,10 +50,15 @@ public class KorakPoKorakActivity extends AppCompatActivity {
         answerInput = findViewById(R.id.answerInput);
         nextStepButton = findViewById(R.id.nextStepButton);
         submitButton = findViewById(R.id.submitButton);
+        quitGameButton = findViewById(R.id.quitGameButton);
+
 
         nextStepButton.setOnClickListener(v -> openNextStep());
 
         submitButton.setOnClickListener(v -> checkAnswer());
+        quitGameButton.setOnClickListener(v -> {
+            finish();
+        });
     }
 
     private void openNextStep() {

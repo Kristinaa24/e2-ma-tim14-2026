@@ -23,6 +23,7 @@ public class MojBrojActivity extends AppCompatActivity {
 
     private Button plusButton, minusButton, multiplyButton, divideButton;
     private Button openBracketButton, closeBracketButton;
+    private Button quitGameButton;
 
     private final Random random = new Random();
 
@@ -53,6 +54,7 @@ public class MojBrojActivity extends AppCompatActivity {
         divideButton = findViewById(R.id.divideButton);
         openBracketButton = findViewById(R.id.openBracketButton);
         closeBracketButton = findViewById(R.id.closeBracketButton);
+        quitGameButton = findViewById(R.id.quitGameButton);
 
         stopTargetButton.setOnClickListener(v -> generateTargetNumber());
         stopNumbersButton.setOnClickListener(v -> generateOfferedNumbers());
@@ -77,6 +79,17 @@ public class MojBrojActivity extends AppCompatActivity {
         });
 
         checkButton.setOnClickListener(v -> checkExpression());
+
+        quitGameButton.setOnClickListener(v -> {
+
+            Intent intent = new Intent(
+                    MojBrojActivity.this,
+                    HomeActivity.class
+            );
+
+            startActivity(intent);
+            finish();
+        });
     }
 
     private void generateTargetNumber() {
