@@ -176,7 +176,7 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
         android:backgroundTint="@color/slagalica_red"
-        android:text="Napusti igru"
+        android:text="@string/quit_game"
         android:textColor="@color/white"
         android:textStyle="bold" />
 
