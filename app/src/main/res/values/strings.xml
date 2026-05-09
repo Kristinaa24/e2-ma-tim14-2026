@@ -178,5 +178,8 @@
 
     <string name="yes">YES</string>
     <string name="no">NO</string>
+    <string name="welcome_title">Welcome to Slagalica</string>
+    <string name="welcome_subtitle">Play games, collect stars and climb the league!</string>
+    <string name="play_as_guest">Play as guest</string>
 
 </resources>
