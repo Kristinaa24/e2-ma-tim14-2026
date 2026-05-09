@@ -1,11 +1,13 @@
 package com.tim14.slagalica;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.content.Intent;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -16,6 +18,9 @@ public class KorakPoKorakActivity extends AppCompatActivity {
     private EditText answerInput;
     private Button nextStepButton, submitButton;
     private Button quitGameButton;
+    private LinearLayout statusBarLayout;
+
+    private boolean isGuest;
 
     private int currentStep = 1;
     private int score = 0;
@@ -51,14 +56,17 @@ public class KorakPoKorakActivity extends AppCompatActivity {
         nextStepButton = findViewById(R.id.nextStepButton);
         submitButton = findViewById(R.id.submitButton);
         quitGameButton = findViewById(R.id.quitGameButton);
+        statusBarLayout = findViewById(R.id.statusBarLayout);
 
+        isGuest = getIntent().getBooleanExtra("IS_GUEST", false);
+
+        if (isGuest) {
+            statusBarLayout.setVisibility(View.GONE);
+        }
 
         nextStepButton.setOnClickListener(v -> openNextStep());
-
         submitButton.setOnClickListener(v -> checkAnswer());
-        quitGameButton.setOnClickListener(v -> {
-            finish();
-        });
+        quitGameButton.setOnClickListener(v -> finish());
     }
 
     private void openNextStep() {
@@ -87,7 +95,10 @@ public class KorakPoKorakActivity extends AppCompatActivity {
 
         if (answer.equalsIgnoreCase(correctAnswer)) {
             score = 22 - currentStep * 2;
-            scoreText.setText("Score: " + score);
+
+            if (!isGuest) {
+                scoreText.setText("Score: " + score);
+            }
 
             step1Text.setText(steps[0]);
             step2Text.setText(steps[1]);
@@ -99,11 +110,13 @@ public class KorakPoKorakActivity extends AppCompatActivity {
 
             Toast.makeText(this, "Correct answer!", Toast.LENGTH_SHORT).show();
 
-            scoreText.postDelayed(() -> {
+            answerInput.postDelayed(() -> {
                 Intent intent = new Intent(
                         KorakPoKorakActivity.this,
                         MojBrojActivity.class
                 );
+
+                intent.putExtra("IS_GUEST", isGuest);
 
                 startActivity(intent);
                 finish();
