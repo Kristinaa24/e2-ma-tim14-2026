@@ -47,9 +47,9 @@
                 android:padding="16dp"
                 android:background="@drawable/bg_home_panel">
 
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Ready for battle?" android:textColor="@color/slagalica_yellow" android:textSize="22sp" android:textStyle="bold" />
-                <Button android:id="@+id/startGameButton" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="12dp" android:backgroundTint="@color/slagalica_yellow" android:text="START GAME" android:textColor="@color/slagalica_dark_blue" android:textSize="20sp" android:textStyle="bold" />
-                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="Players online: 37/74" android:textColor="@color/white" android:textSize="13sp" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/ready_for_battle" android:textColor="@color/slagalica_yellow" android:textSize="22sp" android:textStyle="bold" />
+                <Button android:id="@+id/startGameButton" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="12dp" android:backgroundTint="@color/slagalica_yellow" android:text="@string/start_game" android:textColor="@color/slagalica_dark_blue" android:textSize="20sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="@string/players_online" android:textColor="@color/white" android:textSize="13sp" />
             </LinearLayout>
 
             <LinearLayout
@@ -59,13 +59,13 @@
                 android:orientation="horizontal"
                 android:weightSum="4">
 
-                <TextView android:id="@+id/tvProfile" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:layout_marginEnd="4dp" android:gravity="center" android:text="👤\nProfile" android:textColor="@color/slagalica_dark_blue" android:textSize="12sp" android:textStyle="bold" android:background="@drawable/bg_home_card" />
-                <TextView android:id="@+id/tvFriends" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:layout_marginHorizontal="4dp" android:gravity="center" android:text="👥\nFriends" android:textColor="@color/slagalica_dark_blue" android:textSize="12sp" android:textStyle="bold" android:background="@drawable/bg_home_card" />
-                <TextView android:id="@+id/tvRanking" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:layout_marginHorizontal="4dp" android:gravity="center" android:text="🏆\nRank" android:textColor="@color/slagalica_dark_blue" android:textSize="12sp" android:textStyle="bold" android:background="@drawable/bg_home_card" />
-                <TextView android:id="@+id/notificationsMenuButton" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:layout_marginStart="4dp" android:gravity="center" android:text="🔔\nAlerts" android:textColor="@color/slagalica_dark_blue" android:textSize="12sp" android:textStyle="bold" android:background="@drawable/bg_home_card" />
+                <TextView android:id="@+id/tvProfile" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:layout_marginEnd="4dp" android:gravity="center" android:text="@string/profile_short" android:textColor="@color/slagalica_dark_blue" android:textSize="12sp" android:textStyle="bold" android:background="@drawable/bg_home_card" />
+                <TextView android:id="@+id/tvFriends" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:layout_marginHorizontal="4dp" android:gravity="center" android:text="@string/friends_short" android:textColor="@color/slagalica_dark_blue" android:textSize="12sp" android:textStyle="bold" android:background="@drawable/bg_home_card" />
+                <TextView android:id="@+id/tvRanking" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:layout_marginHorizontal="4dp" android:gravity="center" android:text="@string/rank_short" android:textColor="@color/slagalica_dark_blue" android:textSize="12sp" android:textStyle="bold" android:background="@drawable/bg_home_card" />
+                <TextView android:id="@+id/notificationsMenuButton" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:layout_marginStart="4dp" android:gravity="center" android:text="@string/alerts_short" android:textColor="@color/slagalica_dark_blue" android:textSize="12sp" android:textStyle="bold" android:background="@drawable/bg_home_card" />
             </LinearLayout>
 
-            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Available games" android:textColor="@color/slagalica_yellow" android:textSize="18sp" android:textStyle="bold" />
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="@string/available_games" android:textColor="@color/slagalica_yellow" android:textSize="18sp" android:textStyle="bold" />
 
             <ScrollView
                 android:layout_width="match_parent"
