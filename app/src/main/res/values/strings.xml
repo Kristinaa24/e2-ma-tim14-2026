@@ -158,6 +158,7 @@
     <!-- Notifications -->
     <string name="notifications">Notifikacije</string>
     <string name="all_notifications">Sve</string>
+    <string name="read_notifications">Pročitane</string>
     <string name="unread_notifications">Nepročitane</string>
     <string name="no_notifications">Nema novih notifikacija.</string>
 
