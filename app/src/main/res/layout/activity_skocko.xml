@@ -1,0 +1,218 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/slagalica_blue"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <!-- Status Bar: Tokens, Stars, League (Persistent during game) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/slagalica_dark_blue"
+        android:orientation="horizontal"
+        android:padding="4dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🪙 5"
+            android:textColor="@color/slagalica_yellow"
+            android:textSize="12sp"
+            android:gravity="center" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="⭐ 120"
+            android:textColor="@color/slagalica_yellow"
+            android:textSize="12sp"
+            android:gravity="center" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🥈 Silver"
+            android:textColor="@color/slagalica_yellow"
+            android:textSize="12sp"
+            android:gravity="center" />
+    </LinearLayout>
+
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="P1: 0"
+            android:textColor="@color/white"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/avatar_silver"
+            android:padding="6dp"
+            android:text="30s"
+            android:textColor="@color/slagalica_dark_blue"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:gravity="end"
+            android:text="P2: 0"
+            android:textColor="@color/white"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="@string/skocko"
+        android:textColor="@color/slagalica_yellow"
+        android:textSize="22sp"
+        android:textStyle="bold" />
+
+    <!-- Game Board (6 attempts) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <!-- Row template (repeated 6 times conceptually, but I'll add them all for GUI KT) -->
+        <!-- Row 1 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="4dp"
+            android:orientation="horizontal">
+
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" android:gravity="center" android:textSize="24sp" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" android:gravity="center" android:textSize="24sp" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" android:gravity="center" android:textSize="24sp" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" android:gravity="center" android:textSize="24sp" />
+
+            <!-- Indicators -->
+            <GridLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:columnCount="2"
+                android:rowCount="2">
+                <View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" />
+                <View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" />
+                <View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" />
+                <View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" />
+            </GridLayout>
+        </LinearLayout>
+
+        <!-- (Rows 2-6 omitted for brevity in this thought, but I'll add them in final file) -->
+        <!-- Just adding a few more for visual representation -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="4dp"
+            android:orientation="horizontal">
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <GridLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:columnCount="2"><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /></GridLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="4dp"
+            android:orientation="horizontal">
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <GridLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:columnCount="2"><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /></GridLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="4dp"
+            android:orientation="horizontal">
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <GridLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:columnCount="2"><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /></GridLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="4dp"
+            android:orientation="horizontal">
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <GridLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:columnCount="2"><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /></GridLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="4dp"
+            android:orientation="horizontal">
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <TextView android:layout_width="40dp" android:layout_height="40dp" android:layout_margin="2dp" android:background="@color/slagalica_light_blue" />
+            <GridLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:columnCount="2"><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /><View android:layout_width="12dp" android:layout_height="12dp" android:layout_margin="2dp" android:background="@color/light_gray" /></GridLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Symbol Selection Palette -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <Button android:layout_width="50dp" android:layout_height="50dp" android:layout_margin="2dp" android:text="@string/skocko_symbol" android:backgroundTint="@color/slagalica_card" android:padding="0dp" android:textSize="20sp"/>
+        <Button android:layout_width="50dp" android:layout_height="50dp" android:layout_margin="2dp" android:text="@string/square_symbol" android:backgroundTint="@color/slagalica_card" android:padding="0dp" android:textSize="20sp"/>
+        <Button android:layout_width="50dp" android:layout_height="50dp" android:layout_margin="2dp" android:text="@string/circle_symbol" android:backgroundTint="@color/slagalica_card" android:padding="0dp" android:textSize="20sp"/>
+        <Button android:layout_width="50dp" android:layout_height="50dp" android:layout_margin="2dp" android:text="@string/heart_symbol" android:backgroundTint="@color/slagalica_card" android:padding="0dp" android:textSize="20sp"/>
+        <Button android:layout_width="50dp" android:layout_height="50dp" android:layout_margin="2dp" android:text="@string/triangle_symbol" android:backgroundTint="@color/slagalica_card" android:padding="0dp" android:textSize="20sp"/>
+        <Button android:layout_width="50dp" android:layout_height="50dp" android:layout_margin="2dp" android:text="@string/star_symbol" android:backgroundTint="@color/slagalica_card" android:padding="0dp" android:textSize="20sp"/>
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btnSubmitSkocko"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:backgroundTint="@color/slagalica_yellow"
+        android:text="@string/submit_combination"
+        android:textColor="@color/slagalica_dark_blue"
+        android:textStyle="bold" />
+
+    <Button
+        android:id="@+id/btnQuitSkocko"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:backgroundTint="@color/slagalica_red"
+        android:text="Napusti igru"
+        android:textColor="@color/white"
+        android:textStyle="bold" />
+
+</LinearLayout>

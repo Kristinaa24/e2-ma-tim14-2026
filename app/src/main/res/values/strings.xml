@@ -135,6 +135,33 @@
     <string name="next_step">Next step</string>
     <string name="submit_answer">Submit answer</string>
     <string name="user_info_format">User: %1$s&#10;Email: %2$s&#10;Region: %3$s&#10;Tokens: %4$d&#10;Stars: %5$d&#10;League: %6$d</string>
+
+    <!-- Asocijacije -->
+    <string name="asocijacije">Asocijacije</string>
+    <string name="column_a">KOLONA A</string>
+    <string name="column_b">KOLONA B</string>
+    <string name="column_c">KOLONA C</string>
+    <string name="column_d">KOLONA D</string>
+    <string name="final_solution">KONAČNO REŠENJE</string>
+    <string name="enter_solution_hint">Unesi rešenje...</string>
+
+    <!-- Skočko -->
+    <string name="skocko">Skočko</string>
+    <string name="skocko_symbol">🧐</string>
+    <string name="square_symbol">⬛</string>
+    <string name="circle_symbol">🔵</string>
+    <string name="heart_symbol">❤️</string>
+    <string name="triangle_symbol">🔺</string>
+    <string name="star_symbol">⭐</string>
+    <string name="submit_combination">Proveri</string>
+
+    <!-- Notifications -->
+    <string name="notifications">Notifikacije</string>
+    <string name="all_notifications">Sve</string>
+    <string name="read_notifications">Pročitane</string>
+    <string name="unread_notifications">Nepročitane</string>
+    <string name="no_notifications">Nema novih notifikacija.</string>
+
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
 
