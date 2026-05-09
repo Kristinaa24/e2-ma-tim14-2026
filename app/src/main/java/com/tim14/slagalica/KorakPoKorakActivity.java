@@ -72,7 +72,7 @@ public class KorakPoKorakActivity extends AppCompatActivity {
     }
 
     private void checkAnswer() {
-        String answer = answerInput.getText().toString();
+        String answer = answerInput.getText().toString().trim();
 
         if (answer.isEmpty()) {
             Toast.makeText(this, "Enter your answer", Toast.LENGTH_SHORT).show();
@@ -94,7 +94,6 @@ public class KorakPoKorakActivity extends AppCompatActivity {
             Toast.makeText(this, "Correct answer!", Toast.LENGTH_SHORT).show();
 
             scoreText.postDelayed(() -> {
-
                 Intent intent = new Intent(
                         KorakPoKorakActivity.this,
                         MojBrojActivity.class
@@ -104,6 +103,8 @@ public class KorakPoKorakActivity extends AppCompatActivity {
                 finish();
 
             }, 2000);
+        } else {
+            Toast.makeText(this, "Wrong answer. Try again.", Toast.LENGTH_SHORT).show();
         }
     }
 }
