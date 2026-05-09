@@ -42,9 +42,10 @@ public class HomeActivity extends AppCompatActivity {
                 startActivity(new Intent(HomeActivity.this, ProfileActivity.class))
         );
 
-        notificationsMenuButton.setOnClickListener(v ->
-                startActivity(new Intent(HomeActivity.this, NotificationsActivity.class))
-        );
+        notificationsMenuButton.setOnClickListener(v -> {
+            android.widget.Toast.makeText(this, "Otvaram notifikacije...", android.widget.Toast.LENGTH_SHORT).show();
+            startActivity(new Intent(HomeActivity.this, NotificationsActivity.class));
+        });
 
         startGameButton.setOnClickListener(v ->
                 startActivity(new Intent(HomeActivity.this, KoZnaZnaActivity.class))

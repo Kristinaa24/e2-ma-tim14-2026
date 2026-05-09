@@ -204,4 +204,14 @@
         android:textColor="@color/slagalica_dark_blue"
         android:textStyle="bold" />
 
+    <Button
+        android:id="@+id/btnQuitSkocko"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:backgroundTint="@color/slagalica_red"
+        android:text="Napusti igru"
+        android:textColor="@color/white"
+        android:textStyle="bold" />
+
 </LinearLayout>

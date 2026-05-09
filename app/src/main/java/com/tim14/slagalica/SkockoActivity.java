@@ -1,6 +1,7 @@
 package com.tim14.slagalica;
 
 import android.os.Bundle;
+import android.widget.Button;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class SkockoActivity extends AppCompatActivity {
@@ -8,5 +9,8 @@ public class SkockoActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_skocko);
+
+        Button btnQuit = findViewById(R.id.btnQuitSkocko);
+        btnQuit.setOnClickListener(v -> finish());
     }
 }

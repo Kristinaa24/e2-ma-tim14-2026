@@ -3,6 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/slagalica_blue"
+    android:fitsSystemWindows="true"
     android:fillViewport="true">
 
     <LinearLayout
@@ -12,8 +13,7 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="70dp"
-            android:paddingTop="18dp"
+            android:layout_height="60dp"
             android:background="@color/slagalica_light_blue"
             android:gravity="center_vertical"
             android:orientation="horizontal"
@@ -27,7 +27,9 @@
                 android:layout_weight="1"
                 android:backgroundTint="@color/slagalica_yellow"
                 android:text="Play"
+                android:textAllCaps="false"
                 android:textColor="@color/slagalica_dark_blue"
+                android:textSize="11sp"
                 android:textStyle="bold" />
 
             <Button
@@ -37,7 +39,9 @@
                 android:layout_weight="1"
                 android:backgroundTint="@color/slagalica_light_blue"
                 android:text="Friends"
+                android:textAllCaps="false"
                 android:textColor="@color/slagalica_dark_blue"
+                android:textSize="11sp"
                 android:textStyle="bold" />
 
             <Button
@@ -47,7 +51,9 @@
                 android:layout_weight="1"
                 android:backgroundTint="@color/slagalica_light_blue"
                 android:text="Ranking"
+                android:textAllCaps="false"
                 android:textColor="@color/slagalica_dark_blue"
+                android:textSize="11sp"
                 android:textStyle="bold" />
 
             <Button
