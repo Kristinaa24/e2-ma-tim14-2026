@@ -27,7 +27,7 @@ public class HomeActivity extends AppCompatActivity {
     private Button logoutButton;
     private TextView notificationsMenuButton;
     private TextView tvProfile, tvFriends, tvRanking;
-    private LinearLayout topStatsLayout;
+
 
     private DrawerLayout drawerLayout;
     private NavigationView navigationView;
@@ -64,7 +64,6 @@ public class HomeActivity extends AppCompatActivity {
             tvFriends.setVisibility(View.GONE);
             tvRanking.setVisibility(View.GONE);
             notificationsMenuButton.setVisibility(View.GONE);
-            topStatsLayout.setVisibility(View.GONE);
             navigationView.getMenu().findItem(R.id.nav_profile).setVisible(false);
             logoutButton.setVisibility(View.GONE);
         }
