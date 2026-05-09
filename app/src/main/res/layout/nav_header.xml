@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="170dp"
+    android:orientation="vertical"
+    android:gravity="bottom"
+    android:padding="20dp"
+    android:background="@drawable/bg_nav_header">
+
+    <TextView
+        android:layout_width="58dp"
+        android:layout_height="58dp"
+        android:gravity="center"
+        android:text="★"
+        android:textSize="34sp"
+        android:textStyle="bold"
+        android:textColor="@color/slagalica_dark_blue"
+        android:background="@drawable/bg_avatar_circle" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Slagalica"
+        android:textColor="@color/white"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginTop="14dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Play. Win. Climb the league."
+        android:textColor="@color/slagalica_yellow"
+        android:textSize="14sp" />
+
+</LinearLayout>

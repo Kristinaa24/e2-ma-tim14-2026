@@ -1,103 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/slagalica_blue"
     android:fitsSystemWindows="true"
     android:orientation="vertical">
 
-    <!-- Top Navigation Menu -->
-    <LinearLayout
+    <!-- Header -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/notifToolbar"
         android:layout_width="match_parent"
-        android:layout_height="60dp"
+        android:layout_height="?attr/actionBarSize"
         android:background="@color/slagalica_light_blue"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:padding="4dp">
-
-        <Button
-            android:id="@+id/playMenuButtonNotif"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:backgroundTint="@color/slagalica_light_blue"
-            android:text="Play"
-            android:textAllCaps="false"
-            android:textColor="@color/slagalica_dark_blue"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/friendsMenuButtonNotif"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:backgroundTint="@color/slagalica_light_blue"
-            android:text="Friends"
-            android:textAllCaps="false"
-            android:textColor="@color/slagalica_dark_blue"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/rankingMenuButtonNotif"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:backgroundTint="@color/slagalica_light_blue"
-            android:text="Ranking"
-            android:textAllCaps="false"
-            android:textColor="@color/slagalica_dark_blue"
-            android:textSize="11sp"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/btnBackFromNotif"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:backgroundTint="@color/slagalica_yellow"
-            android:text="🔔"
-            android:textColor="@color/slagalica_dark_blue"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/avatarProfileButtonNotif"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            android:backgroundTint="@color/slagalica_light_blue"
-            android:text="👤"
-            android:textColor="@color/slagalica_dark_blue"
-            android:textSize="18sp"
-            android:textStyle="bold" />
-    </LinearLayout>
+        app:title="Notifikacije"
+        app:titleTextColor="@color/slagalica_dark_blue" />
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
+        android:layout_height="0dp"
+        android:layout_weight="1">
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center"
-                android:text="@string/notifications"
-                android:textColor="@color/slagalica_yellow"
-                android:textSize="26sp"
-                android:textStyle="bold" />
-
-            <!-- Demo Items for KT1 -->
-            <include layout="@layout/item_notification" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" />
+            android:padding="12dp">
             <include layout="@layout/item_notification" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" />
             <include layout="@layout/item_notification" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" />
-
+            <include layout="@layout/item_notification" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" />
         </LinearLayout>
     </ScrollView>
+
+    <Button
+        android:id="@+id/btnBackFromNotif"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="12dp"
+        android:backgroundTint="@color/slagalica_yellow"
+        android:text="Nazad na početnu"
+        android:textColor="@color/slagalica_dark_blue"
+        android:textStyle="bold" />
+
 </LinearLayout>

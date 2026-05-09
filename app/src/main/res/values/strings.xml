@@ -18,7 +18,6 @@
     <string name="time_25">Game time: 25s</string>
     <string name="question_time_5">Question time: 5s</string>
     <string name="question_counter">Question 1 / 5</string>
-    <string name="score_0">Score: 0</string>
     <string name="question_placeholder">Question</string>
     <string name="answer_a">Answer A</string>
     <string name="answer_b">Answer B</string>
@@ -86,13 +85,19 @@
     <string name="passwords_not_match">Passwords do not match</string>
     <string name="back_to_login">Back to login</string>
     <string name="not_registered">Don\'t have an account yet?</string>
-
-
+    <string name="fill_all_fields">Fill all fields</string>
+    <string name="passwords_do_not_match">Passwords do not match</string>
+    <string name="registration_successful">
+    Registration successful. Check your email to activate your account.
+    </string>
+    <string name="reset_your_password">Reset your password</string>
+    <string name="forgot_password">Forgot password?</string>
     <string name="old_password">Old password</string>
     <string name="new_password">New password</string>
     <string name="repeat_new_password">Repeat new password</string>
     <string name="confirm">Confirm</string>
-
+    <string name="new_passwords_do_not_match">New passwords do not match</string>
+    <string name="password_changed_successfully">Password changed successfully</string>
 
     <string name="change_password">Change password</string>
 
@@ -123,6 +128,12 @@
     <string name="home_title">Slagalica - Home</string>
     <string name="user_info_placeholder">User info</string>
     <string name="korak_po_korak">Korak po korak</string>
+    <string name="time_70">Time: 70s</string>
+    <string name="score_0">Score: 0</string>
+    <string name="step_1_sunce">1. Nebesko telo</string>
+    <string name="enter_final_answer">Enter final answer</string>
+    <string name="next_step">Next step</string>
+    <string name="submit_answer">Submit answer</string>
     <string name="user_info_format">User: %1$s&#10;Email: %2$s&#10;Region: %3$s&#10;Tokens: %4$d&#10;Stars: %5$d&#10;League: %6$d</string>
 
     <!-- Asocijacije -->
@@ -152,4 +163,12 @@
 
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+
+    <string name="navigation_drawer_open">Open navigation drawer</string>
+    <string name="navigation_drawer_close">Close navigation drawer</string>
+
+    <string name="enter_expression">Enter expression.</string>
+    <string name="match_finished">Match finished!</string>
+    <string name="entered_expression">Entered expression: %1$s</string>
+
 </resources>

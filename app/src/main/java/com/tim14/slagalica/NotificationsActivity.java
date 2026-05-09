@@ -11,14 +11,9 @@ public class NotificationsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_notifications);
 
         Button btnBack = findViewById(R.id.btnBackFromNotif);
-        Button btnPlay = findViewById(R.id.playMenuButtonNotif);
 
         if (btnBack != null) {
-            btnBack.setOnClickListener(v -> finish());
-        }
-
-        if (btnPlay != null) {
-            btnPlay.setOnClickListener(v -> finish()); // Finish and go back to Home (Play)
+            btnBack.setOnClickListener(v -> finish()); // Go back to Home
         }
     }
 }

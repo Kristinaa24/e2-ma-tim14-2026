@@ -5,6 +5,8 @@ import android.os.Bundle;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
+import android.view.View;
+import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -13,6 +15,8 @@ public class LoginActivity extends AppCompatActivity {
 
     private EditText emailInput, passwordInput;
     private Button loginButton, registerButton;
+    private TextView errorText;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -23,19 +27,23 @@ public class LoginActivity extends AppCompatActivity {
         passwordInput = findViewById(R.id.passwordInput);
         loginButton = findViewById(R.id.loginButton);
         registerButton = findViewById(R.id.registerButton);
+        errorText = findViewById(R.id.errorText);
+
 
 
         loginButton.setOnClickListener(v -> {
-            String emailOrUsername = emailInput.getText().toString();
+            String emailOrUsername = emailInput.getText().toString().trim();
             String password = passwordInput.getText().toString();
 
             if (emailOrUsername.isEmpty()) {
-                showToast(getString(R.string.enter_email_username));
+                errorText.setText(getString(R.string.enter_email_username));
+                errorText.setVisibility(View.VISIBLE);
                 return;
             }
 
             if (password.isEmpty()) {
-                showToast(getString(R.string.enter_password));
+                errorText.setText(getString(R.string.enter_password));
+                errorText.setVisibility(View.VISIBLE);
                 return;
             }
 
@@ -50,6 +58,7 @@ public class LoginActivity extends AppCompatActivity {
 
             showToast(getString(R.string.login_successful));
             startActivity(new Intent(this, HomeActivity.class));
+            finish();
         });
 
         registerButton.setOnClickListener(v ->
@@ -59,9 +68,10 @@ public class LoginActivity extends AppCompatActivity {
 
 
 
+
     }
     private void showToast(String text) {
-        Toast.makeText(this, text, Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, text, Toast.LENGTH_LONG).show();
     }
 
 }
