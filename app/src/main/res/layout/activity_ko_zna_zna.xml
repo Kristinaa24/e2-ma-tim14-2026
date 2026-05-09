@@ -10,9 +10,11 @@
         android:padding="18dp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
+        <include layout="@layout/player_status_bar" />
 
         <TextView
             android:text="@string/ko_zna_zna"
+            android:layout_marginTop="10dp"
             android:textSize="30sp"
             android:textStyle="bold"
             android:textColor="@color/slagalica_yellow"

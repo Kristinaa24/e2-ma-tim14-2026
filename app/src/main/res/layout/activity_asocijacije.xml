@@ -6,45 +6,7 @@
     android:fitsSystemWindows="true"
     android:orientation="vertical"
     android:padding="8dp">
-
-    <!-- Status Bar: Tokens, Stars, League (Persistent during game) -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="@color/slagalica_dark_blue"
-        android:orientation="horizontal"
-        android:padding="4dp">
-
-        <TextView
-            android:id="@+id/tokenStatus"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="🪙 5"
-            android:textColor="@color/slagalica_yellow"
-            android:textSize="12sp"
-            android:gravity="center" />
-
-        <TextView
-            android:id="@+id/starStatus"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="⭐ 120"
-            android:textColor="@color/slagalica_yellow"
-            android:textSize="12sp"
-            android:gravity="center" />
-
-        <TextView
-            android:id="@+id/leagueStatus"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="🥈 Silver"
-            android:textColor="@color/slagalica_yellow"
-            android:textSize="12sp"
-            android:gravity="center" />
-    </LinearLayout>
+    <include layout="@layout/player_status_bar" />
 
     <!-- Header: Scores and Timer -->
     <LinearLayout
