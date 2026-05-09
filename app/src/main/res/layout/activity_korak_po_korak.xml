@@ -141,4 +141,16 @@
         android:layout_height="wrap_content"
         android:text="@string/submit_answer" />
 
+
+    <Button
+        android:id="@+id/quitGameButton"
+        android:layout_width="220dp"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="14dp"
+        android:text="@string/quit_game"
+        android:backgroundTint="@color/slagalica_red"
+        android:textColor="@color/white"
+        android:textStyle="bold" />
+
 </LinearLayout>
