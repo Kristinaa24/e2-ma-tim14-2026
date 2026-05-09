@@ -5,12 +5,14 @@
     android:orientation="vertical"
     android:padding="20dp"
     android:background="@color/slagalica_dark_blue">
+    <include layout="@layout/player_status_bar" />
 
     <TextView
         android:id="@+id/kpkTitle"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/korak_po_korak"
+        android:layout_marginTop="10dp"
         android:textColor="@color/slagalica_yellow"
         android:textSize="28sp"
         android:textStyle="bold"

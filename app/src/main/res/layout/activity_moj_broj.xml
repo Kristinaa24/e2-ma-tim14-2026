@@ -10,6 +10,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="12dp">
+        <include layout="@layout/player_status_bar" />
 
         <TextView
             android:id="@+id/titleText"
