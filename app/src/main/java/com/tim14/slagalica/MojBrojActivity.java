@@ -1,11 +1,13 @@
 package com.tim14.slagalica;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.content.Intent;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -24,6 +26,10 @@ public class MojBrojActivity extends AppCompatActivity {
     private Button plusButton, minusButton, multiplyButton, divideButton;
     private Button openBracketButton, closeBracketButton;
     private Button quitGameButton;
+
+    private LinearLayout statusBarLayout;
+
+    private boolean isGuest;
 
     private final Random random = new Random();
 
@@ -56,6 +62,14 @@ public class MojBrojActivity extends AppCompatActivity {
         closeBracketButton = findViewById(R.id.closeBracketButton);
         quitGameButton = findViewById(R.id.quitGameButton);
 
+        statusBarLayout = findViewById(R.id.statusBarLayout);
+
+        isGuest = getIntent().getBooleanExtra("IS_GUEST", false);
+
+        if (isGuest) {
+            statusBarLayout.setVisibility(View.GONE);
+        }
+
         stopTargetButton.setOnClickListener(v -> generateTargetNumber());
         stopNumbersButton.setOnClickListener(v -> generateOfferedNumbers());
 
@@ -81,11 +95,12 @@ public class MojBrojActivity extends AppCompatActivity {
         checkButton.setOnClickListener(v -> checkExpression());
 
         quitGameButton.setOnClickListener(v -> {
-
             Intent intent = new Intent(
                     MojBrojActivity.this,
                     HomeActivity.class
             );
+
+            intent.putExtra("IS_GUEST", isGuest);
 
             startActivity(intent);
             finish();
@@ -141,6 +156,9 @@ public class MojBrojActivity extends AppCompatActivity {
 
         resultText.postDelayed(() -> {
             Intent intent = new Intent(MojBrojActivity.this, HomeActivity.class);
+
+            intent.putExtra("IS_GUEST", isGuest);
+
             startActivity(intent);
             finish();
         }, 2000);
