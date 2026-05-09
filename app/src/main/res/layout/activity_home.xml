@@ -4,7 +4,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -12,184 +13,90 @@
         android:orientation="vertical"
         android:background="@color/slagalica_blue">
 
+        <!-- Toolbar -->
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/homeToolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:background="@color/slagalica_light_blue"
-            android:title="Slagalica"
-            android:titleTextColor="@color/slagalica_yellow" />
+            app:title="Slagalica"
+            app:titleTextColor="@color/slagalica_dark_blue" />
 
-        <ScrollView
+        <!-- Status Bar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/slagalica_dark_blue"
+            android:orientation="horizontal"
+            android:padding="6dp">
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🪙 5" android:textColor="@color/slagalica_yellow" android:textSize="14sp" android:gravity="center" android:textStyle="bold" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="⭐ 120" android:textColor="@color/slagalica_yellow" android:textSize="14sp" android:gravity="center" android:textStyle="bold" />
+            <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="🥈 Silver" android:textColor="@color/slagalica_yellow" android:textSize="14sp" android:gravity="center" android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:fillViewport="true">
+            android:orientation="vertical"
+            android:padding="12dp">
 
+            <!-- Welcome Panel -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="20dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp"
-                    android:background="@drawable/bg_home_panel">
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Ready for a quiz battle?"
-                        android:textColor="@color/slagalica_yellow"
-                        android:textSize="26sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Play as guest or sign in for rankings, rewards and profile stats."
-                        android:textColor="@color/white"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <Button
-                        android:id="@+id/startGameButton"
-                        android:layout_width="match_parent"
-                        android:layout_height="68dp"
-                        android:layout_marginTop="22dp"
-                        android:backgroundTint="@color/slagalica_yellow"
-                        android:text="START GAME"
-                        android:textColor="@color/slagalica_dark_blue"
-                        android:textSize="22sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:gravity="center"
-                        android:text="Players online: 37/74"
-                        android:textColor="@color/white"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:orientation="horizontal"
-                    android:weightSum="3">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="76dp"
-                        android:layout_weight="1"
-                        android:layout_marginEnd="6dp"
-                        android:gravity="center"
-                        android:text="👤\nGuest"
-                        android:textColor="@color/slagalica_dark_blue"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:background="@drawable/bg_home_card" />
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="76dp"
-                        android:layout_weight="1"
-                        android:layout_marginHorizontal="6dp"
-                        android:gravity="center"
-                        android:text="⚡\nQuick play"
-                        android:textColor="@color/slagalica_dark_blue"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        android:background="@drawable/bg_home_card" />
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="76dp"
-                        android:layout_weight="1"
-                        android:layout_marginStart="6dp"
-                        android:gravity="center"
-                        android:text="🏆\nSign in to rank"
-                        android:textColor="@color/slagalica_dark_blue"
-                        android:textSize="13sp"
-                        android:textStyle="bold"
-                        android:background="@drawable/bg_home_card" />
-
-                </LinearLayout>
-
-
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:text="Available games"
-                    android:textColor="@color/slagalica_yellow"
-                    android:textSize="20sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/koZnaZnaButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="54dp"
-                    android:layout_marginTop="12dp"
-                    android:backgroundTint="@color/slagalica_card"
-                    android:text="🧠  Ko zna zna"
-                    android:textColor="@color/slagalica_dark_blue"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/spojniceButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="54dp"
-                    android:layout_marginTop="10dp"
-                    android:backgroundTint="@color/slagalica_card"
-                    android:text="🔗  Spojnice"
-                    android:textColor="@color/slagalica_dark_blue"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/korakPoKorakButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="54dp"
-                    android:layout_marginTop="10dp"
-                    android:backgroundTint="@color/slagalica_card"
-                    android:text="❓  Korak po korak"
-                    android:textColor="@color/slagalica_dark_blue"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/mojBrojButton"
-                    android:layout_width="match_parent"
-                    android:layout_height="54dp"
-                    android:layout_marginTop="10dp"
-                    android:backgroundTint="@color/slagalica_card"
-                    android:text="🔢  Moj broj"
-                    android:textColor="@color/slagalica_dark_blue"
-                    android:textStyle="bold" />
-
+                android:padding="16dp"
+                android:background="@drawable/bg_home_panel">
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Ready for battle?" android:textColor="@color/slagalica_yellow" android:textSize="22sp" android:textStyle="bold" />
+                <Button android:id="@+id/startGameButton" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginTop="12dp" android:backgroundTint="@color/slagalica_yellow" android:text="START GAME" android:textColor="@color/slagalica_dark_blue" android:textSize="20sp" android:textStyle="bold" />
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:gravity="center" android:text="Players online: 37/74" android:textColor="@color/white" android:textSize="13sp" />
             </LinearLayout>
 
-        </ScrollView>
+            <!-- Navigation Buttons Bar -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal"
+                android:weightSum="4">
+                <TextView android:id="@+id/tvProfile" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:layout_marginEnd="4dp" android:gravity="center" android:text="👤\nProfile" android:textColor="@color/slagalica_dark_blue" android:textSize="12sp" android:textStyle="bold" android:background="@drawable/bg_home_card" />
+                <TextView android:id="@+id/tvFriends" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:layout_marginHorizontal="4dp" android:gravity="center" android:text="👥\nFriends" android:textColor="@color/slagalica_dark_blue" android:textSize="12sp" android:textStyle="bold" android:background="@drawable/bg_home_card" />
+                <TextView android:id="@+id/tvRanking" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:layout_marginHorizontal="4dp" android:gravity="center" android:text="🏆\nRank" android:textColor="@color/slagalica_dark_blue" android:textSize="12sp" android:textStyle="bold" android:background="@drawable/bg_home_card" />
+                <TextView android:id="@+id/notificationsMenuButton" android:layout_width="0dp" android:layout_height="65dp" android:layout_weight="1" android:layout_marginStart="4dp" android:gravity="center" android:text="🔔\nAlerts" android:textColor="@color/slagalica_dark_blue" android:textSize="12sp" android:textStyle="bold" android:background="@drawable/bg_home_card" />
+            </LinearLayout>
 
+            <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="16dp" android:text="Available games" android:textColor="@color/slagalica_yellow" android:textSize="18sp" android:textStyle="bold" />
+
+            <!-- Games List (Vertical) -->
+            <ScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginTop="8dp">
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical">
+
+                    <Button android:id="@+id/koZnaZnaButton" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginVertical="4dp" android:backgroundTint="@color/slagalica_card" android:text="🧠 Ko zna zna" android:textColor="@color/slagalica_dark_blue" android:textSize="15sp" android:textAllCaps="false" android:textStyle="bold" />
+                    <Button android:id="@+id/spojniceButton" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginVertical="4dp" android:backgroundTint="@color/slagalica_card" android:text="🔗 Spojnice" android:textColor="@color/slagalica_dark_blue" android:textSize="15sp" android:textAllCaps="false" android:textStyle="bold" />
+                    <Button android:id="@+id/korakPoKorakButton" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginVertical="4dp" android:backgroundTint="@color/slagalica_card" android:text="❓ Korak po korak" android:textColor="@color/slagalica_dark_blue" android:textSize="15sp" android:textAllCaps="false" android:textStyle="bold" />
+                    <Button android:id="@+id/mojBrojButton" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginVertical="4dp" android:backgroundTint="@color/slagalica_card" android:text="🔢 Moj broj" android:textColor="@color/slagalica_dark_blue" android:textSize="15sp" android:textAllCaps="false" android:textStyle="bold" />
+                    <Button android:id="@+id/asocijacijeButton" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginVertical="4dp" android:backgroundTint="@color/slagalica_card" android:text="🧩 Asocijacije" android:textColor="@color/slagalica_dark_blue" android:textSize="15sp" android:textAllCaps="false" android:textStyle="bold" />
+                    <Button android:id="@+id/skockoButton" android:layout_width="match_parent" android:layout_height="56dp" android:layout_marginVertical="4dp" android:backgroundTint="@color/slagalica_card" android:text="🧐 Skočko" android:textColor="@color/slagalica_dark_blue" android:textSize="15sp" android:textAllCaps="false" android:textStyle="bold" />
+
+                </LinearLayout>
+            </ScrollView>
+        </LinearLayout>
     </LinearLayout>
 
     <com.google.android.material.navigation.NavigationView
         android:id="@+id/navigationView"
-        android:layout_width="300dp"
+        android:layout_width="280dp"
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:background="@color/slagalica_card"
         app:headerLayout="@layout/nav_header"
         app:itemIconTint="@color/slagalica_dark_blue"
         app:itemTextColor="@color/slagalica_dark_blue"
-        app:itemTextAppearance="@style/NavItemText"
         app:menu="@menu/nav_menu" />
-
 </androidx.drawerlayout.widget.DrawerLayout>
