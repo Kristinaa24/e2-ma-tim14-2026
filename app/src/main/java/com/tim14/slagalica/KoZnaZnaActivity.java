@@ -7,6 +7,8 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.content.Intent;
+import android.widget.LinearLayout;
+import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -18,6 +20,9 @@ public class KoZnaZnaActivity extends AppCompatActivity {
     private TextView questionText, playerOneScoreText, playerTwoScoreText, ruleInfoText;
     private Button answerAButton, answerBButton, answerCButton, answerDButton;
     private Button playerTwoAnswerButton, quitButton;
+    private LinearLayout statusBarLayout;
+
+    private boolean isGuest;
 
     private int questionIndex = 0;
     private int playerOneScore = 0;
@@ -69,6 +74,12 @@ public class KoZnaZnaActivity extends AppCompatActivity {
 
         playerTwoAnswerButton = findViewById(R.id.playerTwoAnswerButton);
         quitButton = findViewById(R.id.koZnaZnaQuitButton);
+        statusBarLayout = findViewById(R.id.statusBarLayout);
+        isGuest = getIntent().getBooleanExtra("IS_GUEST", false);
+
+        if (isGuest) {
+            statusBarLayout.setVisibility(View.GONE);
+        }
 
         ruleInfoText.setText(getString(R.string.ko_zna_zna_rules));
 
@@ -229,6 +240,8 @@ public class KoZnaZnaActivity extends AppCompatActivity {
                     KoZnaZnaActivity.this,
                     SpojniceActivity.class
             );
+
+            intent.putExtra("IS_GUEST", isGuest);
 
             startActivity(intent);
             finish();

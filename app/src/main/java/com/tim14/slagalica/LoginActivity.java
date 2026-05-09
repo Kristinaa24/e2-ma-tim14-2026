@@ -57,7 +57,15 @@ public class LoginActivity extends AppCompatActivity {
             );
 
             showToast(getString(R.string.login_successful));
-            startActivity(new Intent(this, HomeActivity.class));
+
+            Intent intent = new Intent(
+                    LoginActivity.this,
+                    HomeActivity.class
+            );
+
+            intent.putExtra("IS_GUEST", false);
+
+            startActivity(intent);
             finish();
         });
 

@@ -1,12 +1,14 @@
 package com.tim14.slagalica;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.content.Intent;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -20,6 +22,9 @@ public class SpojniceActivity extends AppCompatActivity {
     private Button left1Button, left2Button, left3Button, left4Button, left5Button;
     private Button right1Button, right2Button, right3Button, right4Button, right5Button;
     private Button confirmConnectionButton, quitButton;
+
+    private LinearLayout statusBarLayout;
+    private boolean isGuest;
 
     private int round = 1;
     private int currentPlayer = 1;
@@ -80,6 +85,14 @@ public class SpojniceActivity extends AppCompatActivity {
 
         confirmConnectionButton = findViewById(R.id.confirmConnectionButton);
         quitButton = findViewById(R.id.spojniceQuitButton);
+
+        statusBarLayout = findViewById(R.id.statusBarLayout);
+
+        isGuest = getIntent().getBooleanExtra("IS_GUEST", false);
+
+        if (isGuest) {
+            statusBarLayout.setVisibility(View.GONE);
+        }
 
         confirmConnectionButton.setOnClickListener(v -> confirmConnection());
         quitButton.setOnClickListener(v -> finish());
@@ -315,6 +328,7 @@ public class SpojniceActivity extends AppCompatActivity {
         button.setEnabled(false);
         button.setAlpha(0.45f);
     }
+
     private void enableAllPairButtons() {
         left1Button.setEnabled(true);
         left2Button.setEnabled(true);
@@ -364,6 +378,8 @@ public class SpojniceActivity extends AppCompatActivity {
                     SpojniceActivity.this,
                     KorakPoKorakActivity.class
             );
+
+            intent.putExtra("IS_GUEST", isGuest);
 
             startActivity(intent);
             finish();
