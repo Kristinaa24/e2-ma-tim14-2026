@@ -71,30 +71,12 @@ public class MojBrojActivity extends AppCompatActivity {
         setAppendClick(openBracketButton);
         setAppendClick(closeBracketButton);
 
-        clearButton.setOnClickListener(v -> expressionInput.setText(""));
-
-        checkButton.setOnClickListener(v -> {
-            String expression = expressionInput.getText().toString().trim();
-
-            if (expression.isEmpty()) {
-                Toast.makeText(this, "Enter expression.", Toast.LENGTH_SHORT).show();
-            } else {
-                resultText.setText("Entered expression: " + expression);
-
-                Toast.makeText(this, "Match finished!", Toast.LENGTH_SHORT).show();
-
-                resultText.postDelayed(() -> {
-                    Intent intent = new Intent(
-                            MojBrojActivity.this,
-                            HomeActivity.class
-                    );
-
-                    startActivity(intent);
-                    finish();
-
-                }, 2000);
-            }
+        clearButton.setOnClickListener(v -> {
+            expressionInput.setText("");
+            resultText.setText("");
         });
+
+        checkButton.setOnClickListener(v -> checkExpression());
     }
 
     private void generateTargetNumber() {
@@ -130,5 +112,24 @@ public class MojBrojActivity extends AppCompatActivity {
                 expressionInput.append(value);
             }
         });
+    }
+
+    private void checkExpression() {
+        String expression = expressionInput.getText().toString().trim();
+
+        if (expression.isEmpty()) {
+            Toast.makeText(this, getString(R.string.enter_expression), Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        resultText.setText(getString(R.string.entered_expression, expression));
+
+        Toast.makeText(this, getString(R.string.match_finished), Toast.LENGTH_SHORT).show();
+
+        resultText.postDelayed(() -> {
+            Intent intent = new Intent(MojBrojActivity.this, HomeActivity.class);
+            startActivity(intent);
+            finish();
+        }, 2000);
     }
 }
