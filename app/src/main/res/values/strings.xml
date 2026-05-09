@@ -122,7 +122,7 @@
     <string name="clear">Obriši</string>
     <string name="moj_broj_rules">Pomoću ponuđenih brojeva i operacija +, -, *, /, (, ) pokušaj da dobiješ traženi broj.</string>
     <string name="target_number_placeholder">---</string>
-    <string name="number_placeholder">?</string>
+    <string name="number_placeholder">/?</string>
 
 
     <string name="home_title">Slagalica - Home</string>
@@ -170,5 +170,12 @@
     <string name="enter_expression">Enter expression.</string>
     <string name="match_finished">Match finished!</string>
     <string name="entered_expression">Entered expression: %1$s</string>
+    <string name="confirm_password_change">Confirm password change</string>
+    <string name="confirm_password_change_message">
+    Are you sure you want to change your password?
+</string>
+
+    <string name="yes">YES</string>
+    <string name="no">NO</string>
 
 </resources>

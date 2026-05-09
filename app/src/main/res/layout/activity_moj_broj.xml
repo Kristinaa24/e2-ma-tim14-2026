@@ -22,25 +22,6 @@
             android:gravity="center" />
 
         <TextView
-            android:id="@+id/roundText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/round_one_of_two"
-            android:textColor="@color/white"
-            android:textSize="18sp"
-            android:gravity="center"
-            android:layout_marginTop="12dp" />
-
-        <TextView
-            android:id="@+id/currentPlayerText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/current_player_one_moj_broj"
-            android:textColor="@color/white"
-            android:textSize="18sp"
-            android:gravity="center" />
-
-        <TextView
             android:id="@+id/timerText"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -220,6 +201,16 @@
             android:layout_height="wrap_content"
             android:text="@string/clear" />
 
+        <Button
+            android:id="@+id/quitGameButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/quit_game"
+            android:layout_marginTop="6dp"
+            android:backgroundTint="@color/slagalica_red"
+            android:textColor="@color/white"
+            android:textStyle="bold" />
+
         <TextView
             android:id="@+id/resultText"
             android:layout_width="match_parent"
@@ -228,6 +219,8 @@
             android:textColor="@color/white"
             android:textSize="16sp"
             android:layout_marginTop="8dp" />
+
+
 
     </LinearLayout>
 </ScrollView>
