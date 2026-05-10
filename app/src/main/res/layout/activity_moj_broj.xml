@@ -1,227 +1,238 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/slagalica_dark_blue">
+    android:background="@drawable/bg_screen"
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="12dp">
+
         <include layout="@layout/player_status_bar" />
 
         <TextView
             android:id="@+id/titleText"
+            style="@style/SlagalicaTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/moj_broj"
-            android:textColor="@color/white"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:gravity="center" />
+            android:layout_marginTop="4dp"
+            android:background="@color/slagalica_dark_blue"
+            android:padding="10dp"
+            android:text="@string/moj_broj" />
 
-        <TextView
-            android:id="@+id/timerText"
+        <LinearLayout
+            style="@style/SlagalicaCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/time_60"
-            android:textColor="@color/slagalica_yellow"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:gravity="center"
-            android:layout_marginTop="12dp" />
+            android:layout_marginTop="6dp"
+            android:orientation="vertical"
+            android:padding="8dp">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/target_number_label"
-            android:textColor="@color/white"
-            android:textSize="20sp"
-            android:layout_marginTop="12dp" />
+            <TextView
+                android:id="@+id/timerText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/time_60"
+                android:textColor="@color/slagalica_text"
+                android:textSize="@dimen/small_text_size"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/targetNumberText"
+            style="@style/SlagalicaQuestionField"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="64dp"
+            android:layout_marginTop="6dp"
             android:gravity="center"
             android:text="@string/target_number_placeholder"
-            android:textColor="@color/white"
-            android:textSize="44sp"
-            android:textStyle="bold" />
+            android:textSize="32sp" />
 
         <Button
             android:id="@+id/stopTargetButton"
+            style="@style/SlagalicaSecondaryButton"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/stop_target_number"
-            android:layout_marginTop="8dp" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/offered_numbers_label"
-            android:textColor="@color/white"
-            android:textSize="20sp"
-            android:layout_marginTop="12dp" />
+            android:layout_height="48dp"
+            android:layout_marginTop="4dp"
+            android:text="@string/stop_target_number" />
 
         <GridLayout
             android:id="@+id/numbersGrid"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
             android:columnCount="3"
-            android:layout_marginTop="8dp">
+            android:useDefaultMargins="false">
 
             <Button
                 android:id="@+id/numberButton1"
+                style="@style/SlagalicaAnswerButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="44dp"
                 android:layout_columnWeight="1"
                 android:text="@string/number_placeholder" />
 
             <Button
                 android:id="@+id/numberButton2"
+                style="@style/SlagalicaAnswerButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="44dp"
                 android:layout_columnWeight="1"
                 android:text="@string/number_placeholder" />
 
             <Button
                 android:id="@+id/numberButton3"
+                style="@style/SlagalicaAnswerButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="44dp"
                 android:layout_columnWeight="1"
                 android:text="@string/number_placeholder" />
 
             <Button
                 android:id="@+id/numberButton4"
+                style="@style/SlagalicaAnswerButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="44dp"
                 android:layout_columnWeight="1"
                 android:text="@string/number_placeholder" />
 
             <Button
                 android:id="@+id/numberButton5"
+                style="@style/SlagalicaAnswerButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="44dp"
                 android:layout_columnWeight="1"
                 android:text="@string/number_placeholder" />
 
             <Button
                 android:id="@+id/numberButton6"
+                style="@style/SlagalicaAnswerButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="44dp"
                 android:layout_columnWeight="1"
                 android:text="@string/number_placeholder" />
         </GridLayout>
 
         <Button
             android:id="@+id/stopNumbersButton"
+            style="@style/SlagalicaSecondaryButton"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/stop_numbers"
-            android:layout_marginTop="8dp" />
+            android:layout_height="48dp"
+            android:layout_marginTop="4dp"
+            android:text="@string/stop_numbers" />
 
         <GridLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
             android:columnCount="3"
-            android:layout_marginTop="10dp">
+            android:useDefaultMargins="false">
 
             <Button
                 android:id="@+id/plusButton"
+                style="@style/SlagalicaAnswerButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="42dp"
                 android:layout_columnWeight="1"
                 android:text="+" />
 
             <Button
                 android:id="@+id/minusButton"
+                style="@style/SlagalicaAnswerButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="42dp"
                 android:layout_columnWeight="1"
                 android:text="-" />
 
             <Button
                 android:id="@+id/multiplyButton"
+                style="@style/SlagalicaAnswerButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="42dp"
                 android:layout_columnWeight="1"
                 android:text="*" />
 
             <Button
                 android:id="@+id/divideButton"
+                style="@style/SlagalicaAnswerButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="42dp"
                 android:layout_columnWeight="1"
                 android:text="/" />
 
             <Button
                 android:id="@+id/openBracketButton"
+                style="@style/SlagalicaAnswerButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="42dp"
                 android:layout_columnWeight="1"
                 android:text="(" />
 
             <Button
                 android:id="@+id/closeBracketButton"
+                style="@style/SlagalicaAnswerButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
+                android:layout_height="42dp"
                 android:layout_columnWeight="1"
                 android:text=")" />
         </GridLayout>
 
-        <TextView
+        <LinearLayout
+            style="@style/SlagalicaCard"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/expression_label"
-            android:textColor="@color/white"
-            android:textSize="20sp"
-            android:layout_marginTop="8dp" />
+            android:layout_marginTop="6dp"
+            android:orientation="vertical"
+            android:padding="8dp">
 
-        <EditText
-            android:id="@+id/expressionInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:hint="@string/enter_expression_hint"
-            android:textColor="@color/white"
-            android:textColorHint="@color/light_gray"
-            android:inputType="text" />
+            <EditText
+                android:id="@+id/expressionInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/enter_expression_hint"
+                android:inputType="text"
+                android:textColor="@color/slagalica_text"
+                android:textColorHint="@color/slagalica_text"
+                android:textSize="@dimen/small_text_size" />
 
-        <Button
-            android:id="@+id/checkButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/check"
-            android:layout_marginTop="6dp" />
+            <Button
+                android:id="@+id/submitButton"
+                style="@style/SlagalicaConfirmButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="4dp"
+                android:text="@string/submit_answer" />
 
-        <Button
-            android:id="@+id/clearButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/clear" />
+            <Button
+                android:id="@+id/clearButton"
+                style="@style/SlagalicaSecondaryButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="4dp"
+                android:text="@string/clear" />
+        </LinearLayout>
 
         <Button
             android:id="@+id/quitGameButton"
+            style="@style/SlagalicaDangerButton"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/quit_game"
+            android:layout_height="48dp"
             android:layout_marginTop="6dp"
-            android:backgroundTint="@color/slagalica_red"
-            android:textColor="@color/white"
-            android:textStyle="bold" />
+            android:text="@string/quit_game" />
 
         <TextView
             android:id="@+id/resultText"
+            style="@style/SlagalicaInfoCardBlue"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
             android:text="@string/moj_broj_rules"
-            android:textColor="@color/white"
-            android:textSize="16sp"
-            android:layout_marginTop="8dp" />
-
-
+            android:textSize="@dimen/small_text_size" />
 
     </LinearLayout>
+
 </ScrollView>
