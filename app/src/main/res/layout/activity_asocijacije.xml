@@ -15,7 +15,7 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="horizontal"
-        android:padding="@dimen/space_small">
+        android:paddingBottom="@dimen/space_small">
 
         <TextView
             android:id="@+id/player1Score"
@@ -32,7 +32,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:background="@drawable/avatar_silver"
-            android:padding="@dimen/space_small"
+            android:padding="8dp"
             android:text="120s"
             android:textColor="@color/slagalica_dark_blue"
             android:textSize="20sp"
@@ -55,125 +55,111 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/asocijacije"
-        android:layout_marginBottom="@dimen/space_medium" />
+        android:layout_marginBottom="@dimen/space_small" />
 
-    <ScrollView
+    <!-- Top Columns Row (Expands) -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1">
+        android:layout_weight="1"
+        android:orientation="horizontal">
 
+        <!-- Column A -->
         <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <!-- Columns A and B -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <!-- Column A -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:padding="4dp">
-
-                    <Button android:id="@+id/btnA1" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="A1" android:layout_marginBottom="2dp"/>
-                    <Button android:id="@+id/btnA2" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="A2" android:layout_marginBottom="2dp"/>
-                    <Button android:id="@+id/btnA3" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="A3" android:layout_marginBottom="2dp"/>
-                    <Button android:id="@+id/btnA4" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="A4" android:layout_marginBottom="2dp"/>
-                    <EditText android:id="@+id/etSolutionA" style="@style/SlagalicaQuestionField" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/column_a" android:textSize="@dimen/small_text_size" />
-                </LinearLayout>
-
-                <!-- Column B -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:padding="4dp">
-
-                    <Button android:id="@+id/btnB1" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="B1" android:layout_marginBottom="2dp"/>
-                    <Button android:id="@+id/btnB2" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="B2" android:layout_marginBottom="2dp"/>
-                    <Button android:id="@+id/btnB3" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="B3" android:layout_marginBottom="2dp"/>
-                    <Button android:id="@+id/btnB4" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="B4" android:layout_marginBottom="2dp"/>
-                    <EditText android:id="@+id/etSolutionB" style="@style/SlagalicaQuestionField" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/column_b" android:textSize="@dimen/small_text_size" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <!-- Final Solution Field -->
-            <EditText
-                android:id="@+id/etFinalSolution"
-                style="@style/SlagalicaQuestionField"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginHorizontal="@dimen/space_medium"
-                android:layout_marginVertical="@dimen/space_large"
-                android:background="@color/slagalica_red"
-                android:hint="@string/final_solution"
-                android:textColor="@color/white"
-                android:textColorHint="@color/white"
-                android:textSize="@dimen/subtitle_text_size" />
-
-            <!-- Columns C and D -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
-
-                <!-- Column C -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:padding="4dp">
-
-                    <EditText android:id="@+id/etSolutionC" style="@style/SlagalicaQuestionField" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/column_c" android:textSize="@dimen/small_text_size" android:layout_marginBottom="2dp"/>
-                    <Button android:id="@+id/btnC1" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="C1" android:layout_marginBottom="2dp"/>
-                    <Button android:id="@+id/btnC2" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="C2" android:layout_marginBottom="2dp"/>
-                    <Button android:id="@+id/btnC3" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="C3" android:layout_marginBottom="2dp"/>
-                    <Button android:id="@+id/btnC4" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="C4" android:layout_marginBottom="2dp"/>
-                </LinearLayout>
-
-                <!-- Column D -->
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:padding="4dp">
-
-                    <EditText android:id="@+id/etSolutionD" style="@style/SlagalicaQuestionField" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/column_d" android:textSize="@dimen/small_text_size" android:layout_marginBottom="2dp"/>
-                    <Button android:id="@+id/btnD1" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="D1" android:layout_marginBottom="2dp"/>
-                    <Button android:id="@+id/btnD2" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="D2" android:layout_marginBottom="2dp"/>
-                    <Button android:id="@+id/btnD3" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="D3" android:layout_marginBottom="2dp"/>
-                    <Button android:id="@+id/btnD4" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="D4" android:layout_marginBottom="2dp"/>
-                </LinearLayout>
-            </LinearLayout>
-
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:padding="2dp">
+            <Button android:id="@+id/btnA1" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="A1" android:layout_marginBottom="2dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/btnA2" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="A2" android:layout_marginBottom="2dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/btnA3" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="A3" android:layout_marginBottom="2dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/btnA4" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="A4" android:layout_marginBottom="2dp" android:minHeight="0dp"/>
+            <EditText android:id="@+id/etSolutionA" style="@style/SlagalicaQuestionField" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1.2" android:hint="@string/column_a" android:textSize="@dimen/small_text_size" />
         </LinearLayout>
-    </ScrollView>
+
+        <!-- Column B -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:padding="2dp">
+            <Button android:id="@+id/btnB1" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="B1" android:layout_marginBottom="2dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/btnB2" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="B2" android:layout_marginBottom="2dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/btnB3" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="B3" android:layout_marginBottom="2dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/btnB4" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="B4" android:layout_marginBottom="2dp" android:minHeight="0dp"/>
+            <EditText android:id="@+id/etSolutionB" style="@style/SlagalicaQuestionField" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1.2" android:hint="@string/column_b" android:textSize="@dimen/small_text_size" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Final Solution (Prominent Middle) -->
+    <EditText
+        android:id="@+id/etFinalSolution"
+        style="@style/SlagalicaQuestionField"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/space_medium"
+        android:layout_marginVertical="@dimen/space_medium"
+        android:background="@color/slagalica_red"
+        android:hint="@string/final_solution"
+        android:minHeight="50dp"
+        android:textColor="@color/white"
+        android:textColorHint="@color/white"
+        android:textSize="@dimen/subtitle_text_size" />
+
+    <!-- Bottom Columns Row (Expands) -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="horizontal">
+
+        <!-- Column C -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:padding="2dp">
+            <EditText android:id="@+id/etSolutionC" style="@style/SlagalicaQuestionField" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1.2" android:hint="@string/column_c" android:textSize="@dimen/small_text_size" android:layout_marginBottom="2dp"/>
+            <Button android:id="@+id/btnC1" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="C1" android:layout_marginBottom="2dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/btnC2" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="C2" android:layout_marginBottom="2dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/btnC3" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="C3" android:layout_marginBottom="2dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/btnC4" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="C4" android:layout_marginBottom="2dp" android:minHeight="0dp"/>
+        </LinearLayout>
+
+        <!-- Column D -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:padding="2dp">
+            <EditText android:id="@+id/etSolutionD" style="@style/SlagalicaQuestionField" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1.2" android:hint="@string/column_d" android:textSize="@dimen/small_text_size" android:layout_marginBottom="2dp"/>
+            <Button android:id="@+id/btnD1" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="D1" android:layout_marginBottom="2dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/btnD2" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="D2" android:layout_marginBottom="2dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/btnD3" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="D3" android:layout_marginBottom="2dp" android:minHeight="0dp"/>
+            <Button android:id="@+id/btnD4" style="@style/SlagalicaSecondaryButton" android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1" android:text="D4" android:layout_marginBottom="2dp" android:minHeight="0dp"/>
+        </LinearLayout>
+    </LinearLayout>
 
     <Button
         android:id="@+id/confirmSolutionButton"
         style="@style/SlagalicaConfirmButton"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_small"
+        android:layout_height="@dimen/button_height"
         android:layout_marginHorizontal="@dimen/space_medium"
+        android:layout_marginTop="@dimen/space_small"
         android:text="@string/confirm" />
 
     <Button
         android:id="@+id/btnQuitAsocijacije"
         style="@style/SlagalicaDangerButton"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="@dimen/space_small"
+        android:layout_height="@dimen/button_height"
         android:layout_marginHorizontal="@dimen/space_medium"
+        android:layout_marginTop="@dimen/space_small"
         android:text="@string/quit_game" />
 
 </LinearLayout>
