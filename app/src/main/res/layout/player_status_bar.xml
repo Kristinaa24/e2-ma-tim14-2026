@@ -4,17 +4,17 @@
     android:id="@+id/statusBarLayout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/space_medium"
+    android:background="@drawable/bg_status_bar"
     android:orientation="horizontal"
-    android:layout_marginBottom="12dp"
-    android:padding="6dp"
-    android:background="@drawable/bg_status_bar">
+    android:padding="@dimen/status_bar_padding">
 
     <TextView
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:gravity="center"
-        android:text="🪙 5"
+        android:text="@string/status_tokens"
         android:textColor="@color/slagalica_yellow"
         android:textSize="12sp"
         android:textStyle="bold" />
@@ -24,7 +24,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:gravity="center"
-        android:text="⭐ 120"
+        android:text="@string/status_stars"
         android:textColor="@color/slagalica_yellow"
         android:textSize="12sp"
         android:textStyle="bold" />
@@ -34,7 +34,7 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:gravity="center"
-        android:text="🥈 Silver"
+        android:text="@string/status_league"
         android:textColor="@color/slagalica_yellow"
         android:textSize="12sp"
         android:textStyle="bold" />
