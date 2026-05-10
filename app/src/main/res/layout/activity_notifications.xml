@@ -10,58 +10,48 @@
     <!-- Header -->
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/notifToolbar"
+        style="@style/Widget.Slagalica.Toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/slagalica_light_blue"
-        app:title="@string/notifications"
-        app:titleTextColor="@color/slagalica_dark_blue" />
+        app:title="@string/notifications" />
 
     <!-- Filters Bar (Requirement 11.d) -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="8dp"
+        android:padding="@dimen/space_small"
         android:gravity="center">
 
         <Button
             android:id="@+id/btnAllNotifs"
+            style="@style/SlagalicaConfirmButton"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginEnd="4dp"
-            android:backgroundTint="@color/slagalica_yellow"
             android:text="@string/all_notifications"
-            android:textColor="@color/slagalica_dark_blue"
-            android:textSize="11sp"
-            android:textAllCaps="false"
-            android:textStyle="bold" />
+            android:textSize="@dimen/small_text_size" />
 
         <Button
             android:id="@+id/btnReadNotifs"
+            style="@style/SlagalicaSecondaryButton"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginHorizontal="4dp"
-            android:backgroundTint="@color/slagalica_light_blue"
             android:text="@string/read_notifications"
-            android:textColor="@color/slagalica_dark_blue"
-            android:textSize="11sp"
-            android:textAllCaps="false"
-            android:textStyle="bold" />
+            android:textSize="@dimen/small_text_size" />
 
         <Button
             android:id="@+id/btnUnreadNotifs"
+            style="@style/SlagalicaSecondaryButton"
             android:layout_width="0dp"
-            android:layout_height="40dp"
+            android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="4dp"
-            android:backgroundTint="@color/slagalica_light_blue"
             android:text="@string/unread_notifications"
-            android:textColor="@color/slagalica_dark_blue"
-            android:textSize="11sp"
-            android:textAllCaps="false"
-            android:textStyle="bold" />
+            android:textSize="@dimen/small_text_size" />
     </LinearLayout>
 
     <ScrollView
@@ -72,7 +62,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:padding="@dimen/space_medium">
             <include layout="@layout/item_notification" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" />
             <include layout="@layout/item_notification" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" />
             <include layout="@layout/item_notification" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" />
@@ -81,12 +71,11 @@
 
     <Button
         android:id="@+id/btnBackFromNotif"
+        style="@style/SlagalicaConfirmButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="12dp"
-        android:backgroundTint="@color/slagalica_yellow"
-        android:text="@string/back_to_home"
-        android:textColor="@color/slagalica_dark_blue"
-        android:textStyle="bold" />
+        android:layout_marginHorizontal="@dimen/space_medium"
+        android:layout_marginBottom="@dimen/space_medium"
+        android:text="@string/back_to_home" />
 
 </LinearLayout>
