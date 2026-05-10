@@ -7,7 +7,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -18,7 +17,7 @@ public class MojBrojActivity extends AppCompatActivity {
     private TextView targetNumberText, resultText;
     private EditText expressionInput;
 
-    private Button stopTargetButton, stopNumbersButton, checkButton, clearButton;
+    private Button stopTargetButton, stopNumbersButton, clearButton;
 
     private Button numberButton1, numberButton2, numberButton3;
     private Button numberButton4, numberButton5, numberButton6;
@@ -44,7 +43,6 @@ public class MojBrojActivity extends AppCompatActivity {
 
         stopTargetButton = findViewById(R.id.stopTargetButton);
         stopNumbersButton = findViewById(R.id.stopNumbersButton);
-        checkButton = findViewById(R.id.checkButton);
         clearButton = findViewById(R.id.clearButton);
 
         numberButton1 = findViewById(R.id.numberButton1);
@@ -60,8 +58,8 @@ public class MojBrojActivity extends AppCompatActivity {
         divideButton = findViewById(R.id.divideButton);
         openBracketButton = findViewById(R.id.openBracketButton);
         closeBracketButton = findViewById(R.id.closeBracketButton);
-        quitGameButton = findViewById(R.id.quitGameButton);
 
+        quitGameButton = findViewById(R.id.quitGameButton);
         statusBarLayout = findViewById(R.id.statusBarLayout);
 
         isGuest = getIntent().getBooleanExtra("IS_GUEST", false);
@@ -89,10 +87,8 @@ public class MojBrojActivity extends AppCompatActivity {
 
         clearButton.setOnClickListener(v -> {
             expressionInput.setText("");
-            resultText.setText("");
+            resultText.setText(getString(R.string.moj_broj_rules));
         });
-
-        checkButton.setOnClickListener(v -> checkExpression());
 
         quitGameButton.setOnClickListener(v -> {
             Intent intent = new Intent(
@@ -140,124 +136,5 @@ public class MojBrojActivity extends AppCompatActivity {
                 expressionInput.append(value);
             }
         });
-    }
-
-    private void checkExpression() {
-        String expression = expressionInput.getText().toString().trim();
-
-        if (expression.isEmpty()) {
-            Toast.makeText(this, getString(R.string.enter_expression), Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        String targetText = targetNumberText.getText().toString().trim();
-
-        if (targetText.isEmpty() || targetText.equals("?")) {
-            Toast.makeText(this, "Generate target number first.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        int targetNumber = Integer.parseInt(targetText);
-
-        try {
-            int result = evaluateSimpleExpression(expression);
-
-            if (result == targetNumber) {
-                resultText.setText("Result: " + result + " - Correct answer!");
-                Toast.makeText(this, "Correct answer!", Toast.LENGTH_SHORT).show();
-            } else {
-                resultText.setText("Result: " + result + " - Wrong answer!");
-                Toast.makeText(this, "Wrong answer!", Toast.LENGTH_SHORT).show();
-            }
-
-        } catch (Exception e) {
-            Toast.makeText(this, "Invalid expression.", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-
-    private int evaluateSimpleExpression(String expression) {
-        return (int) new Object() {
-            int position = -1;
-            int currentChar;
-
-            void nextChar() {
-                currentChar = (++position < expression.length()) ? expression.charAt(position) : -1;
-            }
-
-            boolean eat(int charToEat) {
-                while (currentChar == ' ') {
-                    nextChar();
-                }
-
-                if (currentChar == charToEat) {
-                    nextChar();
-                    return true;
-                }
-
-                return false;
-            }
-
-            int parse() {
-                nextChar();
-                int result = parseExpression();
-
-                if (position < expression.length()) {
-                    throw new RuntimeException("Unexpected character");
-                }
-
-                return result;
-            }
-
-            int parseExpression() {
-                int result = parseTerm();
-
-                while (true) {
-                    if (eat('+')) {
-                        result += parseTerm();
-                    } else if (eat('-')) {
-                        result -= parseTerm();
-                    } else {
-                        return result;
-                    }
-                }
-            }
-
-            int parseTerm() {
-                int result = parseFactor();
-
-                while (true) {
-                    if (eat('*')) {
-                        result *= parseFactor();
-                    } else if (eat('/')) {
-                        result /= parseFactor();
-                    } else {
-                        return result;
-                    }
-                }
-            }
-
-            int parseFactor() {
-                if (eat('+')) return parseFactor();
-                if (eat('-')) return -parseFactor();
-
-                int result;
-
-                if (eat('(')) {
-                    result = parseExpression();
-                    eat(')');
-                } else {
-                    int startPosition = this.position;
-
-                    while (currentChar >= '0' && currentChar <= '9') {
-                        nextChar();
-                    }
-
-                    result = Integer.parseInt(expression.substring(startPosition, this.position));
-                }
-
-                return result;
-            }
-        }.parse();
     }
 }

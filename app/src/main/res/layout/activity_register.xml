@@ -1,128 +1,112 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/slagalica_blue"
-    android:padding="24dp"
-    tools:context=".RegisterActivity">
+    android:background="@drawable/bg_screen"
+    android:fillViewport="true">
 
-    <TextView
-        android:id="@+id/registerTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/register"
-        android:textColor="@color/slagalica_yellow"
-        android:textSize="28sp"
-        android:textStyle="bold"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.25" />
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:padding="@dimen/screen_padding">
 
-    <EditText
-        android:id="@+id/usernameInput"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:hint="@string/username"
-        android:textColor="@color/white"
-        android:textColorHint="@color/light_gray"
-        android:backgroundTint="@color/white"
-        app:layout_constraintTop_toBottomOf="@id/registerTitle"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        <TextView
+            android:id="@+id/registerTitle"
+            style="@style/SlagalicaTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/register"
+            android:background="@color/slagalica_dark_blue"
+            android:padding="@dimen/card_padding" />
 
-    <EditText
-        android:id="@+id/emailInput"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:hint="@string/email"
-        android:inputType="textEmailAddress"
-        android:textColor="@color/white"
-        android:textColorHint="@color/light_gray"
-        android:backgroundTint="@color/white"
-        app:layout_constraintTop_toBottomOf="@id/usernameInput"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        <LinearLayout
+            style="@style/SlagalicaCard"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_large"
+            android:orientation="vertical">
 
-    <EditText
-        android:id="@+id/regionInput"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:hint="@string/region"
-        android:textColor="@color/white"
-        android:textColorHint="@color/light_gray"
-        android:backgroundTint="@color/white"
-        app:layout_constraintTop_toBottomOf="@id/emailInput"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+            <EditText
+                android:id="@+id/usernameInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/username"
+                android:textColor="@color/slagalica_text"
+                android:textColorHint="@color/slagalica_text" />
 
-    <EditText
-        android:id="@+id/passwordInput"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:hint="@string/password"
-        android:inputType="textPassword"
-        android:textColor="@color/white"
-        android:textColorHint="@color/light_gray"
-        android:backgroundTint="@color/white"
-        app:layout_constraintTop_toBottomOf="@id/regionInput"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+            <EditText
+                android:id="@+id/emailInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_medium"
+                android:hint="@string/email"
+                android:inputType="textEmailAddress"
+                android:textColor="@color/slagalica_text"
+                android:textColorHint="@color/slagalica_text" />
 
-    <EditText
-        android:id="@+id/repeatPasswordInput"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:hint="@string/repeat_password"
-        android:inputType="textPassword"
-        android:textColor="@color/white"
-        android:textColorHint="@color/light_gray"
-        android:backgroundTint="@color/white"
-        app:layout_constraintTop_toBottomOf="@id/passwordInput"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+            <EditText
+                android:id="@+id/regionInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_medium"
+                android:hint="@string/region"
+                android:textColor="@color/slagalica_text"
+                android:textColorHint="@color/slagalica_text" />
 
-    <TextView
-        android:id="@+id/registerErrorText"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:textColor="#FFCDD2"
-        android:textSize="14sp"
-        android:visibility="gone"
-        app:layout_constraintTop_toBottomOf="@id/repeatPasswordInput"
-        app:layout_constraintStart_toStartOf="@id/repeatPasswordInput"
-        app:layout_constraintEnd_toEndOf="@id/repeatPasswordInput" />
+            <EditText
+                android:id="@+id/passwordInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_medium"
+                android:hint="@string/password"
+                android:inputType="textPassword"
+                android:textColor="@color/slagalica_text"
+                android:textColorHint="@color/slagalica_text" />
 
-    <Button
-        android:id="@+id/registerButton"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:backgroundTint="@color/slagalica_yellow"
-        android:text="@string/register"
-        android:textColor="@color/slagalica_dark_blue"
-        android:textStyle="bold"
-        app:layout_constraintTop_toBottomOf="@id/repeatPasswordInput"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+            <EditText
+                android:id="@+id/repeatPasswordInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_medium"
+                android:hint="@string/repeat_password"
+                android:inputType="textPassword"
+                android:textColor="@color/slagalica_text"
+                android:textColorHint="@color/slagalica_text" />
 
-    <TextView
-        android:id="@+id/backToLoginText"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:text="@string/back_to_login"
-        android:textColor="@color/slagalica_yellow"
-        android:textSize="12sp"
-        android:clickable="true"
-        android:focusable="true"
-        app:layout_constraintTop_toBottomOf="@id/registerButton"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+            <TextView
+                android:id="@+id/registerErrorText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_small"
+                android:textColor="@color/slagalica_red"
+                android:textSize="@dimen/small_text_size"
+                android:visibility="gone" />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+            <Button
+                android:id="@+id/registerButton"
+                style="@style/SlagalicaConfirmButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_large"
+                android:text="@string/register" />
+
+            <TextView
+                android:id="@+id/backToLoginText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_medium"
+                android:gravity="center"
+                android:text="@string/back_to_login"
+                android:textColor="@color/slagalica_dark_blue"
+                android:textSize="@dimen/body_text_size"
+                android:textStyle="bold"
+                android:clickable="true"
+                android:focusable="true" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</ScrollView>

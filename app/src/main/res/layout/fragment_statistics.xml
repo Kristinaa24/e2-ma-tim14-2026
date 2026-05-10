@@ -2,29 +2,28 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#99000000"
-    android:padding="18dp">
+    android:background="@color/dialog_overlay"
+    android:padding="@dimen/screen_padding">
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:background="@color/slagalica_dark_blue">
+        android:layout_height="match_parent"
+        android:background="@color/slagalica_dark_blue"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="18dp">
+            android:padding="@dimen/screen_padding">
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="52dp"
+                android:layout_height="wrap_content"
                 android:background="@color/slagalica_light_blue"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:paddingStart="14dp"
-                android:paddingEnd="8dp">
+                android:padding="@dimen/card_padding">
 
                 <TextView
                     android:layout_width="0dp"
@@ -33,100 +32,88 @@
                     android:gravity="center"
                     android:text="@string/player_statistics"
                     android:textColor="@color/slagalica_dark_blue"
-                    android:textSize="24sp"
+                    android:textSize="22sp"
                     android:textStyle="bold" />
 
                 <Button
                     android:id="@+id/closeStatisticsButton"
+                    style="@style/SlagalicaDangerButton"
                     android:layout_width="52dp"
                     android:layout_height="44dp"
-                    android:backgroundTint="@color/slagalica_red"
-                    android:text="X"
-                    android:textColor="@color/white"
-                    android:textStyle="bold" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:orientation="horizontal">
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="130dp"
-                    android:layout_weight="1"
-                    android:background="@color/slagalica_blue"
-                    android:gravity="center"
-                    android:text="Success\n60%"
-                    android:textColor="@color/white"
-                    android:textSize="24sp"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="130dp"
-                    android:layout_marginStart="12dp"
-                    android:layout_weight="1"
-                    android:background="@color/slagalica_blue"
-                    android:gravity="center"
-                    android:text="Games played\n12"
-                    android:textColor="@color/white"
-                    android:textSize="24sp"
-                    android:textStyle="bold" />
+                    android:text="@string/close" />
             </LinearLayout>
 
             <TextView
+                style="@style/SlagalicaQuestionField"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:background="@color/slagalica_card"
-                android:padding="14dp"
-                android:text="Average score per game:\n\nKo zna zna: 34 / 50\nSpojnice: 14 / 20\nAsocijacije: 38 / 60\nSkočko: 25 / 40\nKorak po korak: 18 / 40\nMoj broj: 7 / 20"
+                android:layout_marginTop="@dimen/space_medium"
+                android:text="Summary&#10;Success: 60%&#10;Games played: 12&#10;Wins: 7 | Losses: 5&#10;Win rate: 58% | Loss rate: 42%"
+                android:textSize="@dimen/body_text_size" />
+
+            <TextView
+                style="@style/SlagalicaCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_medium"
+                android:text="Average score per game&#10;&#10;Ko zna zna: 34 / 50&#10;Spojnice: 14 / 20&#10;Asocijacije: 38 / 60&#10;Skočko: 25 / 40&#10;Korak po korak: 18 / 40&#10;Moj broj: 7 / 20"
                 android:textColor="@color/slagalica_text"
-                android:textSize="16sp"
+                android:textSize="@dimen/body_text_size"
                 android:textStyle="bold" />
 
             <TextView
+                style="@style/SlagalicaCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@color/slagalica_card"
-                android:padding="14dp"
-                android:text="Ko zna zna:\nCorrect answers: 42\nWrong answers: 18\n\nMoj broj:\nExact target number found: 40%\n\nSpojnice:\nSuccessfully connected pairs: 60%"
+                android:layout_marginTop="@dimen/space_medium"
+                android:text="Ko zna zna&#10;&#10;Correct answers: 42&#10;Wrong answers: 18"
                 android:textColor="@color/slagalica_text"
-                android:textSize="16sp" />
+                android:textSize="@dimen/body_text_size" />
 
             <TextView
+                style="@style/SlagalicaCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@color/slagalica_card"
-                android:padding="14dp"
-                android:text="Korak po korak:\nStep 1: 5%\nStep 2: 8%\nStep 3: 12%\nStep 4: 20%\nStep 5: 25%\nStep 6: 18%\nStep 7: 12%"
+                android:layout_marginTop="@dimen/space_medium"
+                android:text="Moj broj&#10;&#10;Exact target number found: 40%"
                 android:textColor="@color/slagalica_text"
-                android:textSize="16sp" />
+                android:textSize="@dimen/body_text_size" />
 
             <TextView
+                style="@style/SlagalicaCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@color/slagalica_card"
-                android:padding="14dp"
-                android:text="Asocijacije:\nSolved: 9\nUnsolved: 4\n\nSkočko:\nAttempt 1: 5%\nAttempt 2: 10%\nAttempt 3: 20%\nAttempt 4: 25%\nAttempt 5: 25%\nAttempt 6: 15%"
+                android:layout_marginTop="@dimen/space_medium"
+                android:text="Korak po korak&#10;&#10;Step 1: 5%&#10;Step 2: 8%&#10;Step 3: 12%&#10;Step 4: 20%&#10;Step 5: 25%&#10;Step 6: 18%&#10;Step 7: 12%"
                 android:textColor="@color/slagalica_text"
-                android:textSize="16sp" />
+                android:textSize="@dimen/body_text_size" />
 
             <TextView
+                style="@style/SlagalicaCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@color/slagalica_yellow"
-                android:padding="14dp"
-                android:text="Total played games: 12\nWins: 7\nLosses: 5\nWin rate: 58%\nLoss rate: 42%"
-                android:textColor="@color/slagalica_dark_blue"
-                android:textSize="17sp"
-                android:textStyle="bold" />
+                android:layout_marginTop="@dimen/space_medium"
+                android:text="Asocijacije&#10;&#10;Solved: 9&#10;Unsolved: 4"
+                android:textColor="@color/slagalica_text"
+                android:textSize="@dimen/body_text_size" />
+
+            <TextView
+                style="@style/SlagalicaCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_medium"
+                android:text="Skočko&#10;&#10;Attempt 1: 5%&#10;Attempt 2: 10%&#10;Attempt 3: 20%&#10;Attempt 4: 25%&#10;Attempt 5: 25%&#10;Attempt 6: 15%"
+                android:textColor="@color/slagalica_text"
+                android:textSize="@dimen/body_text_size" />
+
+            <TextView
+                style="@style/SlagalicaCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_medium"
+                android:text="Spojnice&#10;&#10;Successfully connected pairs: 60%"
+                android:textColor="@color/slagalica_text"
+                android:textSize="@dimen/body_text_size" />
 
         </LinearLayout>
     </ScrollView>

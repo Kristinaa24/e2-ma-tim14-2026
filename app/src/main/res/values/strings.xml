@@ -2,10 +2,8 @@
     <string name="app_name">Slagalica</string>
 
     <string name="profile">Profile</string>
-    <string name="avatar_placeholder">Avatar</string>
     <string name="profile_info_placeholder">Profile info</string>
     <string name="change_avatar">Change avatar</string>
-    <string name="statistics_placeholder">Statistics</string>
     <string name="logout">Logout</string>
     <string name="silver_league">Silver League</string>
     <string name="qr_code">QR CODE</string>
@@ -13,6 +11,8 @@
     <string name="avatar_frame">Avatar frame: Silver</string>
     <string name="view_statistics">View statistics</string>
     <string name="player_statistics">Player statistics</string>
+    <string name="avatar_icon">👤</string>
+    <string name="silver_medal_icon">🥈</string>
 
     <string name="ko_zna_zna">Ko zna zna</string>
     <string name="time_25">Game time: 25s</string>
@@ -26,8 +26,7 @@
     <string name="quit_game">Quit game</string>
     <string name="player_one_score">Player 1 score: 0</string>
     <string name="player_two_score">Player 2 score: 0</string>
-    <string name="rules">Rules</string>
-    <string name="simulate_opponent">Simulate faster Player 2 answer</string>
+
     <string name="ko_zna_zna_rules">Correct answer: +10 | Wrong answer: -5&#10;\nEach question lasts 5 seconds. Faster correct player gets points.</string>
     <string name="player_two_answer">Player 2 answer</string>
 
@@ -41,6 +40,15 @@
     <string name="selected_pair_none">Selected pair: none</string>
     <string name="confirm_connection">Confirm connection</string>
     <string name="second_chance_message">Second chance: other player connects the remaining pairs.</string>
+
+    <string name="close">X</string>
+    <string name="statistics_success">Success&#10;60%</string>
+    <string name="statistics_games_played">Games played&#10;12</string>
+    <string name="statistics_average_scores">Average score per game:&#10;&#10;Ko zna zna: 34 / 50&#10;Spojnice: 14 / 20&#10;Asocijacije: 38 / 60&#10;Skočko: 25 / 40&#10;Korak po korak: 18 / 40&#10;Moj broj: 7 / 20</string>
+    <string name="statistics_knowledge_numbers_pairs">Ko zna zna:&#10;Correct answers: 42&#10;Wrong answers: 18&#10;&#10;Moj broj:&#10;Exact target number found: 40%&#10;&#10;Spojnice:&#10;Successfully connected pairs: 60%</string>
+    <string name="statistics_steps">Korak po korak:&#10;Step 1: 5%&#10;Step 2: 8%&#10;Step 3: 12%&#10;Step 4: 20%&#10;Step 5: 25%&#10;Step 6: 18%&#10;Step 7: 12%</string>
+    <string name="statistics_associations_skocko">Asocijacije:&#10;Solved: 9&#10;Unsolved: 4&#10;&#10;Skočko:&#10;Attempt 1: 5%&#10;Attempt 2: 10%&#10;Attempt 3: 20%&#10;Attempt 4: 25%&#10;Attempt 5: 25%&#10;Attempt 6: 15%</string>
+    <string name="statistics_total">Total played games: 12&#10;Wins: 7&#10;Losses: 5&#10;Win rate: 58%&#10;Loss rate: 42%</string>
 
     <string name="adele">Adele</string>
     <string name="lady_gaga">Lady Gaga</string>
@@ -163,8 +171,6 @@
     <string name="no_notifications">No new notifications.</string>
     <string name="back_to_home">Back to Home</string>
 
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
 
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
@@ -184,8 +190,6 @@
     <string name="play_as_guest">Play as guest</string>
 
 
-    <string name="hello_world">Hello World!</string>
-
     <string name="ready_for_battle">Ready for battle?</string>
     <string name="start_game">START GAME</string>
     <string name="players_online">Players online: 37/74</string>
@@ -195,4 +199,14 @@
     <string name="rank_short">🏆&#10;Rank</string>
     <string name="alerts_short">🔔&#10;Alerts</string>
 
+
+    <string name="loading">Loading...</string>
+
+
+    <string name="status_tokens">🪙 5</string>
+    <string name="status_stars">⭐ 120</string>
+    <string name="status_league">🥈 Silver</string>
+    <string name="nav_header_icon">★</string>
+    <string name="nav_header_title">Slagalica</string>
+    <string name="nav_header_subtitle">Play. Win. Climb the league.</string>
 </resources>
