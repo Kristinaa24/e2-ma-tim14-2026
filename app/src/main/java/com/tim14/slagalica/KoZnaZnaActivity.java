@@ -1,16 +1,23 @@
 package com.tim14.slagalica;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.Log;
+import android.view.View;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
-import android.content.Intent;
-import android.widget.LinearLayout;
-import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.tim14.slagalica.model.KoZnaZnaQuestion;
+import com.tim14.slagalica.repository.FirebaseCallback;
+import com.tim14.slagalica.repository.FirestoreRepository;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class KoZnaZnaActivity extends AppCompatActivity {
 
@@ -22,11 +29,16 @@ public class KoZnaZnaActivity extends AppCompatActivity {
     private Button playerTwoAnswerButton, quitButton;
     private LinearLayout statusBarLayout;
 
+    private FirestoreRepository firestoreRepository;
+
     private boolean isGuest;
 
     private int questionIndex = 0;
     private int playerOneScore = 0;
     private int playerTwoScore = 0;
+
+    private int correctAnswers = 0;
+    private int wrongAnswers = 0;
 
     private CountDownTimer gameTimer;
     private CountDownTimer questionTimer;
@@ -34,29 +46,15 @@ public class KoZnaZnaActivity extends AppCompatActivity {
     private boolean questionAnswered = false;
     private boolean gameFinished = false;
 
-    private final String[] questions = {
-            "Capital of France?",
-            "Largest planet in the Solar System?",
-            "Which language is used for Android development?",
-            "How many continents are there?",
-            "Which sea is near Montenegro?"
-    };
-
-    private final String[][] answers = {
-            {"Paris", "London", "Berlin", "Rome"},
-            {"Earth", "Mars", "Jupiter", "Venus"},
-            {"Java", "HTML", "CSS", "SQL"},
-            {"5", "6", "7", "8"},
-            {"Adriatic Sea", "Baltic Sea", "Red Sea", "Black Sea"}
-    };
-
-    private final int[] correctIndexes = {0, 2, 0, 2, 0};
+    private List<KoZnaZnaQuestion> questions = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_ko_zna_zna);
+
+        firestoreRepository = new FirestoreRepository();
 
         gameTimerText = findViewById(R.id.gameTimerText);
         questionTimerText = findViewById(R.id.questionTimerText);
@@ -75,6 +73,7 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         playerTwoAnswerButton = findViewById(R.id.playerTwoAnswerButton);
         quitButton = findViewById(R.id.koZnaZnaQuitButton);
         statusBarLayout = findViewById(R.id.statusBarLayout);
+
         isGuest = getIntent().getBooleanExtra("IS_GUEST", false);
 
         if (isGuest) {
@@ -91,8 +90,39 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         playerTwoAnswerButton.setOnClickListener(v -> playerTwoAnswered());
         quitButton.setOnClickListener(v -> finish());
 
-        startGameTimer();
-        loadQuestion();
+        disableAnswerButtons();
+        questionText.setText("Loading questions...");
+
+        loadQuestionsFromFirestore();
+    }
+
+    private void loadQuestionsFromFirestore() {
+        firestoreRepository.getKoZnaZnaQuestions(new FirebaseCallback<List<KoZnaZnaQuestion>>() {
+            @Override
+            public void onSuccess(List<KoZnaZnaQuestion> result) {
+                if (result == null || result.size() < 5) {
+                    questionText.setText("Not enough questions in database.");
+                    Toast.makeText(KoZnaZnaActivity.this,
+                            "You need at least 5 questions in Firestore.",
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                questions = result;
+
+                Log.d(TAG, "Questions loaded from Firestore: " + questions.size());
+
+                startGameTimer();
+                loadQuestion();
+            }
+
+            @Override
+            public void onError(String error) {
+                questionText.setText("Questions could not be loaded.");
+                Toast.makeText(KoZnaZnaActivity.this, error, Toast.LENGTH_LONG).show();
+                Log.e(TAG, "Error loading questions: " + error);
+            }
+        });
     }
 
     private void startGameTimer() {
@@ -148,7 +178,15 @@ public class KoZnaZnaActivity extends AppCompatActivity {
     }
 
     private void loadQuestion() {
-        if (gameFinished) {
+        if (gameFinished || questions.isEmpty()) {
+            return;
+        }
+
+        KoZnaZnaQuestion currentQuestion = questions.get(questionIndex);
+
+        if (currentQuestion.answers == null || currentQuestion.answers.size() < 4) {
+            Toast.makeText(this, "Question has invalid answers.", Toast.LENGTH_LONG).show();
+            endGame();
             return;
         }
 
@@ -156,12 +194,12 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         enableAnswerButtons();
 
         questionCounterText.setText("Question " + (questionIndex + 1) + " / 5");
-        questionText.setText(questions[questionIndex]);
+        questionText.setText(currentQuestion.question);
 
-        answerAButton.setText(answers[questionIndex][0]);
-        answerBButton.setText(answers[questionIndex][1]);
-        answerCButton.setText(answers[questionIndex][2]);
-        answerDButton.setText(answers[questionIndex][3]);
+        answerAButton.setText(currentQuestion.answers.get(0));
+        answerBButton.setText(currentQuestion.answers.get(1));
+        answerCButton.setText(currentQuestion.answers.get(2));
+        answerDButton.setText(currentQuestion.answers.get(3));
 
         updateScores();
         startQuestionTimer();
@@ -176,11 +214,15 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         disableAnswerButtons();
         cancelQuestionTimer();
 
-        if (selectedIndex == correctIndexes[questionIndex]) {
+        KoZnaZnaQuestion currentQuestion = questions.get(questionIndex);
+
+        if (selectedIndex == currentQuestion.correctIndex) {
             playerOneScore += 10;
+            correctAnswers++;
             Toast.makeText(this, "Correct! +10", Toast.LENGTH_SHORT).show();
         } else {
             playerOneScore -= 5;
+            wrongAnswers++;
             Toast.makeText(this, "Wrong! -5", Toast.LENGTH_SHORT).show();
         }
 
@@ -198,9 +240,10 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         cancelQuestionTimer();
 
         playerTwoScore += 10;
-        Toast.makeText(this, "Player 2 answered first! +10", Toast.LENGTH_SHORT).show();
-        updateScores();
 
+        Toast.makeText(this, "Player 2 answered first! +10", Toast.LENGTH_SHORT).show();
+
+        updateScores();
         answerAButton.postDelayed(this::goToNextQuestion, 900);
     }
 
@@ -209,7 +252,7 @@ public class KoZnaZnaActivity extends AppCompatActivity {
             return;
         }
 
-        if (questionIndex < questions.length - 1) {
+        if (questionIndex < 4) {
             questionIndex++;
             loadQuestion();
         } else {
@@ -230,22 +273,25 @@ public class KoZnaZnaActivity extends AppCompatActivity {
         disableAnswerButtons();
         playerTwoAnswerButton.setEnabled(false);
 
+        firestoreRepository.updateKoZnaZnaStatistics(
+                correctAnswers,
+                wrongAnswers,
+                playerOneScore
+        );
+
         Toast.makeText(this,
                 "End of game. Player 1: " + playerOneScore + " | Player 2: " + playerTwoScore,
                 Toast.LENGTH_LONG).show();
 
         questionText.postDelayed(() -> {
-
-            Intent intent = new Intent(
-                    KoZnaZnaActivity.this,
-                    SpojniceActivity.class
-            );
+            Intent intent = new Intent(KoZnaZnaActivity.this, SpojniceActivity.class);
 
             intent.putExtra("IS_GUEST", isGuest);
+            intent.putExtra("PLAYER_ONE_SCORE", playerOneScore);
+            intent.putExtra("PLAYER_TWO_SCORE", playerTwoScore);
 
             startActivity(intent);
             finish();
-
         }, 3000);
     }
 
@@ -297,7 +343,6 @@ public class KoZnaZnaActivity extends AppCompatActivity {
 
         Log.d(TAG, "onDestroy");
     }
-
 
     @Override protected void onStart() { super.onStart(); Log.d(TAG, "onStart"); }
     @Override protected void onRestart() { super.onRestart(); Log.d(TAG, "onRestart"); }
