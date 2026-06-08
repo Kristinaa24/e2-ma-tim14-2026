@@ -44,76 +44,24 @@
             </LinearLayout>
 
             <TextView
+                android:id="@+id/statisticsText"
                 style="@style/SlagalicaQuestionField"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_medium"
-                android:text="Summary&#10;Success: 60%&#10;Games played: 12&#10;Wins: 7 | Losses: 5&#10;Win rate: 58% | Loss rate: 42%"
+                android:text="Loading statistics..."
                 android:textSize="@dimen/body_text_size" />
 
             <TextView
+                android:id="@+id/statisticsChartPlaceholder"
                 style="@style/SlagalicaCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_medium"
-                android:text="Average score per game&#10;&#10;Ko zna zna: 34 / 50&#10;Spojnice: 14 / 20&#10;Asocijacije: 38 / 60&#10;Skočko: 25 / 40&#10;Korak po korak: 18 / 40&#10;Moj broj: 7 / 20"
+                android:text="Chart will be shown here after games are played."
                 android:textColor="@color/slagalica_text"
                 android:textSize="@dimen/body_text_size"
                 android:textStyle="bold" />
-
-            <TextView
-                style="@style/SlagalicaCard"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_medium"
-                android:text="Ko zna zna&#10;&#10;Correct answers: 42&#10;Wrong answers: 18"
-                android:textColor="@color/slagalica_text"
-                android:textSize="@dimen/body_text_size" />
-
-            <TextView
-                style="@style/SlagalicaCard"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_medium"
-                android:text="Moj broj&#10;&#10;Exact target number found: 40%"
-                android:textColor="@color/slagalica_text"
-                android:textSize="@dimen/body_text_size" />
-
-            <TextView
-                style="@style/SlagalicaCard"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_medium"
-                android:text="Korak po korak&#10;&#10;Step 1: 5%&#10;Step 2: 8%&#10;Step 3: 12%&#10;Step 4: 20%&#10;Step 5: 25%&#10;Step 6: 18%&#10;Step 7: 12%"
-                android:textColor="@color/slagalica_text"
-                android:textSize="@dimen/body_text_size" />
-
-            <TextView
-                style="@style/SlagalicaCard"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_medium"
-                android:text="Asocijacije&#10;&#10;Solved: 9&#10;Unsolved: 4"
-                android:textColor="@color/slagalica_text"
-                android:textSize="@dimen/body_text_size" />
-
-            <TextView
-                style="@style/SlagalicaCard"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_medium"
-                android:text="Skočko&#10;&#10;Attempt 1: 5%&#10;Attempt 2: 10%&#10;Attempt 3: 20%&#10;Attempt 4: 25%&#10;Attempt 5: 25%&#10;Attempt 6: 15%"
-                android:textColor="@color/slagalica_text"
-                android:textSize="@dimen/body_text_size" />
-
-            <TextView
-                style="@style/SlagalicaCard"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_medium"
-                android:text="Spojnice&#10;&#10;Successfully connected pairs: 60%"
-                android:textColor="@color/slagalica_text"
-                android:textSize="@dimen/body_text_size" />
 
         </LinearLayout>
     </ScrollView>

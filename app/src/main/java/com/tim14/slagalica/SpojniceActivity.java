@@ -12,6 +12,13 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.tim14.slagalica.model.SpojniceRound;
+import com.tim14.slagalica.repository.FirebaseCallback;
+import com.tim14.slagalica.repository.FirestoreRepository;
+
+import java.util.ArrayList;
+import java.util.List;
+
 public class SpojniceActivity extends AppCompatActivity {
 
     private static final String TAG = "SpojniceActivity";
@@ -24,15 +31,21 @@ public class SpojniceActivity extends AppCompatActivity {
     private Button confirmConnectionButton, quitButton;
 
     private LinearLayout statusBarLayout;
+    private FirestoreRepository firestoreRepository;
+
     private boolean isGuest;
 
     private int round = 1;
     private int currentPlayer = 1;
     private int playerOneScore = 0;
     private int playerTwoScore = 0;
+
     private int solvedPairsInRound = 0;
     private int attemptsInTurn = 0;
     private int secondChancePairsCount = 0;
+
+    private int correctPairsTotal = 0;
+    private final int totalPairs = 10;
 
     private boolean secondChance = false;
     private boolean gameFinished = false;
@@ -42,26 +55,15 @@ public class SpojniceActivity extends AppCompatActivity {
 
     private CountDownTimer roundTimer;
 
-    private final String[][] leftItems = {
-            {"Adele", "Lady Gaga", "Ariana Grande", "Taylor Swift", "Beyonce"},
-            {"Bruno Mars", "Michael Jackson", "Ed Sheeran", "The Weeknd", "Justin Timberlake"}
-    };
-
-    private final String[][] correctRightItems = {
-            {"Hello", "Bad Romance", "7 Rings", "Shake It Off", "Halo"},
-            {"Uptown Funk", "Billie Jean", "Shape of You", "Blinding Lights", "Mirrors"}
-    };
-
-    private final String[][] displayedRightItems = {
-            {"Halo", "Hello", "Shake It Off", "Bad Romance", "7 Rings"},
-            {"Blinding Lights", "Mirrors", "Billie Jean", "Uptown Funk", "Shape of You"}
-    };
+    private List<SpojniceRound> rounds = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Log.d(TAG, "onCreate");
         setContentView(R.layout.activity_spojnice);
+
+        firestoreRepository = new FirestoreRepository();
 
         roundText = findViewById(R.id.roundText);
         currentPlayerText = findViewById(R.id.currentPlayerText);
@@ -85,10 +87,12 @@ public class SpojniceActivity extends AppCompatActivity {
 
         confirmConnectionButton = findViewById(R.id.confirmConnectionButton);
         quitButton = findViewById(R.id.spojniceQuitButton);
-
         statusBarLayout = findViewById(R.id.statusBarLayout);
 
         isGuest = getIntent().getBooleanExtra("IS_GUEST", false);
+
+        playerOneScore = getIntent().getIntExtra("PLAYER_ONE_SCORE", 0);
+        playerTwoScore = getIntent().getIntExtra("PLAYER_TWO_SCORE", 0);
 
         if (isGuest) {
             statusBarLayout.setVisibility(View.GONE);
@@ -97,7 +101,39 @@ public class SpojniceActivity extends AppCompatActivity {
         confirmConnectionButton.setOnClickListener(v -> confirmConnection());
         quitButton.setOnClickListener(v -> finish());
 
-        startRound();
+        disableAllPairButtons();
+        confirmConnectionButton.setEnabled(false);
+        secondChanceInfoText.setText("Loading Spojnice...");
+
+        loadRoundsFromFirestore();
+    }
+
+    private void loadRoundsFromFirestore() {
+        firestoreRepository.getSpojniceRounds(new FirebaseCallback<List<SpojniceRound>>() {
+            @Override
+            public void onSuccess(List<SpojniceRound> result) {
+                if (result == null || result.size() < 2) {
+                    secondChanceInfoText.setText("Not enough Spojnice rounds in database.");
+                    Toast.makeText(SpojniceActivity.this,
+                            "You need at least 2 Spojnice rounds in Firestore.",
+                            Toast.LENGTH_LONG).show();
+                    return;
+                }
+
+                rounds = result;
+
+                Log.d(TAG, "Spojnice rounds loaded from Firestore: " + rounds.size());
+
+                startRound();
+            }
+
+            @Override
+            public void onError(String error) {
+                secondChanceInfoText.setText("Spojnice could not be loaded.");
+                Toast.makeText(SpojniceActivity.this, error, Toast.LENGTH_LONG).show();
+                Log.e(TAG, "Error loading Spojnice rounds: " + error);
+            }
+        });
     }
 
     private void startRound() {
@@ -114,7 +150,9 @@ public class SpojniceActivity extends AppCompatActivity {
         enableAllPairButtons();
 
         confirmConnectionButton.setEnabled(true);
-        secondChanceInfoText.setText("First player connects all 5 pairs. If some pairs remain, the other player gets a second chance.");
+        secondChanceInfoText.setText(
+                "First player connects all 5 pairs. If some pairs remain, the other player gets a second chance."
+        );
 
         updateHeader();
         updateScores();
@@ -124,30 +162,47 @@ public class SpojniceActivity extends AppCompatActivity {
 
     private void setRoundItems() {
         int index = round - 1;
+        SpojniceRound currentRound = rounds.get(index);
 
-        left1Button.setText(leftItems[index][0]);
-        left2Button.setText(leftItems[index][1]);
-        left3Button.setText(leftItems[index][2]);
-        left4Button.setText(leftItems[index][3]);
-        left5Button.setText(leftItems[index][4]);
+        if (!isRoundValid(currentRound)) {
+            Toast.makeText(this, "Invalid Spojnice data in Firestore.", Toast.LENGTH_LONG).show();
+            endGame();
+            return;
+        }
 
-        right1Button.setText(displayedRightItems[index][0]);
-        right2Button.setText(displayedRightItems[index][1]);
-        right3Button.setText(displayedRightItems[index][2]);
-        right4Button.setText(displayedRightItems[index][3]);
-        right5Button.setText(displayedRightItems[index][4]);
+        left1Button.setText(currentRound.getLeftItems().get(0));
+        left2Button.setText(currentRound.getLeftItems().get(1));
+        left3Button.setText(currentRound.getLeftItems().get(2));
+        left4Button.setText(currentRound.getLeftItems().get(3));
+        left5Button.setText(currentRound.getLeftItems().get(4));
 
-        left1Button.setOnClickListener(v -> selectLeft(leftItems[index][0]));
-        left2Button.setOnClickListener(v -> selectLeft(leftItems[index][1]));
-        left3Button.setOnClickListener(v -> selectLeft(leftItems[index][2]));
-        left4Button.setOnClickListener(v -> selectLeft(leftItems[index][3]));
-        left5Button.setOnClickListener(v -> selectLeft(leftItems[index][4]));
+        right1Button.setText(currentRound.getDisplayedRightItems().get(0));
+        right2Button.setText(currentRound.getDisplayedRightItems().get(1));
+        right3Button.setText(currentRound.getDisplayedRightItems().get(2));
+        right4Button.setText(currentRound.getDisplayedRightItems().get(3));
+        right5Button.setText(currentRound.getDisplayedRightItems().get(4));
 
-        right1Button.setOnClickListener(v -> selectRight(displayedRightItems[index][0]));
-        right2Button.setOnClickListener(v -> selectRight(displayedRightItems[index][1]));
-        right3Button.setOnClickListener(v -> selectRight(displayedRightItems[index][2]));
-        right4Button.setOnClickListener(v -> selectRight(displayedRightItems[index][3]));
-        right5Button.setOnClickListener(v -> selectRight(displayedRightItems[index][4]));
+        left1Button.setOnClickListener(v -> selectLeft(left1Button.getText().toString()));
+        left2Button.setOnClickListener(v -> selectLeft(left2Button.getText().toString()));
+        left3Button.setOnClickListener(v -> selectLeft(left3Button.getText().toString()));
+        left4Button.setOnClickListener(v -> selectLeft(left4Button.getText().toString()));
+        left5Button.setOnClickListener(v -> selectLeft(left5Button.getText().toString()));
+
+        right1Button.setOnClickListener(v -> selectRight(right1Button.getText().toString()));
+        right2Button.setOnClickListener(v -> selectRight(right2Button.getText().toString()));
+        right3Button.setOnClickListener(v -> selectRight(right3Button.getText().toString()));
+        right4Button.setOnClickListener(v -> selectRight(right4Button.getText().toString()));
+        right5Button.setOnClickListener(v -> selectRight(right5Button.getText().toString()));
+    }
+
+    private boolean isRoundValid(SpojniceRound currentRound) {
+        return currentRound != null
+                && currentRound.getLeftItems() != null
+                && currentRound.getCorrectRightItems() != null
+                && currentRound.getDisplayedRightItems() != null
+                && currentRound.getLeftItems().size() >= 5
+                && currentRound.getCorrectRightItems().size() >= 5
+                && currentRound.getDisplayedRightItems().size() >= 5;
     }
 
     private void startRoundTimer() {
@@ -213,7 +268,9 @@ public class SpojniceActivity extends AppCompatActivity {
                 playerTwoScore += 2;
             }
 
+            correctPairsTotal++;
             solvedPairsInRound++;
+
             disableSolvedPair(selectedLeft, selectedRight);
 
             Toast.makeText(this, "Correct connection! +2", Toast.LENGTH_SHORT).show();
@@ -229,17 +286,17 @@ public class SpojniceActivity extends AppCompatActivity {
 
         if (solvedPairsInRound == 5) {
             Toast.makeText(this, "All pairs solved in this round.", Toast.LENGTH_SHORT).show();
-            selectedPairText.postDelayed(() -> prepareNextRoundOrEnd(), 900);
+            selectedPairText.postDelayed(this::prepareNextRoundOrEnd, 900);
             return;
         }
 
         if (!secondChance && attemptsInTurn == 5) {
-            selectedPairText.postDelayed(() -> switchToSecondPlayer(), 900);
+            selectedPairText.postDelayed(this::switchToSecondPlayer, 900);
             return;
         }
 
         if (secondChance && attemptsInTurn >= secondChancePairsCount) {
-            selectedPairText.postDelayed(() -> prepareNextRoundOrEnd(), 900);
+            selectedPairText.postDelayed(this::prepareNextRoundOrEnd, 900);
         }
     }
 
@@ -250,6 +307,11 @@ public class SpojniceActivity extends AppCompatActivity {
         attemptsInTurn = 0;
         secondChancePairsCount = getRemainingPairsCount();
 
+        if (secondChancePairsCount == 0) {
+            prepareNextRoundOrEnd();
+            return;
+        }
+
         selectedLeft = "";
         selectedRight = "";
 
@@ -258,13 +320,16 @@ public class SpojniceActivity extends AppCompatActivity {
         updateHeader();
         updateSelectedPairText();
 
-        secondChanceInfoText.setText("Second chance: Player " + currentPlayer + " connects the remaining " + secondChancePairsCount + " pairs.");
+        secondChanceInfoText.setText(
+                "Second chance: Player " + currentPlayer +
+                        " connects the remaining " + secondChancePairsCount + " pairs."
+        );
 
         Toast.makeText(this,
                 "Second player gets 30 seconds for remaining pairs.",
                 Toast.LENGTH_LONG).show();
 
-        selectedPairText.postDelayed(() -> startRoundTimer(), 2000);
+        selectedPairText.postDelayed(this::startRoundTimer, 2000);
     }
 
     private int getRemainingPairsCount() {
@@ -292,10 +357,11 @@ public class SpojniceActivity extends AppCompatActivity {
 
     private boolean isCorrectPair(String left, String right) {
         int roundIndex = round - 1;
+        SpojniceRound currentRound = rounds.get(roundIndex);
 
         for (int i = 0; i < 5; i++) {
-            if (left.equals(leftItems[roundIndex][i]) &&
-                    right.equals(correctRightItems[roundIndex][i])) {
+            if (left.equals(currentRound.getLeftItems().get(i))
+                    && right.equals(currentRound.getCorrectRightItems().get(i))) {
                 return true;
             }
         }
@@ -355,6 +421,20 @@ public class SpojniceActivity extends AppCompatActivity {
         right5Button.setAlpha(1f);
     }
 
+    private void disableAllPairButtons() {
+        left1Button.setEnabled(false);
+        left2Button.setEnabled(false);
+        left3Button.setEnabled(false);
+        left4Button.setEnabled(false);
+        left5Button.setEnabled(false);
+
+        right1Button.setEnabled(false);
+        right2Button.setEnabled(false);
+        right3Button.setEnabled(false);
+        right4Button.setEnabled(false);
+        right5Button.setEnabled(false);
+    }
+
     private void endGame() {
         if (gameFinished) {
             return;
@@ -364,26 +444,33 @@ public class SpojniceActivity extends AppCompatActivity {
 
         cancelRoundTimer();
 
+        disableAllPairButtons();
         confirmConnectionButton.setEnabled(false);
 
         secondChanceInfoText.setText("End of Spojnice.");
+
+        firestoreRepository.updateSpojniceStatistics(
+                correctPairsTotal,
+                totalPairs,
+                playerOneScore
+        );
 
         Toast.makeText(this,
                 "End of Spojnice. Player 1: " + playerOneScore + " | Player 2: " + playerTwoScore,
                 Toast.LENGTH_LONG).show();
 
         selectedPairText.postDelayed(() -> {
-
             Intent intent = new Intent(
                     SpojniceActivity.this,
                     KorakPoKorakActivity.class
             );
 
             intent.putExtra("IS_GUEST", isGuest);
+            intent.putExtra("PLAYER_ONE_SCORE", playerOneScore);
+            intent.putExtra("PLAYER_TWO_SCORE", playerTwoScore);
 
             startActivity(intent);
             finish();
-
         }, 3000);
     }
 
@@ -409,6 +496,8 @@ public class SpojniceActivity extends AppCompatActivity {
         super.onDestroy();
 
         cancelRoundTimer();
+
+        selectedPairText.removeCallbacks(null);
 
         Log.d(TAG, "onDestroy");
     }

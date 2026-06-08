@@ -7,7 +7,7 @@ import android.widget.EditText;
 import android.widget.Toast;
 import android.view.View;
 import android.widget.TextView;
-
+import com.tim14.slagalica.model.User;
 import androidx.appcompat.app.AppCompatActivity;
 
 public class LoginActivity extends AppCompatActivity {
