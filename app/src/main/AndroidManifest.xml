@@ -15,6 +15,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Slagalica">
         <activity
+            android:name=".GameHostActivity"
+            android:exported="false" />
+        <activity
             android:name=".WelcomeActivity"
             android:exported="false" />
         <activity
