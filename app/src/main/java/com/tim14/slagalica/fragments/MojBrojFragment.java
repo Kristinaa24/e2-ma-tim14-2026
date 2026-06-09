@@ -1,6 +1,9 @@
 package com.tim14.slagalica.fragments;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,11 +14,13 @@ import android.widget.Toast;
 
 import com.tim14.slagalica.R;
 import com.tim14.slagalica.game.BaseGameFragment;
-
-import java.util.ArrayDeque;
-import java.util.Random;
+import com.tim14.slagalica.game.MojBrojExpressionHelper;
+import com.tim14.slagalica.repository.FirestoreRepository;
+import com.tim14.slagalica.repository.LocalGameRepository;
 
 public class MojBrojFragment extends BaseGameFragment {
+
+    private final Handler handler = new Handler(Looper.getMainLooper());
 
     private TextView targetNumberText;
     private TextView resultText;
@@ -40,8 +45,18 @@ public class MojBrojFragment extends BaseGameFragment {
     private Button openBracketButton;
     private Button closeBracketButton;
 
-    private final Random random = new Random();
-    private int targetNumber = 0;
+    private LocalGameRepository localGameRepository;
+    private FirestoreRepository firestoreRepository;
+    private MojBrojExpressionHelper expressionHelper;
+
+    private Runnable targetRoller;
+    private Runnable numbersRoller;
+
+    private int targetNumber;
+    private int[] offeredNumbers = new int[6];
+    private boolean targetLocked;
+    private boolean numbersLocked;
+    private boolean roundFinished;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -50,6 +65,10 @@ public class MojBrojFragment extends BaseGameFragment {
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
+        localGameRepository = new LocalGameRepository();
+        firestoreRepository = new FirestoreRepository();
+        expressionHelper = new MojBrojExpressionHelper();
+
         targetNumberText = view.findViewById(R.id.targetNumberText);
         resultText = view.findViewById(R.id.resultText);
         expressionInput = view.findViewById(R.id.expressionInput);
@@ -73,12 +92,11 @@ public class MojBrojFragment extends BaseGameFragment {
         openBracketButton = view.findViewById(R.id.openBracketButton);
         closeBracketButton = view.findViewById(R.id.closeBracketButton);
 
-        host().setPhaseText("Formiraj izraz i pogodi ciljni broj");
-        host().setTimerValue(60);
         host().setScores(host().getPlayerOneScore(), host().getPlayerTwoScore());
+        host().setPhaseText(getString(R.string.my_number_lock_values_phase));
 
-        stopTargetButton.setOnClickListener(v -> generateTargetNumber());
-        stopNumbersButton.setOnClickListener(v -> generateOfferedNumbers());
+        stopTargetButton.setOnClickListener(v -> stopTargetRolling());
+        stopNumbersButton.setOnClickListener(v -> stopNumbersRolling());
 
         setAppendClick(numberButton1);
         setAppendClick(numberButton2);
@@ -100,80 +118,231 @@ public class MojBrojFragment extends BaseGameFragment {
         });
 
         submitButton.setOnClickListener(v -> submitExpression());
+
+        updateInputAvailability();
+        startTargetRolling();
+        startNumbersRolling();
+        startRoundTimer(60, this::handleTimeExpired);
     }
 
-    private void generateTargetNumber() {
-        targetNumber = random.nextInt(900) + 100;
-        targetNumberText.setText(String.valueOf(targetNumber));
+    private void startTargetRolling() {
+        targetRoller = new Runnable() {
+            @Override
+            public void run() {
+                if (!isAdded() || targetLocked || roundFinished) {
+                    return;
+                }
+
+                targetNumber = localGameRepository.generateTargetNumber();
+                targetNumberText.setText(String.valueOf(targetNumber));
+                handler.postDelayed(this, 120);
+            }
+        };
+
+        handler.post(targetRoller);
     }
 
-    private void generateOfferedNumbers() {
-        int firstSmall = random.nextInt(9) + 1;
-        int secondSmall = random.nextInt(9) + 1;
-        int thirdSmall = random.nextInt(9) + 1;
-        int fourthSmall = random.nextInt(9) + 1;
+    private void startNumbersRolling() {
+        numbersRoller = new Runnable() {
+            @Override
+            public void run() {
+                if (!isAdded() || numbersLocked || roundFinished) {
+                    return;
+                }
 
-        int[] middleNumbers = {10, 15, 20};
-        int[] bigNumbers = {25, 50, 75, 100};
+                offeredNumbers = localGameRepository.generateOfferedNumbers();
+                bindOfferedNumbers();
+                handler.postDelayed(this, 180);
+            }
+        };
 
-        int middleNumber = middleNumbers[random.nextInt(middleNumbers.length)];
-        int bigNumber = bigNumbers[random.nextInt(bigNumbers.length)];
+        handler.post(numbersRoller);
+    }
 
-        numberButton1.setText(String.valueOf(firstSmall));
-        numberButton2.setText(String.valueOf(secondSmall));
-        numberButton3.setText(String.valueOf(thirdSmall));
-        numberButton4.setText(String.valueOf(fourthSmall));
-        numberButton5.setText(String.valueOf(middleNumber));
-        numberButton6.setText(String.valueOf(bigNumber));
+    private void stopTargetRolling() {
+        if (roundFinished || targetLocked) {
+            return;
+        }
+
+        targetLocked = true;
+        handler.removeCallbacks(targetRoller);
+        updateInputAvailability();
+        updatePhaseText();
+    }
+
+    private void stopNumbersRolling() {
+        if (roundFinished || numbersLocked) {
+            return;
+        }
+
+        numbersLocked = true;
+        handler.removeCallbacks(numbersRoller);
+        updateInputAvailability();
+        updatePhaseText();
+    }
+
+    private void bindOfferedNumbers() {
+        numberButton1.setText(String.valueOf(offeredNumbers[0]));
+        numberButton2.setText(String.valueOf(offeredNumbers[1]));
+        numberButton3.setText(String.valueOf(offeredNumbers[2]));
+        numberButton4.setText(String.valueOf(offeredNumbers[3]));
+        numberButton5.setText(String.valueOf(offeredNumbers[4]));
+        numberButton6.setText(String.valueOf(offeredNumbers[5]));
     }
 
     private void setAppendClick(Button button) {
         button.setOnClickListener(v -> {
+            if (roundFinished) {
+                return;
+            }
+
+            if (!targetLocked || !numbersLocked) {
+                Toast.makeText(
+                        requireContext(),
+                        getString(R.string.my_number_stop_both_first),
+                        Toast.LENGTH_SHORT
+                ).show();
+                return;
+            }
+
             String value = button.getText().toString();
 
-            if (!value.equals(getString(R.string.number_placeholder))) {
+            if (!TextUtils.isEmpty(value)
+                    && !value.equals(getString(R.string.number_placeholder))) {
                 expressionInput.append(value);
             }
         });
     }
 
     private void submitExpression() {
-        if (targetNumber == 0) {
-            Toast.makeText(requireContext(), "Prvo zaustavi ciljni broj.", Toast.LENGTH_SHORT).show();
+        if (roundFinished) {
             return;
         }
 
-        String expression = expressionInput.getText().toString().trim();
-
-        if (expression.isEmpty()) {
-            Toast.makeText(requireContext(), "Unesi izraz.", Toast.LENGTH_SHORT).show();
+        if (!targetLocked || !numbersLocked) {
+            Toast.makeText(
+                    requireContext(),
+                    getString(R.string.my_number_stop_both_first),
+                    Toast.LENGTH_SHORT
+            ).show();
             return;
         }
 
-        Integer resultValue = evaluateExpression(expression);
+        MojBrojExpressionHelper.ValidationResult validationResult =
+                expressionHelper.validateAndEvaluate(
+                        expressionInput.getText().toString(),
+                        offeredNumbers
+                );
 
-        if (resultValue == null) {
-            Toast.makeText(requireContext(), "Neispravan izraz.", Toast.LENGTH_SHORT).show();
+        if (!validationResult.isValid()) {
+            showValidationError(validationResult.getErrorType());
             return;
         }
 
+        int resultValue = validationResult.getValue();
         int difference = Math.abs(targetNumber - resultValue);
         int earnedPoints = calculatePoints(difference);
-        int newPlayerOneScore = host().getPlayerOneScore() + earnedPoints;
 
-        host().setScores(newPlayerOneScore, host().getPlayerTwoScore());
+        roundFinished = true;
+        stopRoundTimer();
+        stopRollingCallbacks();
+
         host().setTimerValue(0);
-        host().setPhaseText("Moj broj zavrsen");
+        host().setPhaseText(getString(R.string.my_number_finished_phase));
+        host().setScores(host().getPlayerOneScore() + earnedPoints, host().getPlayerTwoScore());
 
-        resultText.setText(
-                "Dobijeni broj: " + resultValue +
-                        "\nCilj: " + targetNumber +
-                        "\nRazlika: " + difference +
-                        "\nPoeni: " + earnedPoints
-        );
+        resultText.setText(getString(
+                R.string.my_number_result_format,
+                resultValue,
+                targetNumber,
+                difference,
+                earnedPoints
+        ));
 
-        Toast.makeText(requireContext(), "Runda je zavrsena.", Toast.LENGTH_SHORT).show();
-        submitButton.postDelayed(() -> host().goToNextRound(), 1200);
+        updateInputAvailability();
+        firestoreRepository.updateMojBrojStatistics(difference, earnedPoints);
+
+        Toast.makeText(requireContext(), getString(R.string.my_number_round_finished), Toast.LENGTH_SHORT)
+                .show();
+
+        submitButton.postDelayed(() -> host().goToNextRound(), 1700);
+    }
+
+    private void handleTimeExpired() {
+        if (roundFinished) {
+            return;
+        }
+
+        roundFinished = true;
+        stopRollingCallbacks();
+        updateInputAvailability();
+
+        host().setTimerValue(0);
+        host().setPhaseText(getString(R.string.my_number_finished_phase));
+        resultText.setText(getString(R.string.my_number_time_up, targetNumber));
+
+        submitButton.postDelayed(() -> host().goToNextRound(), 1700);
+    }
+
+    private void showValidationError(MojBrojExpressionHelper.ErrorType errorType) {
+        int messageResId;
+
+        switch (errorType) {
+            case EMPTY:
+                messageResId = R.string.my_number_enter_expression;
+                break;
+            case INVALID_CHARACTERS:
+                messageResId = R.string.my_number_invalid_characters;
+                break;
+            case INVALID_NUMBERS:
+                messageResId = R.string.my_number_use_offered_numbers;
+                break;
+            case INVALID_EXPRESSION:
+            default:
+                messageResId = R.string.my_number_invalid_expression;
+                break;
+        }
+
+        Toast.makeText(requireContext(), getString(messageResId), Toast.LENGTH_SHORT).show();
+    }
+
+    private void updatePhaseText() {
+        if (roundFinished) {
+            host().setPhaseText(getString(R.string.my_number_finished_phase));
+            return;
+        }
+
+        if (targetLocked && numbersLocked) {
+            host().setPhaseText(getString(R.string.my_number_phase));
+            return;
+        }
+
+        host().setPhaseText(getString(R.string.my_number_lock_values_phase));
+    }
+
+    private void updateInputAvailability() {
+        boolean inputEnabled = !roundFinished && targetLocked && numbersLocked;
+
+        stopTargetButton.setEnabled(!roundFinished && !targetLocked);
+        stopNumbersButton.setEnabled(!roundFinished && !numbersLocked);
+
+        numberButton1.setEnabled(inputEnabled);
+        numberButton2.setEnabled(inputEnabled);
+        numberButton3.setEnabled(inputEnabled);
+        numberButton4.setEnabled(inputEnabled);
+        numberButton5.setEnabled(inputEnabled);
+        numberButton6.setEnabled(inputEnabled);
+
+        plusButton.setEnabled(inputEnabled);
+        minusButton.setEnabled(inputEnabled);
+        multiplyButton.setEnabled(inputEnabled);
+        divideButton.setEnabled(inputEnabled);
+        openBracketButton.setEnabled(inputEnabled);
+        closeBracketButton.setEnabled(inputEnabled);
+
+        expressionInput.setEnabled(inputEnabled);
+        clearButton.setEnabled(inputEnabled);
+        submitButton.setEnabled(inputEnabled);
     }
 
     private int calculatePoints(int difference) {
@@ -185,138 +354,26 @@ public class MojBrojFragment extends BaseGameFragment {
             return 5;
         }
 
-        return 0;
-    }
-
-    private Integer evaluateExpression(String expression) {
-        String cleanExpression = expression.replace(" ", "");
-
-        if (cleanExpression.isEmpty()) {
-            return null;
-        }
-
-        ArrayDeque<Integer> values = new ArrayDeque<>();
-        ArrayDeque<Character> operators = new ArrayDeque<>();
-
-        int i = 0;
-
-        while (i < cleanExpression.length()) {
-            char current = cleanExpression.charAt(i);
-
-            if (Character.isDigit(current)) {
-                int number = 0;
-
-                while (i < cleanExpression.length() && Character.isDigit(cleanExpression.charAt(i))) {
-                    number = number * 10 + (cleanExpression.charAt(i) - '0');
-                    i++;
-                }
-
-                values.push(number);
-                continue;
-            }
-
-            if (current == '(') {
-                operators.push(current);
-                i++;
-                continue;
-            }
-
-            if (current == ')') {
-                while (!operators.isEmpty() && operators.peek() != '(') {
-                    if (!applyTopOperation(values, operators)) {
-                        return null;
-                    }
-                }
-
-                if (operators.isEmpty() || operators.pop() != '(') {
-                    return null;
-                }
-
-                i++;
-                continue;
-            }
-
-            if (!isOperator(current)) {
-                return null;
-            }
-
-            while (!operators.isEmpty() && precedence(operators.peek()) >= precedence(current)) {
-                if (!applyTopOperation(values, operators)) {
-                    return null;
-                }
-            }
-
-            operators.push(current);
-            i++;
-        }
-
-        while (!operators.isEmpty()) {
-            if (operators.peek() == '(') {
-                return null;
-            }
-
-            if (!applyTopOperation(values, operators)) {
-                return null;
-            }
-        }
-
-        if (values.size() != 1) {
-            return null;
-        }
-
-        return values.pop();
-    }
-
-    private boolean applyTopOperation(ArrayDeque<Integer> values, ArrayDeque<Character> operators) {
-        if (values.size() < 2 || operators.isEmpty()) {
-            return false;
-        }
-
-        int right = values.pop();
-        int left = values.pop();
-        char operator = operators.pop();
-
-        Integer result = applyOperation(left, right, operator);
-
-        if (result == null) {
-            return false;
-        }
-
-        values.push(result);
-        return true;
-    }
-
-    private Integer applyOperation(int left, int right, char operator) {
-        switch (operator) {
-            case '+':
-                return left + right;
-            case '-':
-                return left - right;
-            case '*':
-                return left * right;
-            case '/':
-                if (right == 0 || left % right != 0) {
-                    return null;
-                }
-                return left / right;
-            default:
-                return null;
-        }
-    }
-
-    private boolean isOperator(char value) {
-        return value == '+' || value == '-' || value == '*' || value == '/';
-    }
-
-    private int precedence(char operator) {
-        if (operator == '+' || operator == '-') {
-            return 1;
-        }
-
-        if (operator == '*' || operator == '/') {
-            return 2;
+        if (difference <= 10) {
+            return 3;
         }
 
         return 0;
+    }
+
+    private void stopRollingCallbacks() {
+        if (targetRoller != null) {
+            handler.removeCallbacks(targetRoller);
+        }
+
+        if (numbersRoller != null) {
+            handler.removeCallbacks(numbersRoller);
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        stopRollingCallbacks();
+        super.onDestroyView();
     }
 }

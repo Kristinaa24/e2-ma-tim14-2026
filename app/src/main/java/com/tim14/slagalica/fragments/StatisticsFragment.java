@@ -69,6 +69,10 @@ public class StatisticsFragment extends Fragment {
                             statistics.spojnicaCorrectPairs * 100 / statistics.spojnicaTotalPairs;
                 }
 
+                String bestStepText = statistics.korakPoKorakBestStep == 0
+                        ? "-"
+                        : String.valueOf(statistics.korakPoKorakBestStep);
+
                 statisticsText.setText(
                         "Summary\n" +
                                 "Games played: " + statistics.gamesPlayed +
@@ -83,7 +87,15 @@ public class StatisticsFragment extends Fragment {
                                 "Correct pairs: " + statistics.spojnicaCorrectPairs +
                                 "\nTotal pairs: " + statistics.spojnicaTotalPairs +
                                 "\nSuccess: " + spojnicaSuccess + "%" +
-                                "\nTotal score: " + statistics.spojnicaTotalScore
+                                "\nTotal score: " + statistics.spojnicaTotalScore +
+                                "\n\nKorak po korak\n" +
+                                "Solved rounds: " + statistics.korakPoKorakSolved +
+                                "\nBest solved step: " + bestStepText +
+                                "\nTotal score: " + statistics.korakPoKorakTotalScore +
+                                "\n\nMoj broj\n" +
+                                "Exact hits: " + statistics.mojBrojExactHits +
+                                "\nClose hits (<= 5): " + statistics.mojBrojCloseHits +
+                                "\nTotal score: " + statistics.mojBrojTotalScore
                 );
             }
 

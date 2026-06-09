@@ -10,10 +10,14 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
 import com.tim14.slagalica.fragments.KorakPoKorakFragment;
+import com.tim14.slagalica.fragments.MatchResultFragment;
 import com.tim14.slagalica.fragments.MojBrojFragment;
 import com.tim14.slagalica.fragments.PlaceholderRoundFragment;
 import com.tim14.slagalica.game.GameNavigator;
 import com.tim14.slagalica.game.GameRound;
+import com.tim14.slagalica.model.User;
+import com.tim14.slagalica.repository.FirebaseCallback;
+import com.tim14.slagalica.repository.FirestoreRepository;
 
 public class GameHostActivity extends AppCompatActivity implements GameNavigator {
 
@@ -24,11 +28,16 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     private TextView tvPlayerOneScore;
     private TextView tvPlayerTwoScore;
     private TextView tvChatBubble;
+    private TextView tvStatusTokens;
+    private TextView tvStatusStars;
+    private TextView tvStatusLeague;
     private Button btnQuitMatch;
 
     private int playerOneScore;
     private int playerTwoScore;
     private GameRound currentRound;
+    private boolean isGuest;
+    private FirestoreRepository firestoreRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,7 +49,12 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         tvPlayerOneScore = findViewById(R.id.tvPlayerOneScore);
         tvPlayerTwoScore = findViewById(R.id.tvPlayerTwoScore);
         tvChatBubble = findViewById(R.id.tvChatBubble);
+        tvStatusTokens = findViewById(R.id.tvStatusTokens);
+        tvStatusStars = findViewById(R.id.tvStatusStars);
+        tvStatusLeague = findViewById(R.id.tvStatusLeague);
         btnQuitMatch = findViewById(R.id.btnQuitMatch);
+        firestoreRepository = new FirestoreRepository();
+        isGuest = getIntent().getBooleanExtra("IS_GUEST", false);
 
         btnQuitMatch.setOnClickListener(v -> surrenderMatch());
         tvChatBubble.setOnClickListener(v ->
@@ -57,6 +71,10 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         setScores(0, 0);
         setTimerValue(0);
         setPhaseText(getString(R.string.phase_waiting_for_round));
+
+        if (!isGuest) {
+            loadUserStatus();
+        }
 
         if (savedInstanceState == null) {
             GameRound startRound =
@@ -111,6 +129,9 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
             case MOJ_BROJ:
                 fragment = new MojBrojFragment();
                 break;
+            case RESULT:
+                fragment = new MatchResultFragment();
+                break;
             default:
                 fragment = PlaceholderRoundFragment.newInstance(round.name());
                 break;
@@ -144,8 +165,30 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     }
 
     @Override
+    public void restartMatch() {
+        setScores(0, 0);
+        goToRound(GameRound.KO_ZNA_ZNA, null);
+    }
+
+    @Override
     public void finishMatch() {
         finish();
+    }
+
+    private void loadUserStatus() {
+        firestoreRepository.getCurrentUser(new FirebaseCallback<User>() {
+            @Override
+            public void onSuccess(User user) {
+                tvStatusTokens.setText(String.valueOf(user.tokens));
+                tvStatusStars.setText(String.valueOf(user.stars));
+                tvStatusLeague.setText(LeagueUtils.getLeagueName(user.league));
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(GameHostActivity.this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void surrenderMatch() {

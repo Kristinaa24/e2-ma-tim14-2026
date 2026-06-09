@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.tim14.slagalica.fragments.StatisticsFragment;
 import com.tim14.slagalica.model.User;
+import com.tim14.slagalica.repository.AuthRepository;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
 
@@ -26,6 +27,8 @@ public class ProfileActivity extends AppCompatActivity {
     private Button viewStatisticsButton;
 
     private FirestoreRepository firestoreRepository;
+    private AuthRepository authRepository;
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +38,13 @@ public class ProfileActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate");
 
         firestoreRepository = new FirestoreRepository();
+        authRepository = new AuthRepository();
+        sessionManager = new SessionManager(this);
+
+        if (authRepository.getCurrentUser() == null) {
+            openWelcomeScreen();
+            return;
+        }
 
         profileInfo = findViewById(R.id.profileInfo);
         changeAvatarButton = findViewById(R.id.changeAvatarButton);
@@ -43,7 +53,6 @@ public class ProfileActivity extends AppCompatActivity {
         viewStatisticsButton = findViewById(R.id.viewStatisticsButton);
 
         profileInfo.setText("Loading profile...");
-
         loadUserProfile();
 
         changeAvatarButton.setOnClickListener(v ->
@@ -58,24 +67,21 @@ public class ProfileActivity extends AppCompatActivity {
         }
 
         logoutButton.setOnClickListener(v -> {
-            SessionManager.currentUser = null;
-
-            Intent intent = new Intent(ProfileActivity.this, LoginActivity.class);
-            startActivity(intent);
-            finish();
+            authRepository.logout();
+            sessionManager.logout();
+            openWelcomeScreen();
         });
 
-        changePasswordButton.setOnClickListener(v -> {
-            Intent intent = new Intent(ProfileActivity.this, ResetPasswordActivity.class);
-            startActivity(intent);
-        });
+        changePasswordButton.setOnClickListener(v ->
+                startActivity(new Intent(ProfileActivity.this, ResetPasswordActivity.class))
+        );
     }
 
     private void loadUserProfile() {
         firestoreRepository.getCurrentUser(new FirebaseCallback<User>() {
             @Override
             public void onSuccess(User user) {
-                SessionManager.currentUser = user;
+                sessionManager.saveUser(user);
 
                 profileInfo.setText(
                         "Username: " + user.username +
@@ -83,7 +89,7 @@ public class ProfileActivity extends AppCompatActivity {
                                 "\nRegion: " + user.region +
                                 "\nTokens: " + user.tokens +
                                 "\nStars: " + user.stars +
-                                "\nLeague: " + getLeagueName(user.league) +
+                                "\nLeague: " + LeagueUtils.getLeagueName(user.league) +
                                 "\nAvatar frame: " + user.avatarFrame +
                                 "\nQR code: " + user.qrCode
                 );
@@ -100,25 +106,6 @@ public class ProfileActivity extends AppCompatActivity {
         });
     }
 
-    private String getLeagueName(int league) {
-        switch (league) {
-            case 0:
-                return "Bronze League 🥉";
-            case 1:
-                return "Silver League 🥈";
-            case 2:
-                return "Gold League 🥇";
-            case 3:
-                return "Platinum League 💎";
-            case 4:
-                return "Diamond League 💠";
-            case 5:
-                return "Master League 👑";
-            default:
-                return "Unknown League";
-        }
-    }
-
     private void showStatisticsFragment() {
         StatisticsFragment fragment = new StatisticsFragment();
 
@@ -128,6 +115,13 @@ public class ProfileActivity extends AppCompatActivity {
                 .replace(R.id.statisticsFragmentContainer, fragment)
                 .addToBackStack(null)
                 .commit();
+    }
+
+    private void openWelcomeScreen() {
+        Intent intent = new Intent(ProfileActivity.this, WelcomeActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 
     @Override protected void onStart() { super.onStart(); Log.d(TAG, "onStart"); }
