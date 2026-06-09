@@ -17,7 +17,7 @@
             android:paddingTop="8dp"
             android:paddingEnd="14dp"
             android:paddingBottom="8dp"
-            android:text="MOJ BROJ"
+            android:text="@string/my_number_title"
             android:textColor="@color/white"
             android:textStyle="bold" />
 
@@ -32,7 +32,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="CILJNI BROJ"
+                android:text="@string/target_number_header"
                 android:textColor="@color/slagalica_light_blue"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -84,7 +84,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="PONUDJENI BROJEVI"
+                android:text="@string/offered_numbers_header"
                 android:textColor="@color/slagalica_dark_blue"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -163,7 +163,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="OPERACIJE"
+                android:text="@string/operations_header"
                 android:textColor="@color/slagalica_dark_blue"
                 android:textSize="12sp"
                 android:textStyle="bold" />
@@ -241,7 +241,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="UNESI IZRAZ"
+                android:text="@string/enter_expression_title"
                 android:textColor="@color/slagalica_dark_blue"
                 android:textSize="12sp"
                 android:textStyle="bold" />

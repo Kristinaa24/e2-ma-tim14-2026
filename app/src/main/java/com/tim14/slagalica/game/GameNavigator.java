@@ -10,5 +10,6 @@ public interface GameNavigator {
     int getPlayerTwoScore();
     void goToRound(GameRound round, Bundle args);
     void goToNextRound();
+    void restartMatch();
     void finishMatch();
 }
