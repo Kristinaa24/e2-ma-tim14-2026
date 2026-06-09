@@ -3,11 +3,12 @@ package com.tim14.slagalica;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import java.util.Timer;
-import java.util.TimerTask;
+import com.tim14.slagalica.repository.AuthRepository;
 
 @SuppressLint("CustomSplashScreen")
 public class SplashScreenActivity extends AppCompatActivity {
@@ -19,13 +20,22 @@ public class SplashScreenActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash_screen);
 
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                Intent intent = new Intent(SplashScreenActivity.this, WelcomeActivity.class);
-                startActivity(intent);
-                finish();
+        AuthRepository authRepository = new AuthRepository();
+        SessionManager sessionManager = new SessionManager(this);
+
+        new Handler(Looper.getMainLooper()).postDelayed(() -> {
+            Intent intent;
+
+            if (authRepository.getCurrentUser() != null) {
+                intent = new Intent(SplashScreenActivity.this, HomeActivity.class);
+                intent.putExtra("IS_GUEST", false);
+            } else {
+                sessionManager.logout();
+                intent = new Intent(SplashScreenActivity.this, WelcomeActivity.class);
             }
+
+            startActivity(intent);
+            finish();
         }, SPLASH_TIME_OUT);
     }
 }

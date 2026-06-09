@@ -33,7 +33,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="@string/email_or_username"
-                android:inputType="textEmailAddress"
+                android:inputType="text"
                 android:textColor="@color/slagalica_text"
                 android:textColorHint="@color/slagalica_text" />
 
@@ -46,6 +46,17 @@
                 android:inputType="textPassword"
                 android:textColor="@color/slagalica_text"
                 android:textColorHint="@color/slagalica_text" />
+
+            <TextView
+                android:id="@+id/forgotPasswordText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:layout_marginTop="@dimen/space_small"
+                android:text="@string/forgot_password"
+                android:textColor="@color/slagalica_dark_blue"
+                android:textSize="@dimen/small_text_size"
+                android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/errorText"
