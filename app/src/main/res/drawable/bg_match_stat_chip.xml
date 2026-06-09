@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="0"
+        android:endColor="@color/slagalica_blue"
+        android:startColor="@color/slagalica_dark_blue" />
+    <corners android:radius="16dp" />
+    <stroke
+        android:width="2dp"
+        android:color="@color/slagalica_light_blue" />
+</shape>

@@ -1,42 +1,106 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/statusBarLayout"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginBottom="@dimen/space_medium"
-    android:background="@drawable/bg_status_bar"
-    android:orientation="horizontal"
-    android:padding="@dimen/status_bar_padding">
+    android:layout_marginStart="@dimen/space_medium"
+    android:layout_marginTop="@dimen/space_small"
+    android:layout_marginEnd="@dimen/space_medium"
+    android:layout_marginBottom="@dimen/space_small"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
 
-    <TextView
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginEnd="6dp"
         android:layout_weight="1"
-        android:gravity="center"
-        android:text="@string/status_tokens"
-        android:textColor="@color/slagalica_yellow"
-        android:textSize="12sp"
-        android:textStyle="bold" />
+        android:background="@drawable/bg_match_stat_chip"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="8dp">
 
-    <TextView
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/status_tokens_icon"
+            android:textColor="@color/slagalica_light_blue"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="@string/status_tokens"
+            android:textColor="@color/slagalica_yellow"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="3dp"
+        android:layout_marginEnd="3dp"
         android:layout_weight="1"
-        android:gravity="center"
-        android:text="@string/status_stars"
-        android:textColor="@color/slagalica_yellow"
-        android:textSize="12sp"
-        android:textStyle="bold" />
+        android:background="@drawable/bg_match_stat_chip"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="8dp">
 
-    <TextView
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/status_stars_icon"
+            android:textColor="@color/slagalica_light_blue"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="@string/status_stars"
+            android:textColor="@color/slagalica_yellow"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
         android:layout_weight="1"
-        android:gravity="center"
-        android:text="@string/status_league"
-        android:textColor="@color/slagalica_yellow"
-        android:textSize="12sp"
-        android:textStyle="bold" />
+        android:background="@drawable/bg_match_stat_chip"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="10dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="10dp"
+        android:paddingBottom="8dp">
 
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/status_league_icon"
+            android:textColor="@color/slagalica_light_blue"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:text="@string/status_league"
+            android:textColor="@color/slagalica_yellow"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </LinearLayout>
 </LinearLayout>

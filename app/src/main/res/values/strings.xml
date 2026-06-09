@@ -46,8 +46,8 @@
     <string name="statistics_games_played">Games played&#10;12</string>
     <string name="statistics_average_scores">Average score per game:&#10;&#10;Ko zna zna: 34 / 50&#10;Spojnice: 14 / 20&#10;Asocijacije: 38 / 60&#10;Skočko: 25 / 40&#10;Korak po korak: 18 / 40&#10;Moj broj: 7 / 20</string>
     <string name="statistics_knowledge_numbers_pairs">Ko zna zna:&#10;Correct answers: 42&#10;Wrong answers: 18&#10;&#10;Moj broj:&#10;Exact target number found: 40%&#10;&#10;Spojnice:&#10;Successfully connected pairs: 60%</string>
-    <string name="statistics_steps">Korak po korak:&#10;Step 1: 5%&#10;Step 2: 8%&#10;Step 3: 12%&#10;Step 4: 20%&#10;Step 5: 25%&#10;Step 6: 18%&#10;Step 7: 12%</string>
-    <string name="statistics_associations_skocko">Asocijacije:&#10;Solved: 9&#10;Unsolved: 4&#10;&#10;Skočko:&#10;Attempt 1: 5%&#10;Attempt 2: 10%&#10;Attempt 3: 20%&#10;Attempt 4: 25%&#10;Attempt 5: 25%&#10;Attempt 6: 15%</string>
+    <string name="statistics_steps" formatted="false">Korak po korak:&#10;Step 1: 5%&#10;Step 2: 8%&#10;Step 3: 12%&#10;Step 4: 20%&#10;Step 5: 25%&#10;Step 6: 18%&#10;Step 7: 12%</string>
+    <string name="statistics_associations_skocko" formatted="false">Asocijacije:&#10;Solved: 9&#10;Unsolved: 4&#10;&#10;Skočko:&#10;Attempt 1: 5%&#10;Attempt 2: 10%&#10;Attempt 3: 20%&#10;Attempt 4: 25%&#10;Attempt 5: 25%&#10;Attempt 6: 15%</string>
     <string name="statistics_total">Total played games: 12&#10;Wins: 7&#10;Losses: 5&#10;Win rate: 58%&#10;Loss rate: 42%</string>
 
     <string name="adele">Adele</string>
@@ -133,7 +133,7 @@
     <string name="number_placeholder">/?</string>
 
 
-    <string name="home_title">Slagalica - Home</string>
+    <string name="home_title">Main Room</string>
     <string name="user_info_placeholder">User info</string>
     <string name="korak_po_korak">Korak po korak</string>
     <string name="time_70">Time: 70s</string>
@@ -191,7 +191,7 @@
 
 
     <string name="ready_for_battle">Ready for battle?</string>
-    <string name="start_game">START GAME</string>
+    <string name="start_game">START MATCH</string>
     <string name="players_online">Players online: 37/74</string>
     <string name="available_games">Available games</string>
     <string name="profile_short">👤&#10;Profile</string>
@@ -203,10 +203,109 @@
     <string name="loading">Loading...</string>
 
 
-    <string name="status_tokens">🪙 5</string>
-    <string name="status_stars">⭐ 120</string>
-    <string name="status_league">🥈 Silver</string>
+    <string name="status_tokens">200</string>
+    <string name="status_stars">120</string>
+    <string name="status_league">Silver</string>
     <string name="nav_header_icon">★</string>
     <string name="nav_header_title">Slagalica</string>
     <string name="nav_header_subtitle">Play. Win. Climb the league.</string>
+    <string name="tokens_label">TOKENS</string>
+    <string name="stars_label">STARS</string>
+    <string name="league_label">LEAGUE</string>
+    <string name="timer_label">TIMER</string>
+    <string name="player_one_name">Player 1</string>
+    <string name="player_two_name">Player 2</string>
+    <string name="player_avatar">Player avatar</string>
+    <string name="chat_bubble_text">...</string>
+    <string name="match_locked_hint">Match in progress</string>
+    <string name="surrender_match">Quit</string>
+    <string name="tab_play">Play</string>
+    <string name="tab_invite_friends">Friends</string>
+    <string name="tab_buy_tokens">Tokens</string>
+    <string name="tab_rankings">Rang lista</string>
+    <string name="tab_help">Help</string>
+    <string name="tab_faq">FAQ</string>
+    <string name="quick_access_title">Quick access</string>
+    <string name="home_profile_action">Profile</string>
+    <string name="home_statistics_action">Statistics</string>
+    <string name="home_friends_action">Friends</string>
+    <string name="home_rankings_action">Ranking list</string>
+    <string name="home_notifications_action">Alerts</string>
+    <string name="guest_access_message">Guest mode shows the full lobby as preview. Log in or register to unlock profile, statistics, friends and saved progress.</string>
+    <string name="guest_progress_title">Account progress</string>
+    <string name="guest_progress_message">Log in to save tokens, collect stars and join a league.</string>
+    <string name="guest_ranking_hint">Preview only. Log in to join the weekly ranking.</string>
+    <string name="guest_friends_hint">Log in to add friends and send invites.</string>
+    <string name="guest_buy_tokens_cta">Log in for tokens</string>
+    <string name="home_start_panel_title">Start a ranked match</string>
+    <string name="home_start_panel_subtitle">A match starts only from this button and then follows the required round order.</string>
+    <string name="home_active_players">Players active: 1077</string>
+    <string name="home_buy_tokens_cta">Buy tokens</string>
+    <string name="match_order_title">Round order</string>
+    <string name="match_order_subtitle">These round cards stay visible as a guide, but the match starts only from the Start Match button.</string>
+    <string name="round_quiz">1. Quiz</string>
+    <string name="round_pairs">2. Pairs</string>
+    <string name="round_mastermind">3. Mastermind</string>
+    <string name="round_associations">4. Associations</string>
+    <string name="round_step_by_step">5. Step by Step</string>
+    <string name="round_my_number">6. My Number</string>
+    <string name="weekly_ranking_title">Weekly ranking</string>
+    <string name="ranking_header_position">#</string>
+    <string name="ranking_header_player">Player</string>
+    <string name="ranking_header_stars">Stars</string>
+    <string name="ranking_place_1">1</string>
+    <string name="ranking_place_2">2</string>
+    <string name="ranking_place_3">3</string>
+    <string name="ranking_place_4">4</string>
+    <string name="ranking_player_1">Rastko Radenkovic</string>
+    <string name="ranking_player_2">Milica Nedic</string>
+    <string name="ranking_player_3">Teodora Nikolic</string>
+    <string name="ranking_player_4">Mina Pavlovic</string>
+    <string name="ranking_points_1">20</string>
+    <string name="ranking_points_2">18</string>
+    <string name="ranking_points_3">16</string>
+    <string name="ranking_points_4">14</string>
+    <string name="weekly_ranking_footer">Silver Division</string>
+    <string name="friends_panel_title">Play with friends</string>
+    <string name="friends_filter_all">Svi prijatelji</string>
+    <string name="friends_filter_online">Online</string>
+    <string name="friend_name_1">Ana</string>
+    <string name="friend_name_2">Mina</string>
+    <string name="friend_name_3">Teodora</string>
+    <string name="friend_name_4">Ivan</string>
+    <string name="friend_rank_1">1</string>
+    <string name="friend_rank_2">2</string>
+    <string name="friend_rank_3">3</string>
+    <string name="friend_rank_4">4</string>
+    <string name="friend_initial_1">A</string>
+    <string name="friend_initial_2">M</string>
+    <string name="friend_initial_3">T</string>
+    <string name="friend_initial_4">I</string>
+    <string name="friend_score_1">1189</string>
+    <string name="friend_score_2">1138</string>
+    <string name="friend_score_3">757</string>
+    <string name="friend_score_4">737</string>
+    <string name="friend_invite_initial">+</string>
+    <string name="friend_invite_title">Pozovi prijatelja</string>
+    <string name="friend_invite_subtitle">Pošalji novi poziv</string>
+    <string name="phase_waiting_for_round">Next round starts soon</string>
+    <string name="placeholder_round_title">ROUND</string>
+    <string name="placeholder_round_default_title">Round</string>
+    <string name="placeholder_phase_format">%1$s placeholder</string>
+    <string name="placeholder_round_message">This round will be moved to a dedicated fragment later. For now you can continue the match in the official order.</string>
+    <string name="continue_match">Continue match</string>
+    <string name="round_order_message">A match starts from Start Match and follows the official project round order.</string>
+    <string name="already_in_main_room_message">You are already in the main room.</string>
+    <string name="friends_placeholder_message">Friends panel and invitations are available in the shared lobby layout and can be connected later.</string>
+    <string name="invite_friends_placeholder_message">Friends and invitations will be connected here when your teammate finishes that part.</string>
+    <string name="buy_tokens_placeholder_message">Token purchase screen can be connected here later.</string>
+    <string name="rankings_placeholder_message">The ranking screen can be connected here later. The shared template already exposes the entry point.</string>
+    <string name="help_placeholder_message">Help content can be added here later.</string>
+    <string name="faq_placeholder_message">FAQ content can be added here later.</string>
+    <string name="chat_placeholder_message">Chat bubble is ready in the shared match header. Message sending can be connected later.</string>
+    <string name="status_tokens_icon">🪙</string>
+    <string name="status_stars_icon">⭐</string>
+    <string name="status_league_icon">🏆</string>
+    <string name="guest_login_required_message">Log in or register to open this section.</string>
+    <string name="match_surrendered_message">You quit the match.</string>
 </resources>
