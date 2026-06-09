@@ -17,6 +17,7 @@ import com.tim14.slagalica.repository.FirestoreRepository;
 public class ProfileActivity extends AppCompatActivity {
 
     private static final String TAG = "ProfileActivity";
+    public static final String EXTRA_OPEN_STATISTICS = "open_statistics";
 
     private TextView profileInfo;
     private Button changeAvatarButton;
@@ -50,6 +51,11 @@ public class ProfileActivity extends AppCompatActivity {
         );
 
         viewStatisticsButton.setOnClickListener(v -> showStatisticsFragment());
+
+        if (savedInstanceState == null
+                && getIntent().getBooleanExtra(EXTRA_OPEN_STATISTICS, false)) {
+            viewStatisticsButton.post(this::showStatisticsFragment);
+        }
 
         logoutButton.setOnClickListener(v -> {
             SessionManager.currentUser = null;
