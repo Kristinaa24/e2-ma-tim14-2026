@@ -2,7 +2,9 @@ package com.tim14.slagalica.repository;
 
 import com.tim14.slagalica.model.KorakPoKorakRound;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
@@ -45,6 +47,12 @@ public class LocalGameRepository {
 
     public KorakPoKorakRound getRandomKorakPoKorakRound() {
         return korakRounds.get(random.nextInt(korakRounds.size()));
+    }
+
+    public List<KorakPoKorakRound> getKorakPoKorakMatchRounds() {
+        List<KorakPoKorakRound> shuffledRounds = new ArrayList<>(korakRounds);
+        Collections.shuffle(shuffledRounds, random);
+        return shuffledRounds.subList(0, Math.min(2, shuffledRounds.size()));
     }
 
     public int generateTargetNumber() {

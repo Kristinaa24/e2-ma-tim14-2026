@@ -30,8 +30,18 @@
             android:padding="12dp">
 
             <TextView
+                android:id="@+id/roundOwnerText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textColor="@color/slagalica_light_blue"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+
+            <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
                 android:text="@string/target_number_header"
                 android:textColor="@color/slagalica_light_blue"
                 android:textSize="12sp"
@@ -90,7 +100,6 @@
                 android:textStyle="bold" />
 
             <GridLayout
-                android:id="@+id/numbersGrid"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
@@ -239,18 +248,27 @@
             android:padding="12dp">
 
             <TextView
+                android:id="@+id/activeInputText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/enter_expression_title"
+                android:textColor="@color/slagalica_dark_blue"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/my_number_player_one_expression_title"
                 android:textColor="@color/slagalica_dark_blue"
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
             <EditText
-                android:id="@+id/expressionInput"
+                android:id="@+id/playerOneExpressionInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:background="@android:color/transparent"
                 android:hint="@string/enter_expression_hint"
                 android:inputType="text"
@@ -259,21 +277,52 @@
                 android:textColorHint="@color/slagalica_text"
                 android:textSize="@dimen/small_text_size" />
 
-            <Button
-                android:id="@+id/submitButton"
-                style="@style/SlagalicaConfirmButton"
-                android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="8dp"
-                android:text="@string/check" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/my_number_player_two_expression_title"
+                android:textColor="@color/slagalica_dark_blue"
+                android:textSize="12sp"
+                android:textStyle="bold" />
 
-            <Button
-                android:id="@+id/clearButton"
-                style="@style/SlagalicaSecondaryButton"
+            <EditText
+                android:id="@+id/playerTwoExpressionInput"
                 android:layout_width="match_parent"
-                android:layout_height="48dp"
-                android:layout_marginTop="8dp"
-                android:text="@string/clear" />
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:background="@android:color/transparent"
+                android:hint="@string/enter_expression_hint"
+                android:inputType="text"
+                android:paddingBottom="8dp"
+                android:textColor="@color/slagalica_text"
+                android:textColorHint="@color/slagalica_text"
+                android:textSize="@dimen/small_text_size" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/submitButton"
+                    style="@style/SlagalicaConfirmButton"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_marginEnd="6dp"
+                    android:layout_weight="1"
+                    android:text="@string/my_number_preview_round" />
+
+                <Button
+                    android:id="@+id/clearButton"
+                    style="@style/SlagalicaSecondaryButton"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:text="@string/my_number_clear_active" />
+            </LinearLayout>
         </LinearLayout>
 
         <TextView
@@ -283,7 +332,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="10dp"
             android:padding="12dp"
-            android:text="@string/moj_broj_rules"
+            android:text="@string/my_number_rules_extended"
             android:textSize="@dimen/small_text_size" />
     </LinearLayout>
 </ScrollView>
