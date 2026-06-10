@@ -1,5 +1,10 @@
 package com.tim14.slagalica.fragments;
 
+import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -18,13 +23,23 @@ import com.tim14.slagalica.game.MojBrojExpressionHelper;
 import com.tim14.slagalica.repository.FirestoreRepository;
 import com.tim14.slagalica.repository.LocalGameRepository;
 
-public class MojBrojFragment extends BaseGameFragment {
+public class MojBrojFragment extends BaseGameFragment implements SensorEventListener {
+
+    private static final int ROUND_DURATION_SECONDS = 60;
+    private static final long AUTO_STOP_DELAY_MS = 5000L;
+    private static final float SHAKE_THRESHOLD = 12.0f;
+    private static final long SHAKE_COOLDOWN_MS = 900L;
 
     private final Handler handler = new Handler(Looper.getMainLooper());
 
+    private TextView roundOwnerText;
     private TextView targetNumberText;
+    private TextView activeInputText;
     private TextView resultText;
-    private EditText expressionInput;
+
+    private EditText playerOneExpressionInput;
+    private EditText playerTwoExpressionInput;
+    private EditText activeInput;
 
     private Button stopTargetButton;
     private Button stopNumbersButton;
@@ -49,14 +64,57 @@ public class MojBrojFragment extends BaseGameFragment {
     private FirestoreRepository firestoreRepository;
     private MojBrojExpressionHelper expressionHelper;
 
+    private SensorManager sensorManager;
+    private Sensor accelerometer;
+
     private Runnable targetRoller;
     private Runnable numbersRoller;
+    private Runnable autoStopTargetRunnable;
+    private Runnable autoStopNumbersRunnable;
 
+    private int currentRoundIndex;
+    private int currentStarterPlayer;
     private int targetNumber;
     private int[] offeredNumbers = new int[6];
     private boolean targetLocked;
     private boolean numbersLocked;
     private boolean roundFinished;
+    private long lastShakeTimestamp;
+
+    private static final class EvaluatedExpression {
+        private final boolean entered;
+        private final boolean valid;
+        private final Integer value;
+        private final int difference;
+        private final MojBrojExpressionHelper.ErrorType errorType;
+
+        private EvaluatedExpression(
+                boolean entered,
+                boolean valid,
+                Integer value,
+                int difference,
+                MojBrojExpressionHelper.ErrorType errorType
+        ) {
+            this.entered = entered;
+            this.valid = valid;
+            this.value = value;
+            this.difference = difference;
+            this.errorType = errorType;
+        }
+
+        private boolean isExact() {
+            return valid && difference == 0;
+        }
+
+        private boolean hasResult() {
+            return valid && value != null;
+        }
+    }
+
+    private static final class RoundPoints {
+        private int playerOnePoints;
+        private int playerTwoPoints;
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -69,9 +127,19 @@ public class MojBrojFragment extends BaseGameFragment {
         firestoreRepository = new FirestoreRepository();
         expressionHelper = new MojBrojExpressionHelper();
 
+        sensorManager = (SensorManager) requireContext().getSystemService(Context.SENSOR_SERVICE);
+
+        if (sensorManager != null) {
+            accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        }
+
+        roundOwnerText = view.findViewById(R.id.roundOwnerText);
         targetNumberText = view.findViewById(R.id.targetNumberText);
+        activeInputText = view.findViewById(R.id.activeInputText);
         resultText = view.findViewById(R.id.resultText);
-        expressionInput = view.findViewById(R.id.expressionInput);
+
+        playerOneExpressionInput = view.findViewById(R.id.playerOneExpressionInput);
+        playerTwoExpressionInput = view.findViewById(R.id.playerTwoExpressionInput);
 
         stopTargetButton = view.findViewById(R.id.stopTargetButton);
         stopNumbersButton = view.findViewById(R.id.stopNumbersButton);
@@ -92,11 +160,13 @@ public class MojBrojFragment extends BaseGameFragment {
         openBracketButton = view.findViewById(R.id.openBracketButton);
         closeBracketButton = view.findViewById(R.id.closeBracketButton);
 
-        host().setScores(host().getPlayerOneScore(), host().getPlayerTwoScore());
-        host().setPhaseText(getString(R.string.my_number_lock_values_phase));
-
         stopTargetButton.setOnClickListener(v -> stopTargetRolling());
         stopNumbersButton.setOnClickListener(v -> stopNumbersRolling());
+        clearButton.setOnClickListener(v -> clearActiveInput());
+        submitButton.setOnClickListener(v -> previewCurrentResults());
+
+        setInputTracking(playerOneExpressionInput);
+        setInputTracking(playerTwoExpressionInput);
 
         setAppendClick(numberButton1);
         setAppendClick(numberButton2);
@@ -104,7 +174,6 @@ public class MojBrojFragment extends BaseGameFragment {
         setAppendClick(numberButton4);
         setAppendClick(numberButton5);
         setAppendClick(numberButton6);
-
         setAppendClick(plusButton);
         setAppendClick(minusButton);
         setAppendClick(multiplyButton);
@@ -112,17 +181,36 @@ public class MojBrojFragment extends BaseGameFragment {
         setAppendClick(openBracketButton);
         setAppendClick(closeBracketButton);
 
-        clearButton.setOnClickListener(v -> {
-            expressionInput.setText("");
-            resultText.setText(getString(R.string.moj_broj_rules));
-        });
+        startRound(0);
+    }
 
-        submitButton.setOnClickListener(v -> submitExpression());
+    private void startRound(int roundIndex) {
+        currentRoundIndex = roundIndex;
+        currentStarterPlayer = roundIndex == 0 ? 1 : 2;
+        targetNumber = 0;
+        offeredNumbers = new int[6];
+        targetLocked = false;
+        numbersLocked = false;
+        roundFinished = false;
 
+        playerOneExpressionInput.setText("");
+        playerTwoExpressionInput.setText("");
+        targetNumberText.setText(getString(R.string.target_number_placeholder));
+        resultText.setText(getString(R.string.my_number_rules_extended));
+        bindNumberPlaceholders();
+
+        activeInput = currentStarterPlayer == 1
+                ? playerOneExpressionInput
+                : playerTwoExpressionInput;
+
+        updateRoundHeader();
+        updateActiveInputLabel();
         updateInputAvailability();
+        updatePhaseText();
+
         startTargetRolling();
-        startNumbersRolling();
-        startRoundTimer(60, this::handleTimeExpired);
+        scheduleAutoStopTarget();
+        startRoundTimer(ROUND_DURATION_SECONDS, this::handleRoundTimeout);
     }
 
     private void startTargetRolling() {
@@ -135,7 +223,7 @@ public class MojBrojFragment extends BaseGameFragment {
 
                 targetNumber = localGameRepository.generateTargetNumber();
                 targetNumberText.setText(String.valueOf(targetNumber));
-                handler.postDelayed(this, 120);
+                handler.postDelayed(this, 120L);
             }
         };
 
@@ -152,11 +240,21 @@ public class MojBrojFragment extends BaseGameFragment {
 
                 offeredNumbers = localGameRepository.generateOfferedNumbers();
                 bindOfferedNumbers();
-                handler.postDelayed(this, 180);
+                handler.postDelayed(this, 180L);
             }
         };
 
         handler.post(numbersRoller);
+    }
+
+    private void scheduleAutoStopTarget() {
+        autoStopTargetRunnable = this::stopTargetRolling;
+        handler.postDelayed(autoStopTargetRunnable, AUTO_STOP_DELAY_MS);
+    }
+
+    private void scheduleAutoStopNumbers() {
+        autoStopNumbersRunnable = this::stopNumbersRolling;
+        handler.postDelayed(autoStopNumbersRunnable, AUTO_STOP_DELAY_MS);
     }
 
     private void stopTargetRolling() {
@@ -165,7 +263,22 @@ public class MojBrojFragment extends BaseGameFragment {
         }
 
         targetLocked = true;
-        handler.removeCallbacks(targetRoller);
+
+        if (targetNumber == 0) {
+            targetNumber = localGameRepository.generateTargetNumber();
+            targetNumberText.setText(String.valueOf(targetNumber));
+        }
+
+        if (targetRoller != null) {
+            handler.removeCallbacks(targetRoller);
+        }
+
+        if (autoStopTargetRunnable != null) {
+            handler.removeCallbacks(autoStopTargetRunnable);
+        }
+
+        startNumbersRolling();
+        scheduleAutoStopNumbers();
         updateInputAvailability();
         updatePhaseText();
     }
@@ -176,45 +289,173 @@ public class MojBrojFragment extends BaseGameFragment {
         }
 
         numbersLocked = true;
-        handler.removeCallbacks(numbersRoller);
+
+        if (offeredNumbers[0] == 0) {
+            offeredNumbers = localGameRepository.generateOfferedNumbers();
+            bindOfferedNumbers();
+        }
+
+        if (numbersRoller != null) {
+            handler.removeCallbacks(numbersRoller);
+        }
+
+        if (autoStopNumbersRunnable != null) {
+            handler.removeCallbacks(autoStopNumbersRunnable);
+        }
+
         updateInputAvailability();
         updatePhaseText();
+
+        if (activeInput != null) {
+            activeInput.requestFocus();
+            activeInput.setSelection(activeInput.getText().length());
+        }
     }
 
-    private void bindOfferedNumbers() {
-        numberButton1.setText(String.valueOf(offeredNumbers[0]));
-        numberButton2.setText(String.valueOf(offeredNumbers[1]));
-        numberButton3.setText(String.valueOf(offeredNumbers[2]));
-        numberButton4.setText(String.valueOf(offeredNumbers[3]));
-        numberButton5.setText(String.valueOf(offeredNumbers[4]));
-        numberButton6.setText(String.valueOf(offeredNumbers[5]));
+    private void handleRoundTimeout() {
+        if (roundFinished) {
+            return;
+        }
+
+        finishRound();
     }
 
-    private void setAppendClick(Button button) {
-        button.setOnClickListener(v -> {
-            if (roundFinished) {
+    private void finishRound() {
+        roundFinished = true;
+        stopRoundTimer();
+        stopRollingCallbacks();
+        host().setTimerValue(0);
+
+        EvaluatedExpression playerOneResult = evaluateExpression(playerOneExpressionInput);
+        EvaluatedExpression playerTwoResult = evaluateExpression(playerTwoExpressionInput);
+        RoundPoints roundPoints = calculateRoundPoints(playerOneResult, playerTwoResult);
+
+        host().setScores(
+                host().getPlayerOneScore() + roundPoints.playerOnePoints,
+                host().getPlayerTwoScore() + roundPoints.playerTwoPoints
+        );
+
+        if (playerOneResult.hasResult() || roundPoints.playerOnePoints > 0) {
+            firestoreRepository.updateMojBrojStatistics(
+                    playerOneResult.hasResult() ? playerOneResult.difference : targetNumber,
+                    roundPoints.playerOnePoints
+            );
+        }
+
+        updateInputAvailability();
+        host().setPhaseText(
+                getString(R.string.my_number_round_finished_phase_format, currentRoundIndex + 1)
+        );
+        resultText.setText(buildRoundSummary(playerOneResult, playerTwoResult, roundPoints));
+
+        Toast.makeText(requireContext(), getString(R.string.my_number_round_finished), Toast.LENGTH_SHORT)
+                .show();
+
+        resultText.postDelayed(() -> {
+            if (!isAdded()) {
                 return;
             }
 
-            if (!targetLocked || !numbersLocked) {
-                Toast.makeText(
-                        requireContext(),
-                        getString(R.string.my_number_stop_both_first),
-                        Toast.LENGTH_SHORT
-                ).show();
-                return;
+            if (currentRoundIndex == 0) {
+                startRound(1);
+            } else {
+                host().goToNextRound();
             }
-
-            String value = button.getText().toString();
-
-            if (!TextUtils.isEmpty(value)
-                    && !value.equals(getString(R.string.number_placeholder))) {
-                expressionInput.append(value);
-            }
-        });
+        }, 2200L);
     }
 
-    private void submitExpression() {
+    private RoundPoints calculateRoundPoints(
+            EvaluatedExpression playerOneResult,
+            EvaluatedExpression playerTwoResult
+    ) {
+        RoundPoints roundPoints = new RoundPoints();
+
+        if (playerOneResult.isExact()) {
+            roundPoints.playerOnePoints += 10;
+        }
+
+        if (playerTwoResult.isExact()) {
+            roundPoints.playerTwoPoints += 10;
+        }
+
+        if (roundPoints.playerOnePoints > 0 || roundPoints.playerTwoPoints > 0) {
+            return roundPoints;
+        }
+
+        if (playerOneResult.hasResult() && !playerTwoResult.hasResult()) {
+            roundPoints.playerOnePoints = 5;
+            return roundPoints;
+        }
+
+        if (!playerOneResult.hasResult() && playerTwoResult.hasResult()) {
+            roundPoints.playerTwoPoints = 5;
+            return roundPoints;
+        }
+
+        if (!playerOneResult.hasResult()) {
+            return roundPoints;
+        }
+
+        if (playerOneResult.difference < playerTwoResult.difference) {
+            roundPoints.playerOnePoints = 5;
+            return roundPoints;
+        }
+
+        if (playerTwoResult.difference < playerOneResult.difference) {
+            roundPoints.playerTwoPoints = 5;
+            return roundPoints;
+        }
+
+        if (playerOneResult.value != null
+                && playerOneResult.value.equals(playerTwoResult.value)
+                && playerOneResult.value != 0) {
+            if (currentStarterPlayer == 1) {
+                roundPoints.playerOnePoints = 5;
+            } else {
+                roundPoints.playerTwoPoints = 5;
+            }
+        }
+
+        return roundPoints;
+    }
+
+    private EvaluatedExpression evaluateExpression(EditText input) {
+        String expression = input.getText().toString().trim();
+
+        if (TextUtils.isEmpty(expression)) {
+            return new EvaluatedExpression(
+                    false,
+                    false,
+                    null,
+                    Integer.MAX_VALUE,
+                    MojBrojExpressionHelper.ErrorType.EMPTY
+            );
+        }
+
+        MojBrojExpressionHelper.ValidationResult validationResult =
+                expressionHelper.validateAndEvaluate(expression, offeredNumbers);
+
+        if (!validationResult.isValid()) {
+            return new EvaluatedExpression(
+                    true,
+                    false,
+                    null,
+                    Integer.MAX_VALUE,
+                    validationResult.getErrorType()
+            );
+        }
+
+        int value = validationResult.getValue();
+        return new EvaluatedExpression(
+                true,
+                true,
+                value,
+                Math.abs(targetNumber - value),
+                MojBrojExpressionHelper.ErrorType.NONE
+        );
+    }
+
+    private void previewCurrentResults() {
         if (roundFinished) {
             return;
         }
@@ -228,82 +469,146 @@ public class MojBrojFragment extends BaseGameFragment {
             return;
         }
 
-        MojBrojExpressionHelper.ValidationResult validationResult =
-                expressionHelper.validateAndEvaluate(
-                        expressionInput.getText().toString(),
-                        offeredNumbers
-                );
+        EvaluatedExpression playerOneResult = evaluateExpression(playerOneExpressionInput);
+        EvaluatedExpression playerTwoResult = evaluateExpression(playerTwoExpressionInput);
 
-        if (!validationResult.isValid()) {
-            showValidationError(validationResult.getErrorType());
-            return;
-        }
+        String previewText =
+                getString(R.string.my_number_current_preview_title)
+                        + "\n"
+                        + buildPlayerPreview(1, playerOneResult)
+                        + "\n"
+                        + buildPlayerPreview(2, playerTwoResult);
 
-        int resultValue = validationResult.getValue();
-        int difference = Math.abs(targetNumber - resultValue);
-        int earnedPoints = calculatePoints(difference);
-
-        roundFinished = true;
-        stopRoundTimer();
-        stopRollingCallbacks();
-
-        host().setTimerValue(0);
-        host().setPhaseText(getString(R.string.my_number_finished_phase));
-        host().setScores(host().getPlayerOneScore() + earnedPoints, host().getPlayerTwoScore());
-
-        resultText.setText(getString(
-                R.string.my_number_result_format,
-                resultValue,
-                targetNumber,
-                difference,
-                earnedPoints
-        ));
-
-        updateInputAvailability();
-        firestoreRepository.updateMojBrojStatistics(difference, earnedPoints);
-
-        Toast.makeText(requireContext(), getString(R.string.my_number_round_finished), Toast.LENGTH_SHORT)
-                .show();
-
-        submitButton.postDelayed(() -> host().goToNextRound(), 1700);
+        resultText.setText(previewText);
     }
 
-    private void handleTimeExpired() {
-        if (roundFinished) {
-            return;
-        }
+    private String buildRoundSummary(
+            EvaluatedExpression playerOneResult,
+            EvaluatedExpression playerTwoResult,
+            RoundPoints roundPoints
+    ) {
+        StringBuilder summary = new StringBuilder();
+        summary.append(getString(R.string.my_number_round_summary_title, currentRoundIndex + 1));
+        summary.append('\n');
+        summary.append(buildPlayerPreview(1, playerOneResult));
+        summary.append('\n');
+        summary.append(buildPlayerPreview(2, playerTwoResult));
+        summary.append('\n');
+        summary.append(
+                getString(
+                        R.string.my_number_round_points_format,
+                        roundPoints.playerOnePoints,
+                        roundPoints.playerTwoPoints
+                )
+        );
 
-        roundFinished = true;
-        stopRollingCallbacks();
-        updateInputAvailability();
-
-        host().setTimerValue(0);
-        host().setPhaseText(getString(R.string.my_number_finished_phase));
-        resultText.setText(getString(R.string.my_number_time_up, targetNumber));
-
-        submitButton.postDelayed(() -> host().goToNextRound(), 1700);
+        return summary.toString();
     }
 
-    private void showValidationError(MojBrojExpressionHelper.ErrorType errorType) {
-        int messageResId;
+    private String buildPlayerPreview(int playerNumber, EvaluatedExpression result) {
+        if (!result.entered) {
+            return getString(R.string.my_number_preview_empty_format, playerNumber);
+        }
 
+        if (!result.valid) {
+            return getString(
+                    R.string.my_number_preview_invalid_format,
+                    playerNumber,
+                    getValidationLabel(result.errorType)
+            );
+        }
+
+        return getString(
+                R.string.my_number_preview_value_format,
+                playerNumber,
+                result.value,
+                result.difference
+        );
+    }
+
+    private String getValidationLabel(MojBrojExpressionHelper.ErrorType errorType) {
         switch (errorType) {
-            case EMPTY:
-                messageResId = R.string.my_number_enter_expression;
-                break;
             case INVALID_CHARACTERS:
-                messageResId = R.string.my_number_invalid_characters;
-                break;
+                return getString(R.string.my_number_invalid_characters);
             case INVALID_NUMBERS:
-                messageResId = R.string.my_number_use_offered_numbers;
-                break;
+                return getString(R.string.my_number_use_offered_numbers);
             case INVALID_EXPRESSION:
+                return getString(R.string.my_number_invalid_expression);
+            case EMPTY:
             default:
-                messageResId = R.string.my_number_invalid_expression;
-                break;
+                return getString(R.string.my_number_enter_expression);
+        }
+    }
+
+    private void setInputTracking(EditText input) {
+        input.setOnFocusChangeListener((v, hasFocus) -> {
+            if (hasFocus) {
+                activeInput = input;
+                updateActiveInputLabel();
+            }
+        });
+
+        input.setOnClickListener(v -> {
+            activeInput = input;
+            updateActiveInputLabel();
+        });
+    }
+
+    private void setAppendClick(Button button) {
+        button.setOnClickListener(v -> {
+            if (!isInputReady()) {
+                Toast.makeText(
+                        requireContext(),
+                        getString(R.string.my_number_stop_both_first),
+                        Toast.LENGTH_SHORT
+                ).show();
+                return;
+            }
+
+            if (activeInput == null) {
+                activeInput = currentStarterPlayer == 1
+                        ? playerOneExpressionInput
+                        : playerTwoExpressionInput;
+            }
+
+            String value = button.getText().toString();
+
+            if (!TextUtils.isEmpty(value)
+                    && !value.equals(getString(R.string.number_placeholder))) {
+                activeInput.append(value);
+                activeInput.setSelection(activeInput.getText().length());
+            }
+        });
+    }
+
+    private void clearActiveInput() {
+        if (!isInputReady() || activeInput == null) {
+            return;
         }
 
-        Toast.makeText(requireContext(), getString(messageResId), Toast.LENGTH_SHORT).show();
+        activeInput.setText("");
+    }
+
+    private boolean isInputReady() {
+        return !roundFinished && targetLocked && numbersLocked;
+    }
+
+    private void updateRoundHeader() {
+        roundOwnerText.setText(
+                getString(
+                        R.string.my_number_round_owner_format,
+                        currentRoundIndex + 1,
+                        currentStarterPlayer
+                )
+        );
+    }
+
+    private void updateActiveInputLabel() {
+        int activePlayerNumber = activeInput == playerTwoExpressionInput ? 2 : 1;
+
+        activeInputText.setText(
+                getString(R.string.my_number_active_input_format, activePlayerNumber)
+        );
     }
 
     private void updatePhaseText() {
@@ -312,19 +617,42 @@ public class MojBrojFragment extends BaseGameFragment {
             return;
         }
 
-        if (targetLocked && numbersLocked) {
-            host().setPhaseText(getString(R.string.my_number_phase));
+        if (!targetLocked) {
+            host().setPhaseText(
+                    getString(
+                            R.string.my_number_lock_target_phase,
+                            currentRoundIndex + 1,
+                            currentStarterPlayer
+                    )
+            );
             return;
         }
 
-        host().setPhaseText(getString(R.string.my_number_lock_values_phase));
+        if (!numbersLocked) {
+            host().setPhaseText(
+                    getString(
+                            R.string.my_number_lock_numbers_phase,
+                            currentRoundIndex + 1,
+                            currentStarterPlayer
+                    )
+            );
+            return;
+        }
+
+        host().setPhaseText(
+                getString(
+                        R.string.my_number_round_phase_format,
+                        currentRoundIndex + 1,
+                        currentStarterPlayer
+                )
+        );
     }
 
     private void updateInputAvailability() {
-        boolean inputEnabled = !roundFinished && targetLocked && numbersLocked;
+        boolean inputEnabled = isInputReady();
 
         stopTargetButton.setEnabled(!roundFinished && !targetLocked);
-        stopNumbersButton.setEnabled(!roundFinished && !numbersLocked);
+        stopNumbersButton.setEnabled(!roundFinished && targetLocked && !numbersLocked);
 
         numberButton1.setEnabled(inputEnabled);
         numberButton2.setEnabled(inputEnabled);
@@ -340,25 +668,28 @@ public class MojBrojFragment extends BaseGameFragment {
         openBracketButton.setEnabled(inputEnabled);
         closeBracketButton.setEnabled(inputEnabled);
 
-        expressionInput.setEnabled(inputEnabled);
+        playerOneExpressionInput.setEnabled(inputEnabled);
+        playerTwoExpressionInput.setEnabled(inputEnabled);
         clearButton.setEnabled(inputEnabled);
         submitButton.setEnabled(inputEnabled);
     }
 
-    private int calculatePoints(int difference) {
-        if (difference == 0) {
-            return 10;
-        }
+    private void bindNumberPlaceholders() {
+        numberButton1.setText(R.string.number_placeholder);
+        numberButton2.setText(R.string.number_placeholder);
+        numberButton3.setText(R.string.number_placeholder);
+        numberButton4.setText(R.string.number_placeholder);
+        numberButton5.setText(R.string.number_placeholder);
+        numberButton6.setText(R.string.number_placeholder);
+    }
 
-        if (difference <= 5) {
-            return 5;
-        }
-
-        if (difference <= 10) {
-            return 3;
-        }
-
-        return 0;
+    private void bindOfferedNumbers() {
+        numberButton1.setText(String.valueOf(offeredNumbers[0]));
+        numberButton2.setText(String.valueOf(offeredNumbers[1]));
+        numberButton3.setText(String.valueOf(offeredNumbers[2]));
+        numberButton4.setText(String.valueOf(offeredNumbers[3]));
+        numberButton5.setText(String.valueOf(offeredNumbers[4]));
+        numberButton6.setText(String.valueOf(offeredNumbers[5]));
     }
 
     private void stopRollingCallbacks() {
@@ -369,6 +700,70 @@ public class MojBrojFragment extends BaseGameFragment {
         if (numbersRoller != null) {
             handler.removeCallbacks(numbersRoller);
         }
+
+        if (autoStopTargetRunnable != null) {
+            handler.removeCallbacks(autoStopTargetRunnable);
+        }
+
+        if (autoStopNumbersRunnable != null) {
+            handler.removeCallbacks(autoStopNumbersRunnable);
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+
+        if (sensorManager != null && accelerometer != null) {
+            sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI);
+        }
+    }
+
+    @Override
+    public void onPause() {
+        if (sensorManager != null) {
+            sensorManager.unregisterListener(this);
+        }
+
+        super.onPause();
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (roundFinished || event.sensor.getType() != Sensor.TYPE_ACCELEROMETER) {
+            return;
+        }
+
+        float x = event.values[0];
+        float y = event.values[1];
+        float z = event.values[2];
+        float acceleration = (float) Math.sqrt(x * x + y * y + z * z) - SensorManager.GRAVITY_EARTH;
+
+        if (Math.abs(acceleration) < SHAKE_THRESHOLD) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+
+        if (now - lastShakeTimestamp < SHAKE_COOLDOWN_MS) {
+            return;
+        }
+
+        lastShakeTimestamp = now;
+
+        if (!targetLocked) {
+            stopTargetRolling();
+            return;
+        }
+
+        if (!numbersLocked) {
+            stopNumbersRolling();
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        // No-op for this game.
     }
 
     @Override

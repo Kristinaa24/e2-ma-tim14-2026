@@ -8,6 +8,10 @@ import androidx.fragment.app.Fragment;
 
 public abstract class BaseGameFragment extends Fragment {
 
+    protected interface RoundTimerTickListener {
+        void onTick(int remainingSeconds);
+    }
+
     private CountDownTimer roundTimer;
 
     protected GameNavigator host() {
@@ -15,6 +19,14 @@ public abstract class BaseGameFragment extends Fragment {
     }
 
     protected void startRoundTimer(int totalSeconds, Runnable onFinished) {
+        startRoundTimer(totalSeconds, null, onFinished);
+    }
+
+    protected void startRoundTimer(
+            int totalSeconds,
+            RoundTimerTickListener onTick,
+            Runnable onFinished
+    ) {
         stopRoundTimer();
         host().setTimerValue(totalSeconds);
 
@@ -27,6 +39,10 @@ public abstract class BaseGameFragment extends Fragment {
 
                 int remainingSeconds = (int) Math.ceil(millisUntilFinished / 1000d);
                 host().setTimerValue(remainingSeconds);
+
+                if (onTick != null) {
+                    onTick.onTick(remainingSeconds);
+                }
             }
 
             @Override

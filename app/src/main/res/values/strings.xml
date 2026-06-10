@@ -161,6 +161,11 @@
     <string name="step_by_step_timeout">Time is up. Correct answer: %1$s</string>
     <string name="step_by_step_correct_phase">Correct answer</string>
     <string name="step_by_step_finished_phase">Step by Step finished</string>
+    <string name="step_by_step_round_phase_format">Round %1$d/2. Player %2$d opens the clues.</string>
+    <string name="step_by_step_starter_success_format">Player %1$d solved the round and won %2$d points.</string>
+    <string name="step_by_step_bonus_phase_format">Player %1$d missed the answer. Player %2$d now has 10 seconds for a 5-point bonus.</string>
+    <string name="step_by_step_bonus_success_format">Player %1$d solved the bonus chance and won 5 points.</string>
+    <string name="step_by_step_no_bonus_points">Bonus chance finished without points.</string>
     <string name="user_info_format">User: %1$s&#10;Email: %2$s&#10;Region: %3$s&#10;Tokens: %4$d&#10;Stars: %5$d&#10;League: %6$d</string>
 
     <string name="my_number_title">MOJ BROJ</string>
@@ -179,6 +184,23 @@
     <string name="my_number_round_finished">Round finished.</string>
     <string name="my_number_result_format">Result: %1$d&#10;Target: %2$d&#10;Difference: %3$d&#10;Points: %4$d</string>
     <string name="my_number_time_up">Time is up. Target number was %1$d.</string>
+    <string name="my_number_round_owner_format">Round %1$d/2. Player %2$d starts this round.</string>
+    <string name="my_number_lock_target_phase">Round %1$d/2. Player %2$d starts. Stop the target number.</string>
+    <string name="my_number_lock_numbers_phase">Round %1$d/2. Target is ready. Stop the offered numbers.</string>
+    <string name="my_number_round_phase_format">Round %1$d/2. Both players can now enter expressions.</string>
+    <string name="my_number_active_input_format">Active input: Player %1$d</string>
+    <string name="my_number_player_one_expression_title">PLAYER 1 EXPRESSION</string>
+    <string name="my_number_player_two_expression_title">PLAYER 2 EXPRESSION</string>
+    <string name="my_number_preview_round">Preview results</string>
+    <string name="my_number_clear_active">Clear active</string>
+    <string name="my_number_current_preview_title">Current preview</string>
+    <string name="my_number_rules_extended">Stop the target first, then stop the offered numbers. If you do not press STOP within 5 seconds, values lock automatically. You can also lock them with a shake gesture.</string>
+    <string name="my_number_preview_empty_format">Player %1$d: no expression entered.</string>
+    <string name="my_number_preview_invalid_format">Player %1$d: invalid expression. %2$s</string>
+    <string name="my_number_preview_value_format">Player %1$d: result %2$d, difference %3$d.</string>
+    <string name="my_number_round_summary_title">Round %1$d result</string>
+    <string name="my_number_round_points_format">Points won - Player 1: %1$d | Player 2: %2$d</string>
+    <string name="my_number_round_finished_phase_format">Round %1$d finished</string>
 
     <!-- Associations -->
     <string name="asocijacije">Asocijacije</string>
