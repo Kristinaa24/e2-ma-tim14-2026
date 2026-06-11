@@ -6,6 +6,7 @@ import android.util.Log;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 import com.tim14.slagalica.model.KoZnaZnaQuestion;
 import com.tim14.slagalica.model.PlayerStatistics;
 import com.tim14.slagalica.model.SpojniceRound;
@@ -17,6 +18,8 @@ import java.util.List;
 public class FirestoreRepository {
 
     private static final String TAG = "REZ_DB";
+    public static final String TEST_USER_ID = "test_user_1";
+
     private static final String USERS_COLLECTION = "users";
     private static final String STATISTICS_COLLECTION = "statistics";
     private static final String KO_ZNA_ZNA_COLLECTION = "koZnaZnaQuestions";
@@ -44,7 +47,9 @@ public class FirestoreRepository {
             String region,
             FirebaseCallback<Void> callback
     ) {
-        User user = new User(uid, username, email, region, 200, 0, 0, "Bronze", "QR pending");
+        User user = new User(uid, username, email, region, 200, 0, 0, "None", uid);
+        user.avatar = "avatar_1";
+
         PlayerStatistics statistics = new PlayerStatistics(uid);
 
         db.collection(USERS_COLLECTION)
@@ -81,13 +86,50 @@ public class FirestoreRepository {
                         return;
                     }
 
-                    if (TextUtils.isEmpty(user.id)) {
-                        user.id = userId;
-                    }
+                    ensureUserDefaults(user, userId);
+
+                    db.collection(USERS_COLLECTION)
+                            .document(userId)
+                            .set(user, SetOptions.merge());
 
                     callback.onSuccess(user);
                 })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    private void ensureUserDefaults(User user, String userId) {
+        if (TextUtils.isEmpty(user.id)) {
+            user.id = userId;
+        }
+
+        if (TextUtils.isEmpty(user.username)) {
+            user.username = "Player";
+        }
+
+        if (TextUtils.isEmpty(user.email)) {
+            user.email = "";
+        }
+
+        if (TextUtils.isEmpty(user.region)) {
+            user.region = "Serbia";
+        }
+
+        if (TextUtils.isEmpty(user.avatar)) {
+            user.avatar = "avatar_1";
+        }
+
+        if (TextUtils.isEmpty(user.avatarFrame)
+                || user.avatarFrame.equalsIgnoreCase("Diamond")
+                || user.avatarFrame.equalsIgnoreCase("Platinum")
+                || user.avatarFrame.equalsIgnoreCase("Master")) {
+            user.avatarFrame = "None";
+        }
+
+        if (TextUtils.isEmpty(user.qrCode)
+                || user.qrCode.equals("QR pending")
+                || user.qrCode.equals("Available for friend invite")) {
+            user.qrCode = user.id;
+        }
     }
 
     public void getStatistics(FirebaseCallback<PlayerStatistics> callback) {
@@ -116,6 +158,25 @@ public class FirestoreRepository {
 
                     callback.onSuccess(statistics);
                 })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void updateAvatar(String avatar, FirebaseCallback<Void> callback) {
+        Log.i(TAG, "updateAvatar");
+
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .update("avatar", avatar)
+                .addOnSuccessListener(aVoid -> callback.onSuccess(null))
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
@@ -320,6 +381,7 @@ public class FirestoreRepository {
         return FirebaseAuth.getInstance().getCurrentUser().getUid();
     }
 
+    @SuppressWarnings("unchecked")
     private SpojniceRound createSpojniceRoundFromDocument(DocumentSnapshot document) {
         SpojniceRound round = new SpojniceRound();
 
