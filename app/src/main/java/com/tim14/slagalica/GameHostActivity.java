@@ -9,9 +9,11 @@ import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
+import com.tim14.slagalica.fragments.KoZnaZnaFragment;
 import com.tim14.slagalica.fragments.KorakPoKorakFragment;
 import com.tim14.slagalica.fragments.MojBrojFragment;
 import com.tim14.slagalica.fragments.PlaceholderRoundFragment;
+import com.tim14.slagalica.fragments.SpojniceFragment;
 import com.tim14.slagalica.game.GameNavigator;
 import com.tim14.slagalica.game.GameRound;
 
@@ -105,6 +107,12 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         Fragment fragment;
 
         switch (round) {
+            case KO_ZNA_ZNA:
+                fragment = new KoZnaZnaFragment();
+                break;
+            case SPOJNICE:
+                fragment = new SpojniceFragment();
+                break;
             case KORAK_PO_KORAK:
                 fragment = new KorakPoKorakFragment();
                 break;
