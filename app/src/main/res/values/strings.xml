@@ -209,8 +209,8 @@
     <string name="my_number_time_up">Time is up. Target number was %1$d.</string>
     <string name="my_number_round_owner_format">Round %1$d/2. Player %2$d starts this round.</string>
     <string name="my_number_lock_target_phase">Round %1$d/2. Player %2$d starts. Stop the target number.</string>
-    <string name="my_number_lock_numbers_phase">Round %1$d/2. Target is ready. Stop the offered numbers.</string>
-    <string name="my_number_round_phase_format">Round %1$d/2. Both players can now enter expressions.</string>
+    <string name="my_number_lock_numbers_phase">Round %1$d/2. Player %2$d stops the offered numbers.</string>
+    <string name="my_number_round_phase_format">Round %1$d/2. Player %2$d started this round. Both players can now enter expressions.</string>
     <string name="my_number_active_input_format">Active input: Player %1$d</string>
     <string name="my_number_player_one_expression_title">PLAYER 1 EXPRESSION</string>
     <string name="my_number_player_two_expression_title">PLAYER 2 EXPRESSION</string>

@@ -106,7 +106,6 @@ public class ProfileActivity extends AppCompatActivity {
         logoutButton.setOnClickListener(v -> {
             authRepository.logout();
             sessionManager.logout();
-            SessionManager.currentUser = null;
             openWelcomeScreen();
         });
       
@@ -134,7 +133,6 @@ public class ProfileActivity extends AppCompatActivity {
             @Override
             public void onSuccess(User user) {
                 currentUser = user;
-                SessionManager.currentUser = user;
                 bindUser(user);
                 sessionManager.saveUser(user);
 
@@ -221,7 +219,6 @@ public class ProfileActivity extends AppCompatActivity {
           @Override
           public void onSuccess(Void result) {
               currentUser.avatar = avatar;
-              SessionManager.currentUser = currentUser;
               bindUser(currentUser);
 
               Toast.makeText(
