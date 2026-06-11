@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.SetOptions;
 import com.tim14.slagalica.model.User;
 import com.tim14.slagalica.model.PlayerStatistics;
 import com.tim14.slagalica.model.SpojniceRound;
@@ -42,15 +43,16 @@ public class FirestoreRepository {
                     if (!documentSnapshot.exists()) {
                         User user = new User(
                                 TEST_USER_ID,
-                                "TestPlayer",
-                                "testplayer@gmail.com",
-                                "Vojvodina",
-                                5,
-                                120,
-                                2,
-                                "Silver",
-                                "Available for friend invite"
+                                "Test User",
+                                "test@example.com",
+                                "Serbia",
+                                200,
+                                12,
+                                1,
+                                "None",
+                                TEST_USER_ID
                         );
+                        user.avatar = "avatar_1";
 
                         userRef.set(user)
                                 .addOnSuccessListener(aVoid ->
@@ -87,10 +89,49 @@ public class FirestoreRepository {
                     if (user == null) {
                         callback.onError("User not found.");
                     } else {
+                        ensureUserDefaults(user);
+                        db.collection(USERS_COLLECTION)
+                                .document(TEST_USER_ID)
+                                .set(user, SetOptions.merge());
                         callback.onSuccess(user);
                     }
                 })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    private void ensureUserDefaults(User user) {
+        if (user.id == null || user.id.trim().isEmpty()) {
+            user.id = TEST_USER_ID;
+        }
+
+        if (user.username == null || user.username.trim().isEmpty()) {
+            user.username = "Test User";
+        }
+
+        if (user.email == null || user.email.trim().isEmpty()) {
+            user.email = "test@example.com";
+        }
+
+        if (user.region == null || user.region.trim().isEmpty()) {
+            user.region = "Serbia";
+        }
+
+        if (user.avatar == null || user.avatar.trim().isEmpty()) {
+            user.avatar = "avatar_1";
+        }
+
+        if (user.avatarFrame == null || user.avatarFrame.trim().isEmpty()
+                || user.avatarFrame.equalsIgnoreCase("Diamond")
+                || user.avatarFrame.equalsIgnoreCase("Platinum")
+                || user.avatarFrame.equalsIgnoreCase("Master")) {
+            user.avatarFrame = "None";
+        }
+
+        if (user.qrCode == null || user.qrCode.trim().isEmpty()
+                || user.qrCode.equals("QR pending")
+                || user.qrCode.equals("Available for friend invite")) {
+            user.qrCode = user.id;
+        }
     }
 
     public void getStatistics(FirebaseCallback<PlayerStatistics> callback) {
@@ -110,8 +151,22 @@ public class FirestoreRepository {
                                 .set(statistics);
                     }
 
+                    db.collection(STATISTICS_COLLECTION)
+                            .document(TEST_USER_ID)
+                            .set(statistics, SetOptions.merge());
+
                     callback.onSuccess(statistics);
                 })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void updateAvatar(String avatar, FirebaseCallback<Void> callback) {
+        Log.i(TAG, "updateAvatar");
+
+        db.collection(USERS_COLLECTION)
+                .document(TEST_USER_ID)
+                .update("avatar", avatar)
+                .addOnSuccessListener(aVoid -> callback.onSuccess(null))
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 

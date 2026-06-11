@@ -8,6 +8,7 @@ public class User {
     public int tokens;
     public int stars;
     public int league;
+    public String avatar;
     public String avatarFrame;
     public String qrCode;
 
@@ -22,7 +23,8 @@ public class User {
         this.tokens = tokens;
         this.stars = stars;
         this.league = league;
-        this.avatarFrame = "Silver";
+        this.avatar = "avatar_1";
+        this.avatarFrame = "None";
         this.qrCode = "Available for friend invite";
     }
 
@@ -35,6 +37,7 @@ public class User {
         this.tokens = tokens;
         this.stars = stars;
         this.league = league;
+        this.avatar = "avatar_1";
         this.avatarFrame = avatarFrame;
         this.qrCode = qrCode;
     }
