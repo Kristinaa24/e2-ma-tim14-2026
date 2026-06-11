@@ -1,6 +1,7 @@
 package com.tim14.slagalica.fragments;
 
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,33 +12,31 @@ import android.widget.Toast;
 
 import com.tim14.slagalica.R;
 import com.tim14.slagalica.game.BaseGameFragment;
+import com.tim14.slagalica.model.KorakPoKorakRound;
+import com.tim14.slagalica.repository.FirestoreRepository;
+import com.tim14.slagalica.repository.LocalGameRepository;
+
+import java.util.List;
 
 public class KorakPoKorakFragment extends BaseGameFragment {
 
-    private TextView step1Text;
-    private TextView step2Text;
-    private TextView step3Text;
-    private TextView step4Text;
-    private TextView step5Text;
-    private TextView step6Text;
-    private TextView step7Text;
+    private TextView[] clueViews;
     private EditText answerInput;
     private Button nextStepButton;
     private Button submitButton;
 
-    private int currentStep = 1;
+    private LocalGameRepository localGameRepository;
+    private FirestoreRepository firestoreRepository;
+    private List<KorakPoKorakRound> matchRounds;
+    private KorakPoKorakRound currentRound;
 
-    private final String correctAnswer = "Sunce";
-
-    private final String[] steps = {
-            "1. Nebesko telo",
-            "2. Daje svetlost",
-            "3. Daje toplotu",
-            "4. Izlazi ujutru",
-            "5. Zalazi uvece",
-            "6. Zute je boje",
-            "7. Centar Suncevog sistema"
-    };
+    private int currentTurnIndex;
+    private int currentStarterPlayer;
+    private int bonusPlayer;
+    private int openedClues;
+    private int nextRevealAt;
+    private boolean bonusMode;
+    private boolean turnFinished;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -46,90 +45,211 @@ public class KorakPoKorakFragment extends BaseGameFragment {
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
-        step1Text = view.findViewById(R.id.step1Text);
-        step2Text = view.findViewById(R.id.step2Text);
-        step3Text = view.findViewById(R.id.step3Text);
-        step4Text = view.findViewById(R.id.step4Text);
-        step5Text = view.findViewById(R.id.step5Text);
-        step6Text = view.findViewById(R.id.step6Text);
-        step7Text = view.findViewById(R.id.step7Text);
+        localGameRepository = new LocalGameRepository();
+        firestoreRepository = new FirestoreRepository();
+        matchRounds = localGameRepository.getKorakPoKorakMatchRounds();
+
+        clueViews = new TextView[]{
+                view.findViewById(R.id.step1Text),
+                view.findViewById(R.id.step2Text),
+                view.findViewById(R.id.step3Text),
+                view.findViewById(R.id.step4Text),
+                view.findViewById(R.id.step5Text),
+                view.findViewById(R.id.step6Text),
+                view.findViewById(R.id.step7Text)
+        };
+
         answerInput = view.findViewById(R.id.answerInput);
         nextStepButton = view.findViewById(R.id.nextStepButton);
         submitButton = view.findViewById(R.id.submitButton);
 
-        step1Text.setText(steps[0]);
+        nextStepButton.setVisibility(View.GONE);
+        submitButton.setOnClickListener(v -> submitAnswer());
 
-        host().setPhaseText("Otvaraj tragove i unesi konacno resenje");
-        host().setTimerValue(70);
-        host().setScores(host().getPlayerOneScore(), host().getPlayerTwoScore());
-
-        nextStepButton.setOnClickListener(v -> openNextStep());
-        submitButton.setOnClickListener(v -> checkAnswer());
+        startTurn(0);
     }
 
-    private void openNextStep() {
-        if (currentStep >= 7) {
-            Toast.makeText(requireContext(), "Svi koraci su vec otvoreni.", Toast.LENGTH_SHORT).show();
+    private void startTurn(int turnIndex) {
+        currentTurnIndex = turnIndex;
+
+        if (matchRounds == null || matchRounds.isEmpty()) {
+            currentRound = localGameRepository.getRandomKorakPoKorakRound();
+        } else {
+            currentRound = matchRounds.get(Math.min(turnIndex, matchRounds.size() - 1));
+        }
+
+        currentStarterPlayer = turnIndex == 0 ? 1 : 2;
+        bonusPlayer = currentStarterPlayer == 1 ? 2 : 1;
+        openedClues = 1;
+        nextRevealAt = 60;
+        bonusMode = false;
+        turnFinished = false;
+
+        answerInput.setText("");
+        answerInput.setEnabled(true);
+        submitButton.setEnabled(true);
+
+        renderClues();
+        updatePhaseForStarter();
+        startStarterTimer();
+    }
+
+    private void startStarterTimer() {
+        startRoundTimer(70, remainingSeconds -> {
+            if (!bonusMode && remainingSeconds == nextRevealAt && openedClues < currentRound.getClues().length) {
+                openedClues++;
+                nextRevealAt -= 10;
+                renderClues();
+            }
+        }, this::enterBonusMode);
+    }
+
+    private void submitAnswer() {
+        if (turnFinished) {
             return;
         }
 
-        currentStep++;
-
-        if (currentStep == 2) {
-            step2Text.setText(steps[1]);
-        } else if (currentStep == 3) {
-            step3Text.setText(steps[2]);
-        } else if (currentStep == 4) {
-            step4Text.setText(steps[3]);
-        } else if (currentStep == 5) {
-            step5Text.setText(steps[4]);
-        } else if (currentStep == 6) {
-            step6Text.setText(steps[5]);
-        } else if (currentStep == 7) {
-            step7Text.setText(steps[6]);
-        }
-
-        int fakeTimerValue = Math.max(10, 80 - currentStep * 10);
-        host().setTimerValue(fakeTimerValue);
-    }
-
-    private void checkAnswer() {
         String answer = answerInput.getText().toString().trim();
 
-        if (answer.isEmpty()) {
-            Toast.makeText(requireContext(), "Unesi odgovor.", Toast.LENGTH_SHORT).show();
+        if (TextUtils.isEmpty(answer)) {
+            Toast.makeText(
+                    requireContext(),
+                    getString(R.string.step_by_step_enter_answer),
+                    Toast.LENGTH_SHORT
+            ).show();
             return;
         }
 
-        if (answer.equalsIgnoreCase(correctAnswer)) {
-            int earnedPoints = Math.max(0, 22 - currentStep * 2);
-            int newPlayerOneScore = host().getPlayerOneScore() + earnedPoints;
-
-            host().setScores(newPlayerOneScore, host().getPlayerTwoScore());
-            host().setPhaseText("Tacan odgovor");
-            host().setTimerValue(0);
-
-            revealAllSteps();
-
+        if (!answer.equalsIgnoreCase(currentRound.getAnswer())) {
             Toast.makeText(
                     requireContext(),
-                    "Tacan odgovor! Osvojeno: " + earnedPoints,
+                    getString(R.string.step_by_step_wrong),
                     Toast.LENGTH_SHORT
             ).show();
+            return;
+        }
 
-            submitButton.postDelayed(() -> host().goToNextRound(), 900);
-        } else {
-            Toast.makeText(requireContext(), "Pogresan odgovor. Pokusaj ponovo.", Toast.LENGTH_SHORT).show();
+        if (bonusMode) {
+            completeTurnWithBonusSuccess();
+            return;
+        }
+
+        completeTurnWithStarterSuccess();
+    }
+
+    private void completeTurnWithStarterSuccess() {
+        int earnedPoints = 20 - (openedClues - 1) * 2;
+        awardPoints(currentStarterPlayer, earnedPoints);
+
+        if (currentStarterPlayer == 1) {
+            firestoreRepository.updateKorakPoKorakStatistics(openedClues, earnedPoints, true);
+        }
+
+        finalizeCurrentTurn(
+                getString(R.string.step_by_step_starter_success_format, currentStarterPlayer, earnedPoints),
+                true
+        );
+    }
+
+    private void enterBonusMode() {
+        if (turnFinished) {
+            return;
+        }
+
+        if (currentStarterPlayer == 1) {
+            firestoreRepository.updateKorakPoKorakStatistics(currentRound.getClues().length, 0, false);
+        }
+
+        bonusMode = true;
+        revealAllClues();
+        answerInput.setText("");
+        answerInput.setEnabled(true);
+        submitButton.setEnabled(true);
+        host().setPhaseText(
+                getString(
+                        R.string.step_by_step_bonus_phase_format,
+                        currentStarterPlayer,
+                        bonusPlayer
+                )
+        );
+
+        startRoundTimer(10, this::completeTurnWithoutBonusPoints);
+    }
+
+    private void completeTurnWithBonusSuccess() {
+        awardPoints(bonusPlayer, 5);
+
+        if (bonusPlayer == 1) {
+            firestoreRepository.updateKorakPoKorakStatistics(currentRound.getClues().length, 5, false);
+        }
+
+        finalizeCurrentTurn(
+                getString(R.string.step_by_step_bonus_success_format, bonusPlayer),
+                true
+        );
+    }
+
+    private void completeTurnWithoutBonusPoints() {
+        finalizeCurrentTurn(
+                getString(R.string.step_by_step_no_bonus_points),
+                false
+        );
+    }
+
+    private void finalizeCurrentTurn(String message, boolean revealAnswerInInput) {
+        turnFinished = true;
+        stopRoundTimer();
+        host().setTimerValue(0);
+        revealAllClues();
+
+        answerInput.setEnabled(false);
+        submitButton.setEnabled(false);
+
+        if (revealAnswerInInput || bonusMode) {
+            answerInput.setText(currentRound.getAnswer());
+        }
+
+        host().setPhaseText(message);
+        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
+
+        submitButton.postDelayed(() -> {
+            if (currentTurnIndex == 0) {
+                startTurn(1);
+            } else {
+                host().goToNextRound();
+            }
+        }, 1800);
+    }
+
+    private void awardPoints(int playerNumber, int points) {
+        if (playerNumber == 1) {
+            host().setScores(host().getPlayerOneScore() + points, host().getPlayerTwoScore());
+            return;
+        }
+
+        host().setScores(host().getPlayerOneScore(), host().getPlayerTwoScore() + points);
+    }
+
+    private void updatePhaseForStarter() {
+        host().setPhaseText(
+                getString(
+                        R.string.step_by_step_round_phase_format,
+                        currentTurnIndex + 1,
+                        currentStarterPlayer
+                )
+        );
+    }
+
+    private void renderClues() {
+        String[] clues = currentRound.getClues();
+
+        for (int index = 0; index < clueViews.length; index++) {
+            clueViews[index].setText(index < openedClues ? clues[index] : "");
         }
     }
 
-    private void revealAllSteps() {
-        step1Text.setText(steps[0]);
-        step2Text.setText(steps[1]);
-        step3Text.setText(steps[2]);
-        step4Text.setText(steps[3]);
-        step5Text.setText(steps[4]);
-        step6Text.setText(steps[5]);
-        step7Text.setText(steps[6]);
+    private void revealAllClues() {
+        openedClues = currentRound.getClues().length;
+        renderClues();
     }
 }

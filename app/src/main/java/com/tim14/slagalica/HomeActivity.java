@@ -13,6 +13,9 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.tim14.slagalica.game.GameRound;
+import com.tim14.slagalica.model.User;
+import com.tim14.slagalica.repository.FirebaseCallback;
+import com.tim14.slagalica.repository.FirestoreRepository;
 
 public class HomeActivity extends AppCompatActivity {
 
@@ -27,6 +30,9 @@ public class HomeActivity extends AppCompatActivity {
     private TextView rankingTabButton;
     private TextView guestRankingHint;
     private TextView guestFriendsHint;
+    private TextView tvStatusTokens;
+    private TextView tvStatusStars;
+    private TextView tvStatusLeague;
 
     private Button guestLoginButton;
     private Button guestRegisterButton;
@@ -45,6 +51,7 @@ public class HomeActivity extends AppCompatActivity {
     private View friendsSection;
 
     private boolean isGuest;
+    private FirestoreRepository firestoreRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +67,9 @@ public class HomeActivity extends AppCompatActivity {
         topTabsStrip = findViewById(R.id.topTabsStrip);
         statusBarLayout = findViewById(R.id.statusBarLayout);
         guestProgressCard = findViewById(R.id.guestProgressCard);
+        tvStatusTokens = findViewById(R.id.tvStatusTokens);
+        tvStatusStars = findViewById(R.id.tvStatusStars);
+        tvStatusLeague = findViewById(R.id.tvStatusLeague);
 
         playTabButton = findViewById(R.id.playTabButton);
         inviteFriendsTabButton = findViewById(R.id.inviteFriendsTabButton);
@@ -79,9 +89,14 @@ public class HomeActivity extends AppCompatActivity {
 
         memberActionsGroup = findViewById(R.id.memberActionsGroup);
         guestActionsGroup = findViewById(R.id.guestActionsGroup);
+        firestoreRepository = new FirestoreRepository();
 
         isGuest = getIntent().getBooleanExtra("IS_GUEST", false);
         configureGuestMode();
+
+        if (!isGuest) {
+            loadUserStatus();
+        }
 
         playTabButton.setOnClickListener(v -> scrollToSection(startSection));
         inviteFriendsTabButton.setOnClickListener(v -> scrollToSection(friendsSection));
@@ -189,6 +204,22 @@ public class HomeActivity extends AppCompatActivity {
         memberActionsGroup.setAlpha(isGuest ? 0.82f : 1f);
         setTopMargin(guestActionsGroup, 8);
         setTopMargin(startSection, 10);
+    }
+
+    private void loadUserStatus() {
+        firestoreRepository.getCurrentUser(new FirebaseCallback<User>() {
+            @Override
+            public void onSuccess(User user) {
+                tvStatusTokens.setText(String.valueOf(user.tokens));
+                tvStatusStars.setText(String.valueOf(user.stars));
+                tvStatusLeague.setText(LeagueUtils.getLeagueName(user.league));
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(HomeActivity.this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void setTopMargin(View view, int dpValue) {

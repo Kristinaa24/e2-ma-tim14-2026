@@ -15,7 +15,8 @@ public enum GameRound {
             SKOCKO,
             ASOCIJACIJE,
             KORAK_PO_KORAK,
-            MOJ_BROJ
+            MOJ_BROJ,
+            RESULT
     };
 
     public GameRound nextInMatch() {

@@ -157,4 +157,5 @@ public class StatisticsFragment extends Fragment {
 
         return value * 100 / total;
     }
+
 }

@@ -23,6 +23,7 @@ import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
 import com.tim14.slagalica.fragments.StatisticsFragment;
 import com.tim14.slagalica.model.User;
+import com.tim14.slagalica.repository.AuthRepository;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
 
@@ -53,6 +54,8 @@ public class ProfileActivity extends AppCompatActivity {
 
     private FirestoreRepository firestoreRepository;
     private User currentUser;
+    private AuthRepository authRepository;
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,6 +65,13 @@ public class ProfileActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate");
 
         firestoreRepository = new FirestoreRepository();
+        authRepository = new AuthRepository();
+        sessionManager = new SessionManager(this);
+
+        if (authRepository.getCurrentUser() == null) {
+            openWelcomeScreen();
+            return;
+        }
 
         avatarFrameContainer = findViewById(R.id.avatarFrameContainer);
         avatarImage = findViewById(R.id.avatarImage);
@@ -82,6 +92,7 @@ public class ProfileActivity extends AppCompatActivity {
         viewStatisticsButton = findViewById(R.id.viewStatisticsButton);
 
         setLoadingState();
+
         loadUserProfile();
 
         changeAvatarButton.setOnClickListener(v -> showAvatarDialog());
@@ -93,11 +104,12 @@ public class ProfileActivity extends AppCompatActivity {
         }
 
         logoutButton.setOnClickListener(v -> {
+            authRepository.logout();
+            sessionManager.logout();
             SessionManager.currentUser = null;
-            startActivity(new Intent(ProfileActivity.this, LoginActivity.class));
-            finish();
+            openWelcomeScreen();
         });
-
+      
         changePasswordButton.setOnClickListener(v ->
                 startActivity(new Intent(ProfileActivity.this, ResetPasswordActivity.class))
         );
@@ -124,6 +136,8 @@ public class ProfileActivity extends AppCompatActivity {
                 currentUser = user;
                 SessionManager.currentUser = user;
                 bindUser(user);
+                sessionManager.saveUser(user);
+
                 Log.d(TAG, "Profile loaded from Firestore: " + user.username);
             }
 
@@ -203,20 +217,25 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void updateAvatar(String avatar) {
-        firestoreRepository.updateAvatar(avatar, new FirebaseCallback<Void>() {
-            @Override
-            public void onSuccess(Void result) {
-                currentUser.avatar = avatar;
-                SessionManager.currentUser = currentUser;
-                bindUser(currentUser);
-                Toast.makeText(ProfileActivity.this, R.string.avatar_saved_message, Toast.LENGTH_SHORT).show();
-            }
+      firestoreRepository.updateAvatar(avatar, new FirebaseCallback<Void>() {
+          @Override
+          public void onSuccess(Void result) {
+              currentUser.avatar = avatar;
+              SessionManager.currentUser = currentUser;
+              bindUser(currentUser);
 
-            @Override
-            public void onError(String error) {
-                Toast.makeText(ProfileActivity.this, error, Toast.LENGTH_LONG).show();
-            }
-        });
+              Toast.makeText(
+                      ProfileActivity.this,
+                      R.string.avatar_saved_message,
+                      Toast.LENGTH_SHORT
+              ).show();
+          }
+
+          @Override
+          public void onError(String error) {
+              Toast.makeText(ProfileActivity.this, error, Toast.LENGTH_LONG).show();
+          }
+      });
     }
 
     private int getAvatarResource(String avatar) {
@@ -342,6 +361,13 @@ public class ProfileActivity extends AppCompatActivity {
             this.name = name;
             this.icon = icon;
         }
+    }
+
+    private void openWelcomeScreen() {
+        Intent intent = new Intent(ProfileActivity.this, WelcomeActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+        finish();
     }
 
     @Override protected void onStart() { super.onStart(); Log.d(TAG, "onStart"); }

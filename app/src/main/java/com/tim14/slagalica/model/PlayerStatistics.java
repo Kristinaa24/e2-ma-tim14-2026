@@ -15,6 +15,14 @@ public class PlayerStatistics {
     public int spojnicaTotalPairs;
     public int spojnicaTotalScore;
 
+    public int korakPoKorakSolved;
+    public int korakPoKorakBestStep;
+    public int korakPoKorakTotalScore;
+
+    public int mojBrojExactHits;
+    public int mojBrojCloseHits;
+    public int mojBrojTotalScore;
+
     public PlayerStatistics() {
         // Empty constructor required for Firebase
     }
@@ -30,5 +38,11 @@ public class PlayerStatistics {
         this.spojnicaCorrectPairs = 0;
         this.spojnicaTotalPairs = 0;
         this.spojnicaTotalScore = 0;
+        this.korakPoKorakSolved = 0;
+        this.korakPoKorakBestStep = 0;
+        this.korakPoKorakTotalScore = 0;
+        this.mojBrojExactHits = 0;
+        this.mojBrojCloseHits = 0;
+        this.mojBrojTotalScore = 0;
     }
 }

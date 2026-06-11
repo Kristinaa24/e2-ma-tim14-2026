@@ -1,31 +1,29 @@
 package com.tim14.slagalica.repository;
 
+import android.text.TextUtils;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-
-import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
-import com.tim14.slagalica.model.User;
+import com.tim14.slagalica.model.KoZnaZnaQuestion;
 import com.tim14.slagalica.model.PlayerStatistics;
 import com.tim14.slagalica.model.SpojniceRound;
-import com.tim14.slagalica.model.KoZnaZnaQuestion;
+import com.tim14.slagalica.model.User;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class FirestoreRepository {
 
     private static final String TAG = "REZ_DB";
+    public static final String TEST_USER_ID = "test_user_1";
 
     private static final String USERS_COLLECTION = "users";
     private static final String STATISTICS_COLLECTION = "statistics";
     private static final String KO_ZNA_ZNA_COLLECTION = "koZnaZnaQuestions";
     private static final String SPOJNICE_COLLECTION = "spojniceRounds";
-
-    // Privremeno dok Student 1 ne poveže Firebase Auth.
-    // Kasnije ćemo ovo zameniti pravim ID-em ulogovanog korisnika.
-    public static final String TEST_USER_ID = "test_user_1";
 
     private final FirebaseFirestore db;
 
@@ -33,101 +31,101 @@ public class FirestoreRepository {
         db = FirebaseFirestore.getInstance();
     }
 
-    public void createTestUserIfNeeded() {
-        Log.i(TAG, "createTestUserIfNeeded");
+    public void isUsernameTaken(String username, FirebaseCallback<Boolean> callback) {
+        db.collection(USERS_COLLECTION)
+                .whereEqualTo("username", username.trim())
+                .limit(1)
+                .get()
+                .addOnSuccessListener(querySnapshot -> callback.onSuccess(!querySnapshot.isEmpty()))
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
 
-        DocumentReference userRef = db.collection(USERS_COLLECTION).document(TEST_USER_ID);
+    public void createUserProfile(
+            String uid,
+            String username,
+            String email,
+            String region,
+            FirebaseCallback<Void> callback
+    ) {
+        User user = new User(uid, username, email, region, 200, 0, 0, "None", uid);
+        user.avatar = "avatar_1";
 
-        userRef.get()
-                .addOnSuccessListener(documentSnapshot -> {
-                    if (!documentSnapshot.exists()) {
-                        User user = new User(
-                                TEST_USER_ID,
-                                "Test User",
-                                "test@example.com",
-                                "Serbia",
-                                200,
-                                12,
-                                1,
-                                "None",
-                                TEST_USER_ID
-                        );
-                        user.avatar = "avatar_1";
+        PlayerStatistics statistics = new PlayerStatistics(uid);
 
-                        userRef.set(user)
-                                .addOnSuccessListener(aVoid ->
-                                        Log.d(TAG, "Test user successfully created."))
-                                .addOnFailureListener(e ->
-                                        Log.w(TAG, "Error creating test user.", e));
-
-                        PlayerStatistics statistics = new PlayerStatistics(TEST_USER_ID);
-
+        db.collection(USERS_COLLECTION)
+                .document(uid)
+                .set(user)
+                .addOnSuccessListener(unused ->
                         db.collection(STATISTICS_COLLECTION)
-                                .document(TEST_USER_ID)
+                                .document(uid)
                                 .set(statistics)
-                                .addOnSuccessListener(aVoid ->
-                                        Log.d(TAG, "Test statistics successfully created."))
-                                .addOnFailureListener(e ->
-                                        Log.w(TAG, "Error creating test statistics.", e));
-                    } else {
-                        Log.d(TAG, "Test user already exists.");
-                    }
-                })
-                .addOnFailureListener(e ->
-                        Log.w(TAG, "Error checking test user.", e));
+                                .addOnSuccessListener(result -> callback.onSuccess(null))
+                                .addOnFailureListener(e -> callback.onError(e.getMessage()))
+                )
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
     public void getCurrentUser(FirebaseCallback<User> callback) {
-        Log.i(TAG, "getCurrentUser");
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
 
         db.collection(USERS_COLLECTION)
-                .document(TEST_USER_ID)
+                .document(userId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
                     User user = documentSnapshot.toObject(User.class);
 
                     if (user == null) {
-                        callback.onError("User not found.");
-                    } else {
-                        ensureUserDefaults(user);
-                        db.collection(USERS_COLLECTION)
-                                .document(TEST_USER_ID)
-                                .set(user, SetOptions.merge());
-                        callback.onSuccess(user);
+                        callback.onError("User profile was not found.");
+                        return;
                     }
+
+                    ensureUserDefaults(user, userId);
+
+                    db.collection(USERS_COLLECTION)
+                            .document(userId)
+                            .set(user, SetOptions.merge());
+
+                    callback.onSuccess(user);
                 })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
-    private void ensureUserDefaults(User user) {
-        if (user.id == null || user.id.trim().isEmpty()) {
-            user.id = TEST_USER_ID;
+    private void ensureUserDefaults(User user, String userId) {
+        if (TextUtils.isEmpty(user.id)) {
+            user.id = userId;
         }
 
-        if (user.username == null || user.username.trim().isEmpty()) {
-            user.username = "Test User";
+        if (TextUtils.isEmpty(user.username)) {
+            user.username = "Player";
         }
 
-        if (user.email == null || user.email.trim().isEmpty()) {
-            user.email = "test@example.com";
+        if (TextUtils.isEmpty(user.email)) {
+            user.email = "";
         }
 
-        if (user.region == null || user.region.trim().isEmpty()) {
+        if (TextUtils.isEmpty(user.region)) {
             user.region = "Serbia";
         }
 
-        if (user.avatar == null || user.avatar.trim().isEmpty()) {
+        if (TextUtils.isEmpty(user.avatar)) {
             user.avatar = "avatar_1";
         }
 
-        if (user.avatarFrame == null || user.avatarFrame.trim().isEmpty()
+        if (TextUtils.isEmpty(user.avatarFrame)
                 || user.avatarFrame.equalsIgnoreCase("Diamond")
                 || user.avatarFrame.equalsIgnoreCase("Platinum")
                 || user.avatarFrame.equalsIgnoreCase("Master")) {
             user.avatarFrame = "None";
         }
 
-        if (user.qrCode == null || user.qrCode.trim().isEmpty()
+        if (TextUtils.isEmpty(user.qrCode)
                 || user.qrCode.equals("QR pending")
                 || user.qrCode.equals("Available for friend invite")) {
             user.qrCode = user.id;
@@ -135,25 +133,28 @@ public class FirestoreRepository {
     }
 
     public void getStatistics(FirebaseCallback<PlayerStatistics> callback) {
-        Log.i(TAG, "getStatistics");
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
 
         db.collection(STATISTICS_COLLECTION)
-                .document(TEST_USER_ID)
+                .document(userId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
                     PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
 
                     if (statistics == null) {
-                        statistics = new PlayerStatistics(TEST_USER_ID);
+                        statistics = new PlayerStatistics(userId);
 
                         db.collection(STATISTICS_COLLECTION)
-                                .document(TEST_USER_ID)
+                                .document(userId)
                                 .set(statistics);
                     }
-
-                    db.collection(STATISTICS_COLLECTION)
-                            .document(TEST_USER_ID)
-                            .set(statistics, SetOptions.merge());
 
                     callback.onSuccess(statistics);
                 })
@@ -163,8 +164,17 @@ public class FirestoreRepository {
     public void updateAvatar(String avatar, FirebaseCallback<Void> callback) {
         Log.i(TAG, "updateAvatar");
 
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
         db.collection(USERS_COLLECTION)
-                .document(TEST_USER_ID)
+                .document(userId)
                 .update("avatar", avatar)
                 .addOnSuccessListener(aVoid -> callback.onSuccess(null))
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
@@ -176,12 +186,9 @@ public class FirestoreRepository {
         db.collection(KO_ZNA_ZNA_COLLECTION)
                 .limit(5)
                 .get()
-                .addOnSuccessListener(queryDocumentSnapshots -> {
-                    List<KoZnaZnaQuestion> questions =
-                            queryDocumentSnapshots.toObjects(KoZnaZnaQuestion.class);
-
-                    callback.onSuccess(questions);
-                })
+                .addOnSuccessListener(queryDocumentSnapshots ->
+                        callback.onSuccess(queryDocumentSnapshots.toObjects(KoZnaZnaQuestion.class))
+                )
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
@@ -200,7 +207,7 @@ public class FirestoreRepository {
                             .addOnSuccessListener(round2Document -> {
                                 SpojniceRound round2 = createSpojniceRoundFromDocument(round2Document);
 
-                                List<SpojniceRound> rounds = new java.util.ArrayList<>();
+                                List<SpojniceRound> rounds = new ArrayList<>();
                                 rounds.add(round1);
                                 rounds.add(round2);
 
@@ -211,36 +218,24 @@ public class FirestoreRepository {
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
-    private SpojniceRound createSpojniceRoundFromDocument(
-            com.google.firebase.firestore.DocumentSnapshot document
-    ) {
-        SpojniceRound round = new SpojniceRound();
-
-        round.setId(document.getId());
-        round.setTitle(document.getString("title"));
-        round.setLeftItems((List<String>) document.get("leftItems"));
-        round.setCorrectRightItems((List<String>) document.get("correctRightItems"));
-        round.setDisplayedRightItems((List<String>) document.get("displayedRightItems"));
-
-        Log.d(TAG, "Loaded round: " + round.getId());
-        Log.d(TAG, "Left items: " + round.getLeftItems());
-        Log.d(TAG, "Correct right items: " + round.getCorrectRightItems());
-        Log.d(TAG, "Displayed right items: " + round.getDisplayedRightItems());
-
-        return round;
-    }
-
     public void updateKoZnaZnaStatistics(int correctAnswers, int wrongAnswers, int score) {
-        Log.i(TAG, "updateKoZnaZnaStatistics");
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            Log.w(TAG, e.getMessage());
+            return;
+        }
 
         db.collection(STATISTICS_COLLECTION)
-                .document(TEST_USER_ID)
+                .document(userId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
                     PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
 
                     if (statistics == null) {
-                        statistics = new PlayerStatistics(TEST_USER_ID);
+                        statistics = new PlayerStatistics(userId);
                     }
 
                     statistics.koZnaZnaCorrect += correctAnswers;
@@ -248,9 +243,9 @@ public class FirestoreRepository {
                     statistics.koZnaZnaTotalScore += score;
 
                     db.collection(STATISTICS_COLLECTION)
-                            .document(TEST_USER_ID)
+                            .document(userId)
                             .set(statistics)
-                            .addOnSuccessListener(aVoid ->
+                            .addOnSuccessListener(unused ->
                                     Log.d(TAG, "Ko zna zna statistics updated."))
                             .addOnFailureListener(e ->
                                     Log.w(TAG, "Error updating Ko zna zna statistics.", e));
@@ -260,16 +255,23 @@ public class FirestoreRepository {
     }
 
     public void updateSpojniceStatistics(int correctPairs, int totalPairs, int score) {
-        Log.i(TAG, "updateSpojniceStatistics");
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            Log.w(TAG, e.getMessage());
+            return;
+        }
 
         db.collection(STATISTICS_COLLECTION)
-                .document(TEST_USER_ID)
+                .document(userId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
                     PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
 
                     if (statistics == null) {
-                        statistics = new PlayerStatistics(TEST_USER_ID);
+                        statistics = new PlayerStatistics(userId);
                     }
 
                     statistics.spojnicaCorrectPairs += correctPairs;
@@ -277,14 +279,119 @@ public class FirestoreRepository {
                     statistics.spojnicaTotalScore += score;
 
                     db.collection(STATISTICS_COLLECTION)
-                            .document(TEST_USER_ID)
+                            .document(userId)
                             .set(statistics)
-                            .addOnSuccessListener(aVoid ->
+                            .addOnSuccessListener(unused ->
                                     Log.d(TAG, "Spojnice statistics updated."))
                             .addOnFailureListener(e ->
                                     Log.w(TAG, "Error updating Spojnice statistics.", e));
                 })
                 .addOnFailureListener(e ->
                         Log.w(TAG, "Error reading statistics.", e));
+    }
+
+    public void updateKorakPoKorakStatistics(int openedClues, int score, boolean solved) {
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            Log.w(TAG, e.getMessage());
+            return;
+        }
+
+        db.collection(STATISTICS_COLLECTION)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
+
+                    if (statistics == null) {
+                        statistics = new PlayerStatistics(userId);
+                    }
+
+                    if (solved) {
+                        statistics.korakPoKorakSolved++;
+
+                        if (statistics.korakPoKorakBestStep == 0
+                                || openedClues < statistics.korakPoKorakBestStep) {
+                            statistics.korakPoKorakBestStep = openedClues;
+                        }
+                    }
+
+                    statistics.korakPoKorakTotalScore += score;
+
+                    db.collection(STATISTICS_COLLECTION)
+                            .document(userId)
+                            .set(statistics)
+                            .addOnSuccessListener(unused ->
+                                    Log.d(TAG, "Korak po korak statistics updated."))
+                            .addOnFailureListener(e ->
+                                    Log.w(TAG, "Error updating Korak po korak statistics.", e));
+                })
+                .addOnFailureListener(e ->
+                        Log.w(TAG, "Error reading statistics.", e));
+    }
+
+    public void updateMojBrojStatistics(int difference, int score) {
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            Log.w(TAG, e.getMessage());
+            return;
+        }
+
+        db.collection(STATISTICS_COLLECTION)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
+
+                    if (statistics == null) {
+                        statistics = new PlayerStatistics(userId);
+                    }
+
+                    if (difference == 0) {
+                        statistics.mojBrojExactHits++;
+                    } else if (difference <= 5) {
+                        statistics.mojBrojCloseHits++;
+                    }
+
+                    statistics.mojBrojTotalScore += score;
+
+                    db.collection(STATISTICS_COLLECTION)
+                            .document(userId)
+                            .set(statistics)
+                            .addOnSuccessListener(unused ->
+                                    Log.d(TAG, "Moj broj statistics updated."))
+                            .addOnFailureListener(e ->
+                                    Log.w(TAG, "Error updating Moj broj statistics.", e));
+                })
+                .addOnFailureListener(e ->
+                        Log.w(TAG, "Error reading statistics.", e));
+    }
+
+    private String requireUserId() {
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            throw new IllegalStateException("User is not logged in.");
+        }
+
+        return FirebaseAuth.getInstance().getCurrentUser().getUid();
+    }
+
+    @SuppressWarnings("unchecked")
+    private SpojniceRound createSpojniceRoundFromDocument(DocumentSnapshot document) {
+        SpojniceRound round = new SpojniceRound();
+
+        round.setId(document.getId());
+        round.setTitle(document.getString("title"));
+        round.setLeftItems((List<String>) document.get("leftItems"));
+        round.setCorrectRightItems((List<String>) document.get("correctRightItems"));
+        round.setDisplayedRightItems((List<String>) document.get("displayedRightItems"));
+
+        Log.d(TAG, "Loaded round: " + round.getId());
+        return round;
     }
 }

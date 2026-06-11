@@ -32,6 +32,7 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/tvStatusTokens"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
@@ -64,6 +65,7 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/tvStatusStars"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
@@ -95,6 +97,7 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/tvStatusLeague"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"

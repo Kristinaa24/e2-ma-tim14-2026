@@ -17,7 +17,7 @@
             android:paddingTop="8dp"
             android:paddingEnd="14dp"
             android:paddingBottom="8dp"
-            android:text="KORAK PO KORAK"
+            android:text="@string/korak_po_korak"
             android:textColor="@color/white"
             android:textStyle="bold" />
 
@@ -33,7 +33,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:text="Otvaraj tragove redom i pokusaj da pogodis sto ranije."
+                android:text="@string/step_by_step_instructions"
                 android:textColor="@color/slagalica_light_blue"
                 android:textSize="13sp" />
 
@@ -112,7 +112,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="KONACNO RESENJE"
+                android:text="@string/step_by_step_final_answer_title"
                 android:textColor="@color/slagalica_dark_blue"
                 android:textSize="12sp"
                 android:textStyle="bold" />

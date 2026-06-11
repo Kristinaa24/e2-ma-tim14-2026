@@ -105,6 +105,11 @@
     <string name="login_successful">Login successful</string>
     <string name="enter_email_username">Enter email or username.</string>
     <string name="enter_password">Enter password.</string>
+    <string name="enter_email">Enter email.</string>
+    <string name="invalid_email">Enter a valid email address.</string>
+    <string name="password_too_short">Password must have at least 6 characters.</string>
+    <string name="username_taken">That username is already taken.</string>
+    <string name="profile_setup_failed">Profile setup failed.</string>
 
 
     <!-- Register -->
@@ -129,6 +134,10 @@
     <string name="confirm">Confirm</string>
     <string name="new_passwords_do_not_match">New passwords do not match</string>
     <string name="password_changed_successfully">Password changed successfully</string>
+    <string name="change_password_message">Enter your current password and choose a new one.</string>
+    <string name="reset_password_email_message">Enter your account email and we will send you a password reset link.</string>
+    <string name="send_reset_link">Send reset link</string>
+    <string name="reset_link_sent">Password reset link sent to your email.</string>
 
     <string name="change_password">Change password</string>
 
@@ -165,7 +174,56 @@
     <string name="enter_final_answer">Enter final answer</string>
     <string name="next_step">Next step</string>
     <string name="submit_answer">Submit answer</string>
+    <string name="step_by_step_instructions">Open clues one by one and try to guess as early as possible.</string>
+    <string name="step_by_step_final_answer_title">FINAL ANSWER</string>
+    <string name="step_by_step_phase">Open clues and guess the final answer</string>
+    <string name="step_by_step_all_clues_opened">All clues are already open.</string>
+    <string name="step_by_step_enter_answer">Enter an answer.</string>
+    <string name="step_by_step_wrong">Wrong answer. Try again.</string>
+    <string name="step_by_step_correct_format">Correct answer! Points won: %1$d</string>
+    <string name="step_by_step_timeout">Time is up. Correct answer: %1$s</string>
+    <string name="step_by_step_correct_phase">Correct answer</string>
+    <string name="step_by_step_finished_phase">Step by Step finished</string>
+    <string name="step_by_step_round_phase_format">Round %1$d/2. Player %2$d opens the clues.</string>
+    <string name="step_by_step_starter_success_format">Player %1$d solved the round and won %2$d points.</string>
+    <string name="step_by_step_bonus_phase_format">Player %1$d missed the answer. Player %2$d now has 10 seconds for a 5-point bonus.</string>
+    <string name="step_by_step_bonus_success_format">Player %1$d solved the bonus chance and won 5 points.</string>
+    <string name="step_by_step_no_bonus_points">Bonus chance finished without points.</string>
     <string name="user_info_format">User: %1$s&#10;Email: %2$s&#10;Region: %3$s&#10;Tokens: %4$d&#10;Stars: %5$d&#10;League: %6$d</string>
+
+    <string name="my_number_title">MOJ BROJ</string>
+    <string name="target_number_header">TARGET NUMBER</string>
+    <string name="offered_numbers_header">OFFERED NUMBERS</string>
+    <string name="operations_header">OPERATIONS</string>
+    <string name="enter_expression_title">ENTER EXPRESSION</string>
+    <string name="my_number_lock_values_phase">Stop the target and offered numbers first</string>
+    <string name="my_number_phase">Build an expression and reach the target number</string>
+    <string name="my_number_stop_both_first">First stop the target and offered numbers.</string>
+    <string name="my_number_enter_expression">Enter an expression.</string>
+    <string name="my_number_invalid_characters">Use only numbers and operations +, -, *, /, ( and ).</string>
+    <string name="my_number_use_offered_numbers">Use only offered numbers and each at most once.</string>
+    <string name="my_number_invalid_expression">Expression is not valid.</string>
+    <string name="my_number_finished_phase">My Number finished</string>
+    <string name="my_number_round_finished">Round finished.</string>
+    <string name="my_number_result_format">Result: %1$d&#10;Target: %2$d&#10;Difference: %3$d&#10;Points: %4$d</string>
+    <string name="my_number_time_up">Time is up. Target number was %1$d.</string>
+    <string name="my_number_round_owner_format">Round %1$d/2. Player %2$d starts this round.</string>
+    <string name="my_number_lock_target_phase">Round %1$d/2. Player %2$d starts. Stop the target number.</string>
+    <string name="my_number_lock_numbers_phase">Round %1$d/2. Target is ready. Stop the offered numbers.</string>
+    <string name="my_number_round_phase_format">Round %1$d/2. Both players can now enter expressions.</string>
+    <string name="my_number_active_input_format">Active input: Player %1$d</string>
+    <string name="my_number_player_one_expression_title">PLAYER 1 EXPRESSION</string>
+    <string name="my_number_player_two_expression_title">PLAYER 2 EXPRESSION</string>
+    <string name="my_number_preview_round">Preview results</string>
+    <string name="my_number_clear_active">Clear active</string>
+    <string name="my_number_current_preview_title">Current preview</string>
+    <string name="my_number_rules_extended">Stop the target first, then stop the offered numbers. If you do not press STOP within 5 seconds, values lock automatically. You can also lock them with a shake gesture.</string>
+    <string name="my_number_preview_empty_format">Player %1$d: no expression entered.</string>
+    <string name="my_number_preview_invalid_format">Player %1$d: invalid expression. %2$s</string>
+    <string name="my_number_preview_value_format">Player %1$d: result %2$d, difference %3$d.</string>
+    <string name="my_number_round_summary_title">Round %1$d result</string>
+    <string name="my_number_round_points_format">Points won - Player 1: %1$d | Player 2: %2$d</string>
+    <string name="my_number_round_finished_phase_format">Round %1$d finished</string>
 
     <!-- Associations -->
     <string name="asocijacije">Asocijacije</string>
@@ -332,6 +390,7 @@
     <string name="guest_login_required_message">Log in or register to open this section.</string>
     <string name="match_surrendered_message">You quit the match.</string>
 
+
     <string name="phase_ko_zna_zna">Choose the correct answer</string>
     <string name="phase_ko_zna_zna_finished">Ko zna zna finished</string>
 
@@ -385,4 +444,16 @@
     <string name="statistics_spojnice_chart_format">Spojnice %1$d%%</string>
     <string name="statistics_details_format">Correct: %1$d&#10;Wrong: %2$d&#10;Score: %3$d</string>
     <string name="statistics_game_success">Game success</string>
+
+    <string name="match_result_phase">Match finished</string>
+    <string name="match_finished_title">MATCH FINISHED</string>
+    <string name="match_result_summary">Final score</string>
+    <string name="match_result_player_one_format">Player 1: %1$d</string>
+    <string name="match_result_player_two_format">Player 2: %1$d</string>
+    <string name="match_result_winner_player_one">Winner: Player 1</string>
+    <string name="match_result_winner_player_two">Winner: Player 2</string>
+    <string name="match_result_draw">Result: Draw</string>
+    <string name="back_to_main_room">Back to main room</string>
+    <string name="play_rematch">Rematch</string>
+
 </resources>
