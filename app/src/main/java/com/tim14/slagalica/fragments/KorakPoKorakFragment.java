@@ -194,7 +194,8 @@ public class KorakPoKorakFragment extends BaseGameFragment {
     }
 
     private void handleBonusTimeout() {
-        korakPoKorakService.handleBonusTimeout();
+        KorakPoKorakService.Resolution resolution = korakPoKorakService.handleBonusTimeout();
+        persistStatistics(resolution.getStatisticsUpdate());
         finalizeCurrentTurn(getString(R.string.step_by_step_no_bonus_points), false);
     }
 

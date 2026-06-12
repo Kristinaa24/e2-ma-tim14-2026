@@ -26,8 +26,7 @@ import com.tim14.slagalica.model.User;
 import com.tim14.slagalica.repository.AuthRepository;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
-
-import java.util.Locale;
+import com.tim14.slagalica.service.ProfileService;
 
 public class ProfileActivity extends AppCompatActivity {
 
@@ -56,6 +55,7 @@ public class ProfileActivity extends AppCompatActivity {
     private User currentUser;
     private AuthRepository authRepository;
     private SessionManager sessionManager;
+    private ProfileService profileService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,6 +67,7 @@ public class ProfileActivity extends AppCompatActivity {
         firestoreRepository = new FirestoreRepository(this);
         authRepository = new AuthRepository(this);
         sessionManager = new SessionManager(this);
+        profileService = new ProfileService();
 
         if (authRepository.getCurrentUser() == null) {
             openWelcomeScreen();
@@ -126,7 +127,9 @@ public class ProfileActivity extends AppCompatActivity {
         leagueIconValue.setText("?");
         avatarFrameValue.setText(getString(R.string.region_reward_loading));
         qrCodeValue.setText("...");
-        avatarFrameContainer.setBackground(createAvatarBackground(getString(R.string.no_avatar_frame)));
+        avatarFrameContainer.setBackground(
+                createAvatarBackground(profileService.getAvatarFrameColor(getString(R.string.no_avatar_frame)))
+        );
         avatarImage.setImageResource(R.drawable.avatar_1);
     }
 
@@ -152,32 +155,27 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void bindUser(User user) {
-        usernameValue.setText(valueOrFallback(user.username, getString(R.string.profile_default_username)));
-        emailValue.setText(valueOrFallback(user.email, getString(R.string.profile_default_email)));
-        regionValue.setText(valueOrFallback(user.region, getString(R.string.profile_default_region)));
-        tokensValue.setText(String.valueOf(user.tokens));
-        starsValue.setText(String.valueOf(user.stars));
+        ProfileService.ProfileUiData profileUiData = profileService.prepareProfile(user);
 
-        String avatarFrame = sanitizeAvatarFrame(user.avatarFrame);
-        avatarFrameValue.setText(getString(R.string.region_reward_format, avatarFrame));
-        avatarFrameContainer.setBackground(createAvatarBackground(avatarFrame));
-        avatarImage.setImageResource(getAvatarResource(valueOrFallback(user.avatar, "avatar_1")));
+        usernameValue.setText(profileUiData.getUsername());
+        emailValue.setText(profileUiData.getEmail());
+        regionValue.setText(profileUiData.getRegion());
+        tokensValue.setText(profileUiData.getTokens());
+        starsValue.setText(profileUiData.getStars());
 
-        LeagueUi leagueUi = getLeagueUi(user.league);
-        leagueNameValue.setText(leagueUi.name);
-        leagueIconValue.setText(leagueUi.icon);
+        avatarFrameValue.setText(
+                getString(R.string.region_reward_format, profileUiData.getAvatarFrame())
+        );
+        avatarFrameContainer.setBackground(
+                createAvatarBackground(profileUiData.getAvatarFrameColor())
+        );
+        avatarImage.setImageResource(profileUiData.getAvatarResourceId());
 
-        String qrPayload = valueOrFallback(user.qrCode, valueOrFallback(user.id, FirestoreRepository.TEST_USER_ID));
-        qrCodeValue.setText(valueOrFallback(user.username, getString(R.string.player_id_label)));
-        qrCodeImage.setImageBitmap(createQrBitmap(qrPayload));
-    }
+        leagueNameValue.setText(profileUiData.getLeagueNameResId());
+        leagueIconValue.setText(profileUiData.getLeagueIcon());
 
-    private String valueOrFallback(String value, String fallback) {
-        if (value == null || value.trim().isEmpty()) {
-            return fallback;
-        }
-
-        return value;
+        qrCodeValue.setText(profileUiData.getQrLabel());
+        qrCodeImage.setImageBitmap(createQrBitmap(profileUiData.getQrPayload()));
     }
 
     private void showAvatarDialog() {
@@ -203,8 +201,12 @@ public class ProfileActivity extends AppCompatActivity {
             params.height = dpToPx(78);
             params.setMargins(dpToPx(6), dpToPx(6), dpToPx(6), dpToPx(6));
             button.setLayoutParams(params);
-            button.setImageResource(getAvatarResource(avatar));
-            button.setBackground(createAvatarBackground(getString(R.string.no_avatar_frame)));
+            button.setImageResource(profileService.getAvatarResource(avatar));
+            button.setBackground(
+                    createAvatarBackground(
+                            profileService.getAvatarFrameColor(getString(R.string.no_avatar_frame))
+                    )
+            );
             button.setPadding(dpToPx(8), dpToPx(8), dpToPx(8), dpToPx(8));
             button.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
             button.setContentDescription(avatar);
@@ -219,77 +221,32 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void updateAvatar(String avatar) {
-      firestoreRepository.updateAvatar(avatar, new FirebaseCallback<Void>() {
-          @Override
-          public void onSuccess(Void result) {
-              currentUser.avatar = avatar;
-              bindUser(currentUser);
+        firestoreRepository.updateAvatar(avatar, new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                currentUser.avatar = avatar;
+                bindUser(currentUser);
 
-              Toast.makeText(
-                      ProfileActivity.this,
-                      R.string.avatar_saved_message,
-                      Toast.LENGTH_SHORT
-              ).show();
-          }
+                Toast.makeText(
+                        ProfileActivity.this,
+                        R.string.avatar_saved_message,
+                        Toast.LENGTH_SHORT
+                ).show();
+            }
 
-          @Override
-          public void onError(String error) {
-              Toast.makeText(ProfileActivity.this, error, Toast.LENGTH_LONG).show();
-          }
-      });
+            @Override
+            public void onError(String error) {
+                Toast.makeText(ProfileActivity.this, error, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
-    private int getAvatarResource(String avatar) {
-        switch (valueOrFallback(avatar, "avatar_1")) {
-            case "avatar_2":
-                return R.drawable.avatar_2;
-            case "avatar_3":
-                return R.drawable.avatar_3;
-            case "avatar_4":
-                return R.drawable.avatar_4;
-            case "avatar_5":
-                return R.drawable.avatar_5;
-            case "avatar_6":
-                return R.drawable.avatar_6;
-            case "avatar_1":
-            default:
-                return R.drawable.avatar_1;
-        }
-    }
-
-    private GradientDrawable createAvatarBackground(String avatarFrame) {
+    private GradientDrawable createAvatarBackground(int avatarFrameColor) {
         GradientDrawable drawable = new GradientDrawable();
         drawable.setShape(GradientDrawable.OVAL);
         drawable.setColor(Color.TRANSPARENT);
-        drawable.setStroke(dpToPx(5), getAvatarFrameColor(avatarFrame));
+        drawable.setStroke(dpToPx(5), avatarFrameColor);
         return drawable;
-    }
-
-    private int getAvatarFrameColor(String avatarFrame) {
-        switch (sanitizeAvatarFrame(avatarFrame).toLowerCase(Locale.US)) {
-            case "bronze":
-                return Color.rgb(176, 105, 45);
-            case "silver":
-                return Color.rgb(192, 192, 192);
-            case "gold":
-                return Color.rgb(255, 196, 32);
-            case "none":
-            default:
-                return Color.TRANSPARENT;
-        }
-    }
-
-    private String sanitizeAvatarFrame(String avatarFrame) {
-        String normalized = valueOrFallback(avatarFrame, getString(R.string.no_avatar_frame));
-
-        if (normalized.equalsIgnoreCase(getString(R.string.bronze_frame))
-                || normalized.equalsIgnoreCase(getString(R.string.silver_frame))
-                || normalized.equalsIgnoreCase(getString(R.string.gold_frame))) {
-            return normalized.substring(0, 1).toUpperCase(Locale.US)
-                    + normalized.substring(1).toLowerCase(Locale.US);
-        }
-
-        return getString(R.string.no_avatar_frame);
     }
 
     private Bitmap createQrBitmap(String payload) {
@@ -320,25 +277,6 @@ public class ProfileActivity extends AppCompatActivity {
         }
     }
 
-    private LeagueUi getLeagueUi(int league) {
-        switch (league) {
-            case 0:
-                return new LeagueUi(getString(R.string.bronze_league), "B");
-            case 1:
-                return new LeagueUi(getString(R.string.silver_league), "S");
-            case 2:
-                return new LeagueUi(getString(R.string.gold_league), "G");
-            case 3:
-                return new LeagueUi(getString(R.string.platinum_league), "P");
-            case 4:
-                return new LeagueUi(getString(R.string.diamond_league), "D");
-            case 5:
-                return new LeagueUi(getString(R.string.master_league), "M");
-            default:
-                return new LeagueUi(getString(R.string.bronze_league), "B");
-        }
-    }
-
     private int dpToPx(int dp) {
         return Math.round(dp * getResources().getDisplayMetrics().density);
     }
@@ -352,16 +290,6 @@ public class ProfileActivity extends AppCompatActivity {
                 .replace(R.id.statisticsFragmentContainer, fragment)
                 .addToBackStack(null)
                 .commit();
-    }
-
-    private static class LeagueUi {
-        final String name;
-        final String icon;
-
-        LeagueUi(String name, String icon) {
-            this.name = name;
-            this.icon = icon;
-        }
     }
 
     private void openWelcomeScreen() {

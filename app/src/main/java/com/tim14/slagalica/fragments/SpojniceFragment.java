@@ -17,6 +17,7 @@ import com.tim14.slagalica.game.BaseGameFragment;
 import com.tim14.slagalica.model.SpojniceRound;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
+import com.tim14.slagalica.service.SpojniceService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,25 +44,11 @@ public class SpojniceFragment extends BaseGameFragment {
     private Button confirmConnectionButton;
 
     private FirestoreRepository firestoreRepository;
+    private SpojniceService spojniceService;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     private int round = 1;
-    private int currentPlayer = 1;
-    private int playerOneScore = 0;
-    private int playerTwoScore = 0;
-
-    private int solvedPairsInRound = 0;
-    private int attemptsInTurn = 0;
-    private int secondChancePairsCount = 0;
-
-    private int correctPairsTotal = 0;
-    private final int totalPairs = 10;
-
-    private boolean secondChance = false;
     private boolean gameFinished = false;
-
-    private String selectedLeft = "";
-    private String selectedRight = "";
 
     private CountDownTimer roundTimer;
 
@@ -75,6 +62,7 @@ public class SpojniceFragment extends BaseGameFragment {
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         firestoreRepository = new FirestoreRepository();
+        spojniceService = new SpojniceService();
 
         roundText = view.findViewById(R.id.roundText);
         currentPlayerText = view.findViewById(R.id.currentPlayerText);
@@ -95,12 +83,14 @@ public class SpojniceFragment extends BaseGameFragment {
 
         confirmConnectionButton = view.findViewById(R.id.confirmConnectionButton);
 
-        playerOneScore = host().getPlayerOneScore();
-        playerTwoScore = host().getPlayerTwoScore();
+        spojniceService.startGame(host().getPlayerOneScore(), host().getPlayerTwoScore());
 
         host().setPhaseText(getString(R.string.phase_spojnice));
         host().setTimerValue(30);
-        host().setScores(playerOneScore, playerTwoScore);
+        host().setScores(
+                spojniceService.getPlayerOneScore(),
+                spojniceService.getPlayerTwoScore()
+        );
 
         confirmConnectionButton.setOnClickListener(v -> confirmConnection());
 
@@ -149,21 +139,11 @@ public class SpojniceFragment extends BaseGameFragment {
     }
 
     private void startRound() {
-        solvedPairsInRound = 0;
-        attemptsInTurn = 0;
-        secondChancePairsCount = 0;
-        secondChance = false;
-        selectedLeft = "";
-        selectedRight = "";
-
-        currentPlayer = round == 1 ? 1 : 2;
-
-        setRoundItems();
-
-        if (gameFinished) {
+        if (gameFinished || !startRoundService()) {
             return;
         }
 
+        setRoundItems();
         enableAllPairButtons();
 
         confirmConnectionButton.setEnabled(true);
@@ -178,12 +158,6 @@ public class SpojniceFragment extends BaseGameFragment {
     private void setRoundItems() {
         int index = round - 1;
         SpojniceRound currentRound = rounds.get(index);
-
-        if (!isRoundValid(currentRound)) {
-            Toast.makeText(requireContext(), R.string.invalid_spojnice_data, Toast.LENGTH_LONG).show();
-            endGame();
-            return;
-        }
 
         left1Button.setText(currentRound.getLeftItems().get(0));
         left2Button.setText(currentRound.getLeftItems().get(1));
@@ -210,16 +184,6 @@ public class SpojniceFragment extends BaseGameFragment {
         right5Button.setOnClickListener(v -> selectRight(right5Button.getText().toString()));
     }
 
-    private boolean isRoundValid(SpojniceRound currentRound) {
-        return currentRound != null
-                && currentRound.getLeftItems() != null
-                && currentRound.getCorrectRightItems() != null
-                && currentRound.getDisplayedRightItems() != null
-                && currentRound.getLeftItems().size() >= 5
-                && currentRound.getCorrectRightItems().size() >= 5
-                && currentRound.getDisplayedRightItems().size() >= 5;
-    }
-
     private void startRoundTimer() {
         cancelRoundTimer();
 
@@ -235,7 +199,8 @@ public class SpojniceFragment extends BaseGameFragment {
                 roundTimer = null;
                 host().setTimerValue(0);
 
-                if (!secondChance && solvedPairsInRound < 5) {
+                if (!spojniceService.isSecondChance()
+                        && spojniceService.getRemainingPairsCount() > 0) {
                     switchToSecondPlayer();
                 } else {
                     prepareNextRoundOrEnd();
@@ -247,16 +212,19 @@ public class SpojniceFragment extends BaseGameFragment {
     }
 
     private void selectLeft(String value) {
-        selectedLeft = value;
+        spojniceService.selectLeft(value);
         updateSelectedPairText();
     }
 
     private void selectRight(String value) {
-        selectedRight = value;
+        spojniceService.selectRight(value);
         updateSelectedPairText();
     }
 
     private void updateSelectedPairText() {
+        String selectedLeft = spojniceService.getSelectedLeft();
+        String selectedRight = spojniceService.getSelectedRight();
+
         if (selectedLeft.isEmpty() && selectedRight.isEmpty()) {
             selectedPairText.setText(getString(R.string.selected_pair_none));
         } else {
@@ -269,37 +237,29 @@ public class SpojniceFragment extends BaseGameFragment {
             return;
         }
 
-        if (selectedLeft.isEmpty() || selectedRight.isEmpty()) {
+        SpojniceService.ConnectionResult result = spojniceService.confirmConnection();
+
+        if (result.getType() == SpojniceService.ConnectionType.MISSING_SELECTION) {
             Toast.makeText(requireContext(), R.string.select_both_columns, Toast.LENGTH_SHORT).show();
             return;
         }
 
-        attemptsInTurn++;
+        if (result.getType() == SpojniceService.ConnectionType.NO_OP) {
+            return;
+        }
 
-        if (isCorrectPair(selectedLeft, selectedRight)) {
-            if (currentPlayer == 1) {
-                playerOneScore += 2;
-            } else {
-                playerTwoScore += 2;
-            }
-
-            correctPairsTotal++;
-            solvedPairsInRound++;
-
-            disableSolvedPair(selectedLeft, selectedRight);
-
+        if (result.getType() == SpojniceService.ConnectionType.CORRECT
+                || result.getType() == SpojniceService.ConnectionType.ROUND_SOLVED) {
+            disableSolvedPair(result.getSelectedLeft(), result.getSelectedRight());
             Toast.makeText(requireContext(), R.string.correct_connection_points, Toast.LENGTH_SHORT).show();
         } else {
             Toast.makeText(requireContext(), R.string.wrong_connection, Toast.LENGTH_SHORT).show();
         }
 
-        selectedLeft = "";
-        selectedRight = "";
-
         updateSelectedPairText();
         updateScores();
 
-        if (solvedPairsInRound == 5) {
+        if (result.getType() == SpojniceService.ConnectionType.ROUND_SOLVED) {
             Toast.makeText(requireContext(), R.string.all_pairs_solved, Toast.LENGTH_SHORT).show();
             handler.postDelayed(() -> {
                 if (isAdded()) {
@@ -309,7 +269,7 @@ public class SpojniceFragment extends BaseGameFragment {
             return;
         }
 
-        if (!secondChance && attemptsInTurn == 5) {
+        if (spojniceService.shouldSwitchToSecondChance()) {
             handler.postDelayed(() -> {
                 if (isAdded()) {
                     switchToSecondPlayer();
@@ -318,7 +278,7 @@ public class SpojniceFragment extends BaseGameFragment {
             return;
         }
 
-        if (secondChance && attemptsInTurn >= secondChancePairsCount) {
+        if (spojniceService.shouldFinishSecondChance()) {
             handler.postDelayed(() -> {
                 if (isAdded()) {
                     prepareNextRoundOrEnd();
@@ -330,25 +290,20 @@ public class SpojniceFragment extends BaseGameFragment {
     private void switchToSecondPlayer() {
         cancelRoundTimer();
 
-        secondChance = true;
-        attemptsInTurn = 0;
-        secondChancePairsCount = getRemainingPairsCount();
-
-        if (secondChancePairsCount == 0) {
+        if (!spojniceService.startSecondChance()) {
             prepareNextRoundOrEnd();
             return;
         }
-
-        selectedLeft = "";
-        selectedRight = "";
-
-        currentPlayer = currentPlayer == 1 ? 2 : 1;
 
         updateHeader();
         updateSelectedPairText();
 
         secondChanceInfoText.setText(
-                getString(R.string.second_chance_player_format, currentPlayer, secondChancePairsCount)
+                getString(
+                        R.string.second_chance_player_format,
+                        spojniceService.getCurrentPlayer(),
+                        spojniceService.getSecondChancePairsCount()
+                )
         );
 
         Toast.makeText(requireContext(),
@@ -362,12 +317,9 @@ public class SpojniceFragment extends BaseGameFragment {
         }, 2000);
     }
 
-    private int getRemainingPairsCount() {
-        return 5 - solvedPairsInRound;
-    }
-
     private void prepareNextRoundOrEnd() {
         cancelRoundTimer();
+        spojniceService.finishRound();
 
         confirmConnectionButton.setEnabled(false);
 
@@ -385,20 +337,6 @@ public class SpojniceFragment extends BaseGameFragment {
         } else {
             endGame();
         }
-    }
-
-    private boolean isCorrectPair(String left, String right) {
-        int roundIndex = round - 1;
-        SpojniceRound currentRound = rounds.get(roundIndex);
-
-        for (int i = 0; i < 5; i++) {
-            if (left.equals(currentRound.getLeftItems().get(i))
-                    && right.equals(currentRound.getCorrectRightItems().get(i))) {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private void disableSolvedPair(String left, String right) {
@@ -473,6 +411,7 @@ public class SpojniceFragment extends BaseGameFragment {
         }
 
         gameFinished = true;
+        spojniceService.finishGame();
 
         cancelRoundTimer();
 
@@ -482,17 +421,24 @@ public class SpojniceFragment extends BaseGameFragment {
         secondChanceInfoText.setText(getString(R.string.end_of_spojnice));
 
         firestoreRepository.updateSpojniceStatistics(
-                correctPairsTotal,
-                totalPairs,
-                playerOneScore
+                spojniceService.getCorrectPairs(),
+                spojniceService.getTotalPairs(),
+                spojniceService.getTotalScore()
         );
 
-        host().setScores(playerOneScore, playerTwoScore);
+        host().setScores(
+                spojniceService.getPlayerOneScore(),
+                spojniceService.getPlayerTwoScore()
+        );
         host().setTimerValue(0);
         host().setPhaseText(getString(R.string.phase_spojnice_finished));
 
         Toast.makeText(requireContext(),
-                getString(R.string.spojnice_end_format, playerOneScore, playerTwoScore),
+                getString(
+                        R.string.spojnice_end_format,
+                        spojniceService.getPlayerOneScore(),
+                        spojniceService.getPlayerTwoScore()
+                ),
                 Toast.LENGTH_LONG).show();
 
         handler.postDelayed(() -> {
@@ -504,11 +450,26 @@ public class SpojniceFragment extends BaseGameFragment {
 
     private void updateHeader() {
         roundText.setText(getString(R.string.round_counter_format, round));
-        currentPlayerText.setText(getString(R.string.current_player_format, currentPlayer));
+        currentPlayerText.setText(
+                getString(R.string.current_player_format, spojniceService.getCurrentPlayer())
+        );
     }
 
     private void updateScores() {
-        host().setScores(playerOneScore, playerTwoScore);
+        host().setScores(
+                spojniceService.getPlayerOneScore(),
+                spojniceService.getPlayerTwoScore()
+        );
+    }
+
+    private boolean startRoundService() {
+        if (spojniceService.startRound(rounds.get(round - 1), round)) {
+            return true;
+        }
+
+        Toast.makeText(requireContext(), R.string.invalid_spojnice_data, Toast.LENGTH_LONG).show();
+        endGame();
+        return false;
     }
 
     private void cancelRoundTimer() {

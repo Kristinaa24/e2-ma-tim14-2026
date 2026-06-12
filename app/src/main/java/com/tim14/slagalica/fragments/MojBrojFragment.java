@@ -291,12 +291,10 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
                 host().getPlayerTwoScore() + roundOutcome.getPlayerTwoPoints()
         );
 
-        if (roundOutcome.isPlayerOneStatisticsRelevant()) {
-            firestoreRepository.updateMojBrojStatistics(
-                    roundOutcome.getPlayerOneStatisticsDifference(),
-                    roundOutcome.getPlayerOnePoints()
-            );
-        }
+        firestoreRepository.updateMojBrojStatistics(
+                roundOutcome.getPlayerOneStatisticsDifference(),
+                roundOutcome.getPlayerOnePoints()
+        );
 
         updateInputAvailability();
         host().setPhaseText(
