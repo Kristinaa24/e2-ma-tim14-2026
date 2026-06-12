@@ -30,7 +30,7 @@ public class StatisticsFragment extends Fragment {
 
         View view = inflater.inflate(R.layout.fragment_statistics, container, false);
 
-        firestoreRepository = new FirestoreRepository();
+        firestoreRepository = new FirestoreRepository(requireContext());
 
         statisticsText = view.findViewById(R.id.statisticsText);
         Button closeButton = view.findViewById(R.id.closeStatisticsButton);
@@ -47,7 +47,7 @@ public class StatisticsFragment extends Fragment {
     }
 
     private void loadStatistics() {
-        statisticsText.setText("Loading statistics...");
+        statisticsText.setText(getString(R.string.statistics_loading_runtime));
 
         firestoreRepository.getStatistics(new FirebaseCallback<PlayerStatistics>() {
             @Override
@@ -73,35 +73,31 @@ public class StatisticsFragment extends Fragment {
                         ? "-"
                         : String.valueOf(statistics.korakPoKorakBestStep);
 
-                statisticsText.setText(
-                        "Summary\n" +
-                                "Games played: " + statistics.gamesPlayed +
-                                "\nWins: " + statistics.wins +
-                                "\nLosses: " + statistics.losses +
-                                "\n\nKo zna zna\n" +
-                                "Correct answers: " + statistics.koZnaZnaCorrect +
-                                "\nWrong answers: " + statistics.koZnaZnaWrong +
-                                "\nSuccess: " + koZnaZnaSuccess + "%" +
-                                "\nTotal score: " + statistics.koZnaZnaTotalScore +
-                                "\n\nSpojnice\n" +
-                                "Correct pairs: " + statistics.spojnicaCorrectPairs +
-                                "\nTotal pairs: " + statistics.spojnicaTotalPairs +
-                                "\nSuccess: " + spojnicaSuccess + "%" +
-                                "\nTotal score: " + statistics.spojnicaTotalScore +
-                                "\n\nKorak po korak\n" +
-                                "Solved rounds: " + statistics.korakPoKorakSolved +
-                                "\nBest solved step: " + bestStepText +
-                                "\nTotal score: " + statistics.korakPoKorakTotalScore +
-                                "\n\nMoj broj\n" +
-                                "Exact hits: " + statistics.mojBrojExactHits +
-                                "\nClose hits (<= 5): " + statistics.mojBrojCloseHits +
-                                "\nTotal score: " + statistics.mojBrojTotalScore
-                );
+                statisticsText.setText(getString(
+                        R.string.statistics_summary_format,
+                        statistics.gamesPlayed,
+                        statistics.wins,
+                        statistics.losses,
+                        statistics.koZnaZnaCorrect,
+                        statistics.koZnaZnaWrong,
+                        koZnaZnaSuccess,
+                        statistics.koZnaZnaTotalScore,
+                        statistics.spojnicaCorrectPairs,
+                        statistics.spojnicaTotalPairs,
+                        spojnicaSuccess,
+                        statistics.spojnicaTotalScore,
+                        statistics.korakPoKorakSolved,
+                        bestStepText,
+                        statistics.korakPoKorakTotalScore,
+                        statistics.mojBrojExactHits,
+                        statistics.mojBrojCloseHits,
+                        statistics.mojBrojTotalScore
+                ));
             }
 
             @Override
             public void onError(String error) {
-                statisticsText.setText("Statistics could not be loaded.");
+                statisticsText.setText(getString(R.string.statistics_load_failed));
                 Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
             }
         });

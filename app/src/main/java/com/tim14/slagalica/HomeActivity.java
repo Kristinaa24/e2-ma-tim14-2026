@@ -2,22 +2,33 @@ package com.tim14.slagalica;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.ListAdapter;
+import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
 import com.tim14.slagalica.game.GameRound;
+import com.tim14.slagalica.model.HomeFriendItem;
+import com.tim14.slagalica.model.HomeRankingItem;
 import com.tim14.slagalica.model.User;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class HomeActivity extends AppCompatActivity {
+
+    private static final String TAG = "HomeActivity";
 
     private View startGameButton;
     private View topTabsStrip;
@@ -28,6 +39,8 @@ public class HomeActivity extends AppCompatActivity {
     private TextView inviteFriendsTabButton;
     private TextView buyTokensTabButton;
     private TextView rankingTabButton;
+    private TextView friendsFilterAllButton;
+    private TextView friendsFilterOnlineButton;
     private TextView guestRankingHint;
     private TextView guestFriendsHint;
     private TextView tvStatusTokens;
@@ -49,14 +62,23 @@ public class HomeActivity extends AppCompatActivity {
     private View startSection;
     private View rankingSection;
     private View friendsSection;
+    private ListView rankingListView;
+    private ListView friendsListView;
 
     private boolean isGuest;
+    private boolean onlineFilterEnabled;
     private FirestoreRepository firestoreRepository;
+    private HomeRankingAdapter rankingAdapter;
+    private HomeFriendAdapter friendAdapter;
+    private final List<HomeRankingItem> rankingItems = new ArrayList<>();
+    private final List<HomeFriendItem> allFriendItems = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+
+        Log.d(TAG, "onCreate");
 
         homeScrollView = findViewById(R.id.homeScrollView);
         startSection = findViewById(R.id.startSection);
@@ -75,6 +97,8 @@ public class HomeActivity extends AppCompatActivity {
         inviteFriendsTabButton = findViewById(R.id.inviteFriendsTabButton);
         buyTokensTabButton = findViewById(R.id.buyTokensTabButton);
         rankingTabButton = findViewById(R.id.rankingTabButton);
+        friendsFilterAllButton = findViewById(R.id.friendsFilterAllButton);
+        friendsFilterOnlineButton = findViewById(R.id.friendsFilterOnlineButton);
 
         guestLoginButton = findViewById(R.id.guestLoginButton);
         guestRegisterButton = findViewById(R.id.guestRegisterButton);
@@ -86,13 +110,16 @@ public class HomeActivity extends AppCompatActivity {
         tvFriends = findViewById(R.id.tvFriends);
         guestRankingHint = findViewById(R.id.guestRankingHint);
         guestFriendsHint = findViewById(R.id.guestFriendsHint);
+        rankingListView = findViewById(R.id.rankingListView);
+        friendsListView = findViewById(R.id.friendsListView);
 
         memberActionsGroup = findViewById(R.id.memberActionsGroup);
         guestActionsGroup = findViewById(R.id.guestActionsGroup);
-        firestoreRepository = new FirestoreRepository();
+        firestoreRepository = new FirestoreRepository(this);
 
         isGuest = getIntent().getBooleanExtra("IS_GUEST", false);
         configureGuestMode();
+        setupHomeLists();
 
         if (!isGuest) {
             loadUserStatus();
@@ -108,6 +135,8 @@ public class HomeActivity extends AppCompatActivity {
             }
         });
         rankingTabButton.setOnClickListener(v -> scrollToSection(rankingSection));
+        friendsFilterAllButton.setOnClickListener(v -> applyFriendFilter(false));
+        friendsFilterOnlineButton.setOnClickListener(v -> applyFriendFilter(true));
 
         startGameButton.setOnClickListener(v -> openMatch());
         buyTokensButton.setOnClickListener(v -> {
@@ -206,6 +235,111 @@ public class HomeActivity extends AppCompatActivity {
         setTopMargin(startSection, 10);
     }
 
+    private void setupHomeLists() {
+        rankingItems.clear();
+        rankingItems.add(new HomeRankingItem(
+                1,
+                getString(R.string.ranking_player_1),
+                Integer.parseInt(getString(R.string.ranking_points_1))
+        ));
+        rankingItems.add(new HomeRankingItem(
+                2,
+                getString(R.string.ranking_player_2),
+                Integer.parseInt(getString(R.string.ranking_points_2))
+        ));
+        rankingItems.add(new HomeRankingItem(
+                3,
+                getString(R.string.ranking_player_3),
+                Integer.parseInt(getString(R.string.ranking_points_3))
+        ));
+        rankingItems.add(new HomeRankingItem(
+                4,
+                getString(R.string.ranking_player_4),
+                Integer.parseInt(getString(R.string.ranking_points_4))
+        ));
+
+        rankingAdapter = new HomeRankingAdapter(this, rankingItems);
+        rankingListView.setAdapter(rankingAdapter);
+        rankingListView.post(() -> setListViewHeightBasedOnChildren(rankingListView));
+
+        allFriendItems.clear();
+        allFriendItems.add(new HomeFriendItem(
+                1,
+                getString(R.string.friend_initial_1),
+                getString(R.string.friend_name_1),
+                Integer.parseInt(getString(R.string.friend_score_1)),
+                true
+        ));
+        allFriendItems.add(new HomeFriendItem(
+                2,
+                getString(R.string.friend_initial_2),
+                getString(R.string.friend_name_2),
+                Integer.parseInt(getString(R.string.friend_score_2)),
+                true
+        ));
+        allFriendItems.add(new HomeFriendItem(
+                3,
+                getString(R.string.friend_initial_3),
+                getString(R.string.friend_name_3),
+                Integer.parseInt(getString(R.string.friend_score_3)),
+                false
+        ));
+        allFriendItems.add(new HomeFriendItem(
+                4,
+                getString(R.string.friend_initial_4),
+                getString(R.string.friend_name_4),
+                Integer.parseInt(getString(R.string.friend_score_4)),
+                false
+        ));
+
+        friendAdapter = new HomeFriendAdapter(this, new ArrayList<>());
+        friendsListView.setAdapter(friendAdapter);
+        applyFriendFilter(false);
+    }
+
+    private void applyFriendFilter(boolean onlineOnly) {
+        onlineFilterEnabled = onlineOnly;
+
+        List<HomeFriendItem> visibleItems = new ArrayList<>();
+
+        for (HomeFriendItem item : allFriendItems) {
+            if (!onlineOnly || item.isOnline()) {
+                visibleItems.add(item);
+            }
+        }
+
+        visibleItems.add(HomeFriendItem.createInviteTile());
+
+        friendAdapter.clear();
+        friendAdapter.addAll(visibleItems);
+        friendAdapter.notifyDataSetChanged();
+
+        updateFriendFilterState();
+        friendsListView.post(() -> setListViewHeightBasedOnChildren(friendsListView));
+    }
+
+    private void updateFriendFilterState() {
+        friendsFilterAllButton.setBackgroundResource(
+                onlineFilterEnabled
+                        ? R.drawable.bg_lobby_tab_inactive
+                        : R.drawable.bg_lobby_tab_active
+        );
+        friendsFilterOnlineButton.setBackgroundResource(
+                onlineFilterEnabled
+                        ? R.drawable.bg_lobby_tab_active
+                        : R.drawable.bg_lobby_tab_inactive
+        );
+
+        friendsFilterAllButton.setTextColor(ContextCompat.getColor(
+                this,
+                onlineFilterEnabled ? R.color.slagalica_dark_blue : R.color.white
+        ));
+        friendsFilterOnlineButton.setTextColor(ContextCompat.getColor(
+                this,
+                onlineFilterEnabled ? R.color.white : R.color.slagalica_dark_blue
+        ));
+    }
+
     private void loadUserStatus() {
         firestoreRepository.getCurrentUser(new FirebaseCallback<User>() {
             @Override
@@ -238,4 +372,36 @@ public class HomeActivity extends AppCompatActivity {
         float density = getResources().getDisplayMetrics().density;
         return Math.round(dpValue * density);
     }
+
+    private void setListViewHeightBasedOnChildren(ListView listView) {
+        ListAdapter adapter = listView.getAdapter();
+
+        if (adapter == null) {
+            return;
+        }
+
+        int totalHeight = 0;
+        int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(
+                listView.getWidth(),
+                View.MeasureSpec.AT_MOST
+        );
+
+        for (int index = 0; index < adapter.getCount(); index++) {
+            View listItem = adapter.getView(index, null, listView);
+            listItem.measure(widthMeasureSpec, View.MeasureSpec.UNSPECIFIED);
+            totalHeight += listItem.getMeasuredHeight();
+        }
+
+        ViewGroup.LayoutParams params = listView.getLayoutParams();
+        params.height = totalHeight + (listView.getDividerHeight() * (adapter.getCount() - 1));
+        listView.setLayoutParams(params);
+        listView.requestLayout();
+    }
+
+    @Override protected void onStart() { super.onStart(); Log.d(TAG, "onStart"); }
+    @Override protected void onRestart() { super.onRestart(); Log.d(TAG, "onRestart"); }
+    @Override protected void onResume() { super.onResume(); Log.d(TAG, "onResume"); }
+    @Override protected void onPause() { super.onPause(); Log.d(TAG, "onPause"); }
+    @Override protected void onStop() { super.onStop(); Log.d(TAG, "onStop"); }
+    @Override protected void onDestroy() { super.onDestroy(); Log.d(TAG, "onDestroy"); }
 }

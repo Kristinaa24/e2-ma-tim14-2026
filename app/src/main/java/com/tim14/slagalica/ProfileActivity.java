@@ -37,8 +37,8 @@ public class ProfileActivity extends AppCompatActivity {
 
         Log.d(TAG, "onCreate");
 
-        firestoreRepository = new FirestoreRepository();
-        authRepository = new AuthRepository();
+        firestoreRepository = new FirestoreRepository(this);
+        authRepository = new AuthRepository(this);
         sessionManager = new SessionManager(this);
 
         if (authRepository.getCurrentUser() == null) {
@@ -52,11 +52,11 @@ public class ProfileActivity extends AppCompatActivity {
         changePasswordButton = findViewById(R.id.changePasswordButton);
         viewStatisticsButton = findViewById(R.id.viewStatisticsButton);
 
-        profileInfo.setText("Loading profile...");
+        profileInfo.setText(getString(R.string.loading_profile));
         loadUserProfile();
 
         changeAvatarButton.setOnClickListener(v ->
-                Toast.makeText(this, "Avatar change screen placeholder.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.avatar_change_placeholder), Toast.LENGTH_SHORT).show()
         );
 
         viewStatisticsButton.setOnClickListener(v -> showStatisticsFragment());
@@ -83,23 +83,24 @@ public class ProfileActivity extends AppCompatActivity {
             public void onSuccess(User user) {
                 sessionManager.saveUser(user);
 
-                profileInfo.setText(
-                        "Username: " + user.username +
-                                "\nEmail: " + user.email +
-                                "\nRegion: " + user.region +
-                                "\nTokens: " + user.tokens +
-                                "\nStars: " + user.stars +
-                                "\nLeague: " + LeagueUtils.getLeagueName(user.league) +
-                                "\nAvatar frame: " + user.avatarFrame +
-                                "\nQR code: " + user.qrCode
-                );
+                profileInfo.setText(getString(
+                        R.string.profile_info_format,
+                        user.username,
+                        user.email,
+                        user.region,
+                        user.tokens,
+                        user.stars,
+                        LeagueUtils.getLeagueName(user.league),
+                        user.avatarFrame,
+                        user.qrCode
+                ));
 
                 Log.d(TAG, "Profile loaded from Firestore: " + user.username);
             }
 
             @Override
             public void onError(String error) {
-                profileInfo.setText("Profile could not be loaded.");
+                profileInfo.setText(getString(R.string.profile_load_failed));
                 Toast.makeText(ProfileActivity.this, error, Toast.LENGTH_LONG).show();
                 Log.e(TAG, "Error loading profile: " + error);
             }

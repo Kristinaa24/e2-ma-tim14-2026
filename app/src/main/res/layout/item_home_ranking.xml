@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_home_game_tile"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:padding="10dp">
+
+    <TextView
+        android:id="@+id/rankingPositionText"
+        android:layout_width="28dp"
+        android:layout_height="wrap_content"
+        android:textColor="@color/slagalica_yellow"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/rankingPlayerNameText"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textColor="@color/white"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/rankingStarsText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/slagalica_light_blue"
+        android:textStyle="bold" />
+
+</LinearLayout>
