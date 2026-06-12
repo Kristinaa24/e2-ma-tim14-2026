@@ -5,6 +5,18 @@
     android:orientation="vertical"
     android:padding="4dp">
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/bg_round_title_bar"
+        android:paddingStart="14dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="14dp"
+        android:paddingBottom="8dp"
+        android:text="@string/skocko"
+        android:textColor="@color/white"
+        android:textStyle="bold" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -12,7 +24,7 @@
         android:background="@drawable/bg_round_board"
         android:gravity="center"
         android:orientation="vertical"
-        android:padding="4dp">
+        android:padding="2dp">
 
         <!-- 6 Attempts -->
         <include layout="@layout/skocko_row_compact" android:id="@+id/row1" />
@@ -25,7 +37,7 @@
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:layout_marginVertical="4dp"
+            android:layout_marginVertical="2dp"
             android:background="@color/slagalica_light_blue" />
 
         <!-- Opponent Attempt -->

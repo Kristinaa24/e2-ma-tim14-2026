@@ -98,7 +98,7 @@ public class SpojniceFragment extends BaseGameFragment {
         playerOneScore = host().getPlayerOneScore();
         playerTwoScore = host().getPlayerTwoScore();
 
-        host().setPhaseText(getString(R.string.phase_spojnice));
+        host().setPhaseText(getString(R.string.spojnice));
         host().setTimerValue(30);
         host().setScores(playerOneScore, playerTwoScore);
 
@@ -142,7 +142,7 @@ public class SpojniceFragment extends BaseGameFragment {
                 }
 
                 secondChanceInfoText.setText(getString(R.string.spojnice_load_failed));
-                Toast.makeText(requireContext(), error, Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
                 Log.e(TAG, "Error loading Spojnice rounds: " + error);
             }
         });

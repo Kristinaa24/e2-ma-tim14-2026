@@ -384,6 +384,52 @@ public class FirestoreRepository {
                         Log.w(TAG, "Error reading statistics.", e));
     }
 
+    public void updateSkockoStatistics(int attemptIndex, int score, boolean solved) {
+        String userId;
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            return;
+        }
+
+        db.collection(STATISTICS_COLLECTION).document(userId).get().addOnSuccessListener(documentSnapshot -> {
+            PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
+            if (statistics == null) statistics = new PlayerStatistics(userId);
+
+            if (solved && attemptIndex >= 0 && attemptIndex < 6) {
+                statistics.skockoSolvedCount++;
+                int currentVal = statistics.skockoAttemptsCount.get(attemptIndex);
+                statistics.skockoAttemptsCount.set(attemptIndex, currentVal + 1);
+            }
+            statistics.skockoTotalScore += score;
+
+            db.collection(STATISTICS_COLLECTION).document(userId).set(statistics);
+        });
+    }
+
+    public void updateAsocijacijeStatistics(boolean solved, int score) {
+        String userId;
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            return;
+        }
+
+        db.collection(STATISTICS_COLLECTION).document(userId).get().addOnSuccessListener(documentSnapshot -> {
+            PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
+            if (statistics == null) statistics = new PlayerStatistics(userId);
+
+            if (solved) {
+                statistics.asocijacijeSolved++;
+            } else {
+                statistics.asocijacijeUnsolved++;
+            }
+            statistics.asocijacijeTotalScore += score;
+
+            db.collection(STATISTICS_COLLECTION).document(userId).set(statistics);
+        });
+    }
+
     private String requireUserId() {
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
             throw new IllegalStateException(text(

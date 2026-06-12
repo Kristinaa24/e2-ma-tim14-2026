@@ -513,4 +513,12 @@
     <string name="label_d2">D2</string>
     <string name="label_d3">D3</string>
     <string name="label_d4">D4</string>
+    <string name="msg_correct">Correct! +%1$d points</string>
+    <string name="msg_opponent_chance">Opponent\'s Chance!</string>
+    <string name="msg_opponent_success">Opponent guessed! +10 points</string>
+    <string name="msg_opponent_failed">Opponent failed!</string>
+    <string name="msg_times_up">Time\'s up!</string>
+    <string name="msg_column_solved">Column %1$s solved! +%2$d points</string>
+    <string name="msg_final_solved">Final solution solved! +%1$d points</string>
+    <string name="msg_next_player">Wrong or no solution. Next player\'s turn.</string>
 </resources>

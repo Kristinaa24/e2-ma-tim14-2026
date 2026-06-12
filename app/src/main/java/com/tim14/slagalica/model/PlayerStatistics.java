@@ -1,5 +1,8 @@
 package com.tim14.slagalica.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class PlayerStatistics {
     public String userId;
 
@@ -23,6 +26,14 @@ public class PlayerStatistics {
     public int mojBrojCloseHits;
     public int mojBrojTotalScore;
 
+    public int skockoTotalScore;
+    public int skockoSolvedCount;
+    public List<Integer> skockoAttemptsCount = new ArrayList<>(); // 0: 1st attempt, 1: 2nd, ...
+
+    public int asocijacijeSolved;
+    public int asocijacijeUnsolved;
+    public int asocijacijeTotalScore;
+
     public PlayerStatistics() {
         // Empty constructor required for Firebase
     }
@@ -44,5 +55,13 @@ public class PlayerStatistics {
         this.mojBrojExactHits = 0;
         this.mojBrojCloseHits = 0;
         this.mojBrojTotalScore = 0;
+        this.skockoTotalScore = 0;
+        this.skockoSolvedCount = 0;
+        this.asocijacijeSolved = 0;
+        this.asocijacijeUnsolved = 0;
+        this.asocijacijeTotalScore = 0;
+        for (int i = 0; i < 6; i++) {
+            this.skockoAttemptsCount.add(0);
+        }
     }
 }
