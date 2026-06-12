@@ -22,6 +22,7 @@ import com.tim14.slagalica.model.HomeRankingItem;
 import com.tim14.slagalica.model.User;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
+import com.tim14.slagalica.service.NotificationHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,6 +78,8 @@ public class HomeActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
+
+        NotificationHelper.createNotificationChannels(this);
 
         Log.d(TAG, "onCreate");
 
