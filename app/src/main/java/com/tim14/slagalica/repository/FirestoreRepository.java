@@ -174,6 +174,52 @@ public class FirestoreRepository {
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
+    public void updateMatchStatistics(boolean won, boolean lost) {
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            Log.w(TAG, e.getMessage());
+            return;
+        }
+
+        db.collection(STATISTICS_COLLECTION)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    try {
+                        PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
+
+                        if (statistics == null) {
+                            statistics = new PlayerStatistics(userId);
+                        }
+
+                        statistics.gamesPlayed++;
+
+                        if (won) {
+                            statistics.wins++;
+                        }
+
+                        if (lost) {
+                            statistics.losses++;
+                        }
+
+                        db.collection(STATISTICS_COLLECTION)
+                                .document(userId)
+                                .set(statistics)
+                                .addOnSuccessListener(unused ->
+                                        Log.d(TAG, "Match statistics updated."))
+                                .addOnFailureListener(e ->
+                                        Log.w(TAG, "Error updating match statistics.", e));
+                    } catch (Exception e) {
+                        Log.e(TAG, "Serialization error in updateMatchStatistics", e);
+                    }
+                })
+                .addOnFailureListener(e ->
+                        Log.w(TAG, "Error reading statistics.", e));
+    }
+
     public void updateAvatar(String avatar, FirebaseCallback<Void> callback) {
         Log.i(TAG, "updateAvatar");
 
@@ -459,10 +505,9 @@ public class FirestoreRepository {
 
                 if (solved && attemptIndex >= 0 && attemptIndex < 6) {
                     statistics.skockoSolvedCount++;
-                    if (statistics.skockoAttemptsCount != null && statistics.skockoAttemptsCount.size() > attemptIndex) {
-                        int currentVal = statistics.skockoAttemptsCount.get(attemptIndex);
-                        statistics.skockoAttemptsCount.set(attemptIndex, currentVal + 1);
-                    }
+                    ensureSkockoAttempts(statistics);
+                    int currentVal = statistics.skockoAttemptsCount.get(attemptIndex);
+                    statistics.skockoAttemptsCount.set(attemptIndex, currentVal + 1);
                 }
                 statistics.skockoTotalScore += score;
 
@@ -471,6 +516,16 @@ public class FirestoreRepository {
                 Log.e(TAG, "Serialization error in updateSkockoStatistics", e);
             }
         });
+    }
+
+    private void ensureSkockoAttempts(PlayerStatistics statistics) {
+        if (statistics.skockoAttemptsCount == null) {
+            statistics.skockoAttemptsCount = new ArrayList<>();
+        }
+
+        while (statistics.skockoAttemptsCount.size() < 6) {
+            statistics.skockoAttemptsCount.add(0);
+        }
     }
 
     public void updateAsocijacijeStatistics(boolean solved, int score) {

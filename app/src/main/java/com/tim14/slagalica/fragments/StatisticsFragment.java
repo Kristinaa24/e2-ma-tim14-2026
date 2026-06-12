@@ -30,19 +30,17 @@ public class StatisticsFragment extends Fragment {
     private TextView mojBrojDetailsValue;
     private TextView korakPoKorakPercentValue;
     private TextView korakPoKorakDetailsValue;
-    private TextView koChartLabel;
-    private TextView spojniceChartLabel;
-    private TextView mojBrojChartLabel;
-    private TextView korakPoKorakChartLabel;
+    private TextView asocijacijePercentValue;
+    private TextView asocijacijeDetailsValue;
+    private TextView skockoPercentValue;
+    private TextView skockoDetailsValue;
 
     private ProgressBar koZnaZnaProgress;
     private ProgressBar spojniceProgress;
     private ProgressBar mojBrojProgress;
     private ProgressBar korakPoKorakProgress;
-    private ProgressBar koChartProgress;
-    private ProgressBar spojniceChartProgress;
-    private ProgressBar mojBrojChartProgress;
-    private ProgressBar korakPoKorakChartProgress;
+    private ProgressBar asocijacijeProgress;
+    private ProgressBar skockoProgress;
 
     private FirestoreRepository firestoreRepository;
     private StatisticsService statisticsService;
@@ -70,18 +68,16 @@ public class StatisticsFragment extends Fragment {
         mojBrojDetailsValue = view.findViewById(R.id.mojBrojDetailsValue);
         korakPoKorakPercentValue = view.findViewById(R.id.korakPoKorakPercentValue);
         korakPoKorakDetailsValue = view.findViewById(R.id.korakPoKorakDetailsValue);
-        koChartLabel = view.findViewById(R.id.koChartLabel);
-        spojniceChartLabel = view.findViewById(R.id.spojniceChartLabel);
-        mojBrojChartLabel = view.findViewById(R.id.mojBrojChartLabel);
-        korakPoKorakChartLabel = view.findViewById(R.id.korakPoKorakChartLabel);
+        asocijacijePercentValue = view.findViewById(R.id.asocijacijePercentValue);
+        asocijacijeDetailsValue = view.findViewById(R.id.asocijacijeDetailsValue);
+        skockoPercentValue = view.findViewById(R.id.skockoPercentValue);
+        skockoDetailsValue = view.findViewById(R.id.skockoDetailsValue);
         koZnaZnaProgress = view.findViewById(R.id.koZnaZnaProgress);
         spojniceProgress = view.findViewById(R.id.spojniceProgress);
         mojBrojProgress = view.findViewById(R.id.mojBrojProgress);
         korakPoKorakProgress = view.findViewById(R.id.korakPoKorakProgress);
-        koChartProgress = view.findViewById(R.id.koChartProgress);
-        spojniceChartProgress = view.findViewById(R.id.spojniceChartProgress);
-        mojBrojChartProgress = view.findViewById(R.id.mojBrojChartProgress);
-        korakPoKorakChartProgress = view.findViewById(R.id.korakPoKorakChartProgress);
+        asocijacijeProgress = view.findViewById(R.id.asocijacijeProgress);
+        skockoProgress = view.findViewById(R.id.skockoProgress);
 
         Button closeButton = view.findViewById(R.id.closeStatisticsButton);
 
@@ -100,8 +96,8 @@ public class StatisticsFragment extends Fragment {
 
     private void setLoadingState() {
         gamesPlayedValue.setText("0");
-        winsValue.setText("0");
-        lossesValue.setText("0");
+        winsValue.setText(getString(R.string.statistics_percent_zero));
+        lossesValue.setText(getString(R.string.statistics_percent_zero));
         koZnaZnaPercentValue.setText(getString(R.string.statistics_percent_zero));
         koZnaZnaDetailsValue.setText(getString(R.string.statistics_loading));
         spojnicePercentValue.setText(getString(R.string.statistics_percent_zero));
@@ -110,18 +106,16 @@ public class StatisticsFragment extends Fragment {
         mojBrojDetailsValue.setText(getString(R.string.statistics_loading));
         korakPoKorakPercentValue.setText(getString(R.string.statistics_percent_zero));
         korakPoKorakDetailsValue.setText(getString(R.string.statistics_loading));
-        koChartLabel.setText(getString(R.string.statistics_ko_chart_format, 0));
-        spojniceChartLabel.setText(getString(R.string.statistics_spojnice_chart_format, 0));
-        mojBrojChartLabel.setText(getString(R.string.statistics_moj_broj_chart_format, 0));
-        korakPoKorakChartLabel.setText(getString(R.string.statistics_korak_po_korak_chart_format, 0));
+        asocijacijePercentValue.setText(getString(R.string.statistics_percent_zero));
+        asocijacijeDetailsValue.setText(getString(R.string.statistics_loading));
+        skockoPercentValue.setText(getString(R.string.statistics_percent_zero));
+        skockoDetailsValue.setText(getString(R.string.statistics_loading));
         koZnaZnaProgress.setProgress(0);
         spojniceProgress.setProgress(0);
         mojBrojProgress.setProgress(0);
         korakPoKorakProgress.setProgress(0);
-        koChartProgress.setProgress(0);
-        spojniceChartProgress.setProgress(0);
-        mojBrojChartProgress.setProgress(0);
-        korakPoKorakChartProgress.setProgress(0);
+        asocijacijeProgress.setProgress(0);
+        skockoProgress.setProgress(0);
     }
 
 
@@ -147,8 +141,14 @@ public class StatisticsFragment extends Fragment {
                 statisticsService.prepareStatistics(statistics);
 
         gamesPlayedValue.setText(String.valueOf(statisticsUiData.getGamesPlayed()));
-        winsValue.setText(String.valueOf(statisticsUiData.getWins()));
-        lossesValue.setText(String.valueOf(statisticsUiData.getLosses()));
+        winsValue.setText(getString(
+                R.string.statistics_percent_format,
+                statisticsUiData.getWinPercent()
+        ));
+        lossesValue.setText(getString(
+                R.string.statistics_percent_format,
+                statisticsUiData.getLossPercent()
+        ));
 
         koZnaZnaPercentValue.setText(
                 getString(
@@ -201,40 +201,37 @@ public class StatisticsFragment extends Fragment {
                 statisticsUiData,
                 korakPoKorakStepPercents
         ));
+        asocijacijePercentValue.setText(
+                getString(
+                        R.string.statistics_percent_format,
+                        statisticsUiData.getAsocijacijeSuccessPercent()
+                )
+        );
+        asocijacijeDetailsValue.setText(buildBasicDetails(
+                "Solved",
+                statisticsUiData.getAsocijacijeSolved(),
+                "Unsolved",
+                statisticsUiData.getAsocijacijeUnsolved(),
+                statisticsUiData.getAsocijacijeTotalScore()
+        ));
+        int[] skockoAttemptPercents = statisticsUiData.getSkockoAttemptPercents();
+        skockoPercentValue.setText(
+                getString(
+                        R.string.statistics_percent_format,
+                        statisticsUiData.getSkockoSuccessPercent()
+                )
+        );
+        skockoDetailsValue.setText(buildSkockoDetails(
+                statisticsUiData,
+                skockoAttemptPercents
+        ));
 
         koZnaZnaProgress.setProgress(statisticsUiData.getKoZnaZnaSuccessPercent());
         spojniceProgress.setProgress(statisticsUiData.getSpojniceSuccessPercent());
         mojBrojProgress.setProgress(statisticsUiData.getMojBrojSuccessPercent());
         korakPoKorakProgress.setProgress(statisticsUiData.getKorakPoKorakSuccessPercent());
-        koChartProgress.setProgress(statisticsUiData.getKoZnaZnaSuccessPercent());
-        spojniceChartProgress.setProgress(statisticsUiData.getSpojniceSuccessPercent());
-        mojBrojChartProgress.setProgress(statisticsUiData.getMojBrojSuccessPercent());
-        korakPoKorakChartProgress.setProgress(statisticsUiData.getKorakPoKorakSuccessPercent());
-
-        koChartLabel.setText(
-                getString(
-                        R.string.statistics_ko_chart_format,
-                        statisticsUiData.getKoZnaZnaSuccessPercent()
-                )
-        );
-        spojniceChartLabel.setText(
-                getString(
-                        R.string.statistics_spojnice_chart_format,
-                        statisticsUiData.getSpojniceSuccessPercent()
-                )
-        );
-        mojBrojChartLabel.setText(
-                getString(
-                        R.string.statistics_moj_broj_chart_format,
-                        statisticsUiData.getMojBrojSuccessPercent()
-                )
-        );
-        korakPoKorakChartLabel.setText(
-                getString(
-                        R.string.statistics_korak_po_korak_chart_format,
-                        statisticsUiData.getKorakPoKorakSuccessPercent()
-                )
-        );
+        asocijacijeProgress.setProgress(statisticsUiData.getAsocijacijeSuccessPercent());
+        skockoProgress.setProgress(statisticsUiData.getSkockoSuccessPercent());
     }
 
     private String buildBasicDetails(
@@ -260,6 +257,17 @@ public class StatisticsFragment extends Fragment {
                 + "\nStep 3: " + stepPercents[2] + "%   Step 4: " + stepPercents[3] + "%"
                 + "\nStep 5: " + stepPercents[4] + "%   Step 6: " + stepPercents[5] + "%"
                 + "\nStep 7: " + stepPercents[6] + "%";
+    }
+
+    private String buildSkockoDetails(
+            StatisticsService.StatisticsUiData statisticsUiData,
+            int[] attemptPercents
+    ) {
+        return "Solved: " + statisticsUiData.getSkockoSolvedCount()
+                + "\nScore: " + statisticsUiData.getSkockoTotalScore()
+                + "\n\nAttempt 1: " + attemptPercents[0] + "%   Attempt 2: " + attemptPercents[1] + "%"
+                + "\nAttempt 3: " + attemptPercents[2] + "%   Attempt 4: " + attemptPercents[3] + "%"
+                + "\nAttempt 5: " + attemptPercents[4] + "%   Attempt 6: " + attemptPercents[5] + "%";
     }
 
 }

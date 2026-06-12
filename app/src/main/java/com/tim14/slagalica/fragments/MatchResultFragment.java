@@ -30,6 +30,7 @@ public class MatchResultFragment extends BaseGameFragment {
         int playerOneScore = host().getPlayerOneScore();
         int playerTwoScore = host().getPlayerTwoScore();
 
+        host().recordMatchResult();
         host().setTimerValue(0);
         host().setPhaseText(getString(R.string.match_result_phase));
 

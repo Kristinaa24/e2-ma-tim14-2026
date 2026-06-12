@@ -10,6 +10,7 @@ public interface GameNavigator {
     int getPlayerTwoScore();
     void goToRound(GameRound round, Bundle args);
     void goToNextRound();
+    void recordMatchResult();
     void restartMatch();
     void finishMatch();
 }
