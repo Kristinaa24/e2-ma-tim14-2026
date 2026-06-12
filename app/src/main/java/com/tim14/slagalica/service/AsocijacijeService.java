@@ -49,10 +49,14 @@ public class AsocijacijeService {
         if (!canGuessColumn(col)) return 0;
         String correct = getColumnSolution(col);
         if (correct.equalsIgnoreCase(attempt.trim())) {
+            // CRITICAL: Calculate points BEFORE revealing all fields
+            int unopened = countUnopenedInColumn(col);
+            int points = 2 + unopened;
+            
             columnSolved[col] = true;
             columnSolvers[col] = currentPlayer;
             revealColumn(col);
-            int points = 2 + countUnopenedInColumn(col);
+            
             addPoints(points);
             return points;
         }
@@ -67,17 +71,11 @@ public class AsocijacijeService {
             
             int totalFinalPoints = 7;
             
-            // For each column that wasn't solved before this final guess:
             for (int i = 0; i < 4; i++) {
-                if (columnSolvers[i] == 0) { // Was not solved by anyone yet
+                if (columnSolvers[i] == 0) {
                     int unopenedInCol = countUnopenedInColumn(i);
-                    if (unopenedInCol == 4) {
-                        // Entirely untouched column: 6 points (matches 2 + 4 unopened)
-                        totalFinalPoints += 6;
-                    } else {
-                        // Partially opened: 2 + remaining unopened
-                        totalFinalPoints += (2 + unopenedInCol);
-                    }
+                    totalFinalPoints += (2 + unopenedInCol);
+
                     columnSolved[i] = true;
                     columnSolvers[i] = currentPlayer;
                     revealColumn(i);
