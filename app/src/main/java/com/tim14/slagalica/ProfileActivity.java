@@ -64,8 +64,8 @@ public class ProfileActivity extends AppCompatActivity {
 
         Log.d(TAG, "onCreate");
 
-        firestoreRepository = new FirestoreRepository();
-        authRepository = new AuthRepository();
+        firestoreRepository = new FirestoreRepository(this);
+        authRepository = new AuthRepository(this);
         sessionManager = new SessionManager(this);
 
         if (authRepository.getCurrentUser() == null) {
@@ -91,9 +91,11 @@ public class ProfileActivity extends AppCompatActivity {
         changePasswordButton = findViewById(R.id.changePasswordButton);
         viewStatisticsButton = findViewById(R.id.viewStatisticsButton);
 
+
         setLoadingState();
 
         loadUserProfile();
+
 
         changeAvatarButton.setOnClickListener(v -> showAvatarDialog());
         viewStatisticsButton.setOnClickListener(v -> showStatisticsFragment());
@@ -136,11 +138,13 @@ public class ProfileActivity extends AppCompatActivity {
                 bindUser(user);
                 sessionManager.saveUser(user);
 
+
                 Log.d(TAG, "Profile loaded from Firestore: " + user.username);
             }
 
             @Override
             public void onError(String error) {
+
                 Toast.makeText(ProfileActivity.this, error, Toast.LENGTH_LONG).show();
                 Log.e(TAG, "Error loading profile: " + error);
             }

@@ -46,12 +46,14 @@
                 android:textColor="@color/slagalica_text"
                 android:textColorHint="@color/slagalica_text" />
 
-            <EditText
+            <AutoCompleteTextView
                 android:id="@+id/regionInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_medium"
-                android:hint="@string/region"
+                android:hint="@string/select_region"
+                android:inputType="none"
+                android:focusable="true"
                 android:textColor="@color/slagalica_text"
                 android:textColorHint="@color/slagalica_text" />
 

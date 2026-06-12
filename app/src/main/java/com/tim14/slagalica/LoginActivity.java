@@ -2,6 +2,7 @@ package com.tim14.slagalica;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -12,11 +13,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.firebase.auth.FirebaseUser;
 import com.tim14.slagalica.model.User;
-import com.tim14.slagalica.repository.AuthRepository;
-import com.tim14.slagalica.repository.FirebaseCallback;
-import com.tim14.slagalica.repository.FirestoreRepository;
+import com.tim14.slagalica.service.AuthService;
 
 public class LoginActivity extends AppCompatActivity {
+
+    private static final String TAG = "LoginActivity";
 
     private EditText emailInput;
     private EditText passwordInput;
@@ -25,8 +26,7 @@ public class LoginActivity extends AppCompatActivity {
     private TextView forgotPasswordText;
     private TextView errorText;
 
-    private AuthRepository authRepository;
-    private FirestoreRepository firestoreRepository;
+    private AuthService authService;
     private SessionManager sessionManager;
 
     @Override
@@ -34,8 +34,9 @@ public class LoginActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
 
-        authRepository = new AuthRepository();
-        firestoreRepository = new FirestoreRepository();
+        Log.d(TAG, "onCreate");
+
+        authService = new AuthService(this);
         sessionManager = new SessionManager(this);
 
         emailInput = findViewById(R.id.emailInput);
@@ -60,42 +61,35 @@ public class LoginActivity extends AppCompatActivity {
 
         errorText.setVisibility(View.GONE);
 
-        if (emailOrUsername.isEmpty()) {
-            errorText.setText(getString(R.string.enter_email_username));
-            errorText.setVisibility(View.VISIBLE);
-            return;
-        }
+        AuthService.ValidationResult validationResult =
+                authService.validateLoginInput(emailOrUsername, password);
 
-        if (password.isEmpty()) {
-            errorText.setText(getString(R.string.enter_password));
+        if (!validationResult.isValid()) {
+            errorText.setText(getString(validationResult.getMessageResId()));
             errorText.setVisibility(View.VISIBLE);
             return;
         }
 
         setLoadingState(true);
 
-        authRepository.login(emailOrUsername, password, new FirebaseCallback<FirebaseUser>() {
+        authService.login(emailOrUsername, password, new AuthService.LoginCallback() {
             @Override
-            public void onSuccess(FirebaseUser result) {
-                firestoreRepository.getCurrentUser(new FirebaseCallback<User>() {
-                    @Override
-                    public void onSuccess(User user) {
-                        sessionManager.saveUser(user);
-                        showToast(getString(R.string.login_successful));
-                        openHome();
-                    }
+            public void onSuccess(AuthService.LoginResult result) {
+                User user = result.getUser();
+                FirebaseUser firebaseUser = result.getFirebaseUser();
 
-                    @Override
-                    public void onError(String error) {
-                        sessionManager.saveLogin(
-                                result.getUid(),
-                                result.getEmail(),
-                                emailOrUsername
-                        );
-                        showToast(getString(R.string.login_successful));
-                        openHome();
-                    }
-                });
+                if (user != null) {
+                    sessionManager.saveUser(user);
+                } else {
+                    sessionManager.saveLogin(
+                            firebaseUser.getUid(),
+                            firebaseUser.getEmail(),
+                            result.getSubmittedLoginValue()
+                    );
+                }
+
+                showToast(getString(R.string.login_successful));
+                openHome();
             }
 
             @Override
@@ -125,4 +119,11 @@ public class LoginActivity extends AppCompatActivity {
     private void showToast(String text) {
         Toast.makeText(this, text, Toast.LENGTH_LONG).show();
     }
+
+    @Override protected void onStart() { super.onStart(); Log.d(TAG, "onStart"); }
+    @Override protected void onRestart() { super.onRestart(); Log.d(TAG, "onRestart"); }
+    @Override protected void onResume() { super.onResume(); Log.d(TAG, "onResume"); }
+    @Override protected void onPause() { super.onPause(); Log.d(TAG, "onPause"); }
+    @Override protected void onStop() { super.onStop(); Log.d(TAG, "onStop"); }
+    @Override protected void onDestroy() { super.onDestroy(); Log.d(TAG, "onDestroy"); }
 }

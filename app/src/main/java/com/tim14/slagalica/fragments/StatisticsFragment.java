@@ -44,7 +44,7 @@ public class StatisticsFragment extends Fragment {
 
         View view = inflater.inflate(R.layout.fragment_statistics, container, false);
 
-        firestoreRepository = new FirestoreRepository();
+        firestoreRepository = new FirestoreRepository(requireContext());
 
         gamesPlayedValue = view.findViewById(R.id.gamesPlayedValue);
         winsValue = view.findViewById(R.id.winsValue);
@@ -74,6 +74,7 @@ public class StatisticsFragment extends Fragment {
         return view;
     }
 
+
     private void setLoadingState() {
         gamesPlayedValue.setText("0");
         winsValue.setText("0");
@@ -90,15 +91,19 @@ public class StatisticsFragment extends Fragment {
         spojniceChartProgress.setProgress(0);
     }
 
+
     private void loadStatistics() {
         firestoreRepository.getStatistics(new FirebaseCallback<PlayerStatistics>() {
             @Override
             public void onSuccess(PlayerStatistics statistics) {
+
                 bindStatistics(statistics);
+
             }
 
             @Override
             public void onError(String error) {
+
                 Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
             }
         });

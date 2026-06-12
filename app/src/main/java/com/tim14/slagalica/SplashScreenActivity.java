@@ -26,10 +26,12 @@ public class SplashScreenActivity extends AppCompatActivity {
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             Intent intent;
 
-            if (authRepository.getCurrentUser() != null) {
+            if (authRepository.getCurrentUser() != null
+                    && authRepository.isCurrentUserVerified()) {
                 intent = new Intent(SplashScreenActivity.this, HomeActivity.class);
                 intent.putExtra("IS_GUEST", false);
             } else {
+                authRepository.logout();
                 sessionManager.logout();
                 intent = new Intent(SplashScreenActivity.this, WelcomeActivity.class);
             }

@@ -2,7 +2,7 @@ package com.tim14.slagalica;
 
 import android.app.AlertDialog;
 import android.os.Bundle;
-import android.util.Patterns;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -11,10 +11,11 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.tim14.slagalica.repository.AuthRepository;
-import com.tim14.slagalica.repository.FirebaseCallback;
+import com.tim14.slagalica.service.AuthService;
 
 public class ResetPasswordActivity extends AppCompatActivity {
+
+    private static final String TAG = "ResetPasswordActivity";
 
     private TextView resetDescriptionText;
     private EditText emailInput;
@@ -25,7 +26,7 @@ public class ResetPasswordActivity extends AppCompatActivity {
     private TextView resetErrorText;
     private View changePasswordFieldsGroup;
 
-    private AuthRepository authRepository;
+    private AuthService authService;
     private boolean loggedInMode;
 
     @Override
@@ -33,8 +34,10 @@ public class ResetPasswordActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_reset_password);
 
-        authRepository = new AuthRepository();
-        loggedInMode = authRepository.getCurrentUser() != null;
+        Log.d(TAG, "onCreate");
+
+        authService = new AuthService(this);
+        loggedInMode = authService.isLoggedIn();
 
         resetDescriptionText = findViewById(R.id.resetDescriptionText);
         emailInput = findViewById(R.id.resetEmailInput);
@@ -75,21 +78,18 @@ public class ResetPasswordActivity extends AppCompatActivity {
 
         String email = emailInput.getText().toString().trim();
 
-        if (email.isEmpty()) {
-            showError(R.string.enter_email);
-            return;
-        }
+        AuthService.ValidationResult validationResult = authService.validateResetEmail(email);
 
-        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            showError(R.string.invalid_email);
+        if (!validationResult.isValid()) {
+            showError(validationResult.getMessageResId());
             return;
         }
 
         setLoadingState(true);
 
-        authRepository.sendPasswordResetEmail(email, new FirebaseCallback<Void>() {
+        authService.sendResetLink(email, new AuthService.SimpleCallback() {
             @Override
-            public void onSuccess(Void result) {
+            public void onSuccess() {
                 setLoadingState(false);
                 Toast.makeText(
                         ResetPasswordActivity.this,
@@ -114,18 +114,11 @@ public class ResetPasswordActivity extends AppCompatActivity {
         String newPassword = newPasswordInput.getText().toString().trim();
         String repeatNewPassword = repeatNewPasswordInput.getText().toString().trim();
 
-        if (oldPassword.isEmpty() || newPassword.isEmpty() || repeatNewPassword.isEmpty()) {
-            showError(R.string.fill_all_fields);
-            return;
-        }
+        AuthService.ValidationResult validationResult =
+                authService.validatePasswordChange(oldPassword, newPassword, repeatNewPassword);
 
-        if (newPassword.length() < 6) {
-            showError(R.string.password_too_short);
-            return;
-        }
-
-        if (!newPassword.equals(repeatNewPassword)) {
-            showError(R.string.new_passwords_do_not_match);
+        if (!validationResult.isValid()) {
+            showError(validationResult.getMessageResId());
             return;
         }
 
@@ -142,9 +135,9 @@ public class ResetPasswordActivity extends AppCompatActivity {
     private void changePassword(String oldPassword, String newPassword) {
         setLoadingState(true);
 
-        authRepository.changePassword(oldPassword, newPassword, new FirebaseCallback<Void>() {
+        authService.changePassword(oldPassword, newPassword, new AuthService.SimpleCallback() {
             @Override
-            public void onSuccess(Void result) {
+            public void onSuccess() {
                 setLoadingState(false);
                 Toast.makeText(
                         ResetPasswordActivity.this,
@@ -174,4 +167,11 @@ public class ResetPasswordActivity extends AppCompatActivity {
     private void setLoadingState(boolean isLoading) {
         confirmResetButton.setEnabled(!isLoading);
     }
+
+    @Override protected void onStart() { super.onStart(); Log.d(TAG, "onStart"); }
+    @Override protected void onRestart() { super.onRestart(); Log.d(TAG, "onRestart"); }
+    @Override protected void onResume() { super.onResume(); Log.d(TAG, "onResume"); }
+    @Override protected void onPause() { super.onPause(); Log.d(TAG, "onPause"); }
+    @Override protected void onStop() { super.onStop(); Log.d(TAG, "onStop"); }
+    @Override protected void onDestroy() { super.onDestroy(); Log.d(TAG, "onDestroy"); }
 }

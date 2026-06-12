@@ -12,11 +12,9 @@ import android.widget.Toast;
 
 import com.tim14.slagalica.R;
 import com.tim14.slagalica.game.BaseGameFragment;
-import com.tim14.slagalica.model.KorakPoKorakRound;
 import com.tim14.slagalica.repository.FirestoreRepository;
 import com.tim14.slagalica.repository.LocalGameRepository;
-
-import java.util.List;
+import com.tim14.slagalica.service.KorakPoKorakService;
 
 public class KorakPoKorakFragment extends BaseGameFragment {
 
@@ -25,18 +23,8 @@ public class KorakPoKorakFragment extends BaseGameFragment {
     private Button nextStepButton;
     private Button submitButton;
 
-    private LocalGameRepository localGameRepository;
     private FirestoreRepository firestoreRepository;
-    private List<KorakPoKorakRound> matchRounds;
-    private KorakPoKorakRound currentRound;
-
-    private int currentTurnIndex;
-    private int currentStarterPlayer;
-    private int bonusPlayer;
-    private int openedClues;
-    private int nextRevealAt;
-    private boolean bonusMode;
-    private boolean turnFinished;
+    private KorakPoKorakService korakPoKorakService;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -45,9 +33,9 @@ public class KorakPoKorakFragment extends BaseGameFragment {
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
-        localGameRepository = new LocalGameRepository();
-        firestoreRepository = new FirestoreRepository();
-        matchRounds = localGameRepository.getKorakPoKorakMatchRounds();
+        korakPoKorakService = new KorakPoKorakService(new LocalGameRepository());
+        korakPoKorakService.startMatch();
+        firestoreRepository = new FirestoreRepository(requireContext());
 
         clueViews = new TextView[]{
                 view.findViewById(R.id.step1Text),
@@ -70,150 +58,90 @@ public class KorakPoKorakFragment extends BaseGameFragment {
     }
 
     private void startTurn(int turnIndex) {
-        currentTurnIndex = turnIndex;
-
-        if (matchRounds == null || matchRounds.isEmpty()) {
-            currentRound = localGameRepository.getRandomKorakPoKorakRound();
-        } else {
-            currentRound = matchRounds.get(Math.min(turnIndex, matchRounds.size() - 1));
-        }
-
-        currentStarterPlayer = turnIndex == 0 ? 1 : 2;
-        bonusPlayer = currentStarterPlayer == 1 ? 2 : 1;
-        openedClues = 1;
-        nextRevealAt = 60;
-        bonusMode = false;
-        turnFinished = false;
+        korakPoKorakService.startTurn(turnIndex);
 
         answerInput.setText("");
         answerInput.setEnabled(true);
         submitButton.setEnabled(true);
 
         renderClues();
-        updatePhaseForStarter();
+        updateStarterPhase();
         startStarterTimer();
     }
 
     private void startStarterTimer() {
         startRoundTimer(70, remainingSeconds -> {
-            if (!bonusMode && remainingSeconds == nextRevealAt && openedClues < currentRound.getClues().length) {
-                openedClues++;
-                nextRevealAt -= 10;
+            if (korakPoKorakService.onTick(remainingSeconds)) {
                 renderClues();
             }
-        }, this::enterBonusMode);
+        }, this::handleStarterTimeout);
     }
 
     private void submitAnswer() {
-        if (turnFinished) {
-            return;
+        KorakPoKorakService.Resolution resolution =
+                korakPoKorakService.submitAnswer(answerInput.getText().toString());
+
+        switch (resolution.getType()) {
+            case INVALID_EMPTY:
+                Toast.makeText(
+                        requireContext(),
+                        getString(R.string.step_by_step_enter_answer),
+                        Toast.LENGTH_SHORT
+                ).show();
+                return;
+            case INVALID_WRONG:
+                Toast.makeText(
+                        requireContext(),
+                        getString(R.string.step_by_step_wrong),
+                        Toast.LENGTH_SHORT
+                ).show();
+                return;
+            case STARTER_SUCCESS:
+                persistStatistics(resolution.getStatisticsUpdate());
+                awardPoints(resolution.getAwardedPlayer(), resolution.getAwardedPoints());
+                finalizeCurrentTurn(
+                        getString(
+                                R.string.step_by_step_starter_success_format,
+                                resolution.getAwardedPlayer(),
+                                resolution.getAwardedPoints()
+                        ),
+                        true
+                );
+                return;
+            case BONUS_SUCCESS:
+                persistStatistics(resolution.getStatisticsUpdate());
+                awardPoints(resolution.getAwardedPlayer(), resolution.getAwardedPoints());
+                finalizeCurrentTurn(
+                        getString(
+                                R.string.step_by_step_bonus_success_format,
+                                resolution.getAwardedPlayer()
+                        ),
+                        true
+                );
+                return;
+            default:
+                return;
         }
-
-        String answer = answerInput.getText().toString().trim();
-
-        if (TextUtils.isEmpty(answer)) {
-            Toast.makeText(
-                    requireContext(),
-                    getString(R.string.step_by_step_enter_answer),
-                    Toast.LENGTH_SHORT
-            ).show();
-            return;
-        }
-
-        if (!answer.equalsIgnoreCase(currentRound.getAnswer())) {
-            Toast.makeText(
-                    requireContext(),
-                    getString(R.string.step_by_step_wrong),
-                    Toast.LENGTH_SHORT
-            ).show();
-            return;
-        }
-
-        if (bonusMode) {
-            completeTurnWithBonusSuccess();
-            return;
-        }
-
-        completeTurnWithStarterSuccess();
-    }
-
-    private void completeTurnWithStarterSuccess() {
-        int earnedPoints = 20 - (openedClues - 1) * 2;
-        awardPoints(currentStarterPlayer, earnedPoints);
-
-        if (currentStarterPlayer == 1) {
-            firestoreRepository.updateKorakPoKorakStatistics(openedClues, earnedPoints, true);
-        }
-
-        finalizeCurrentTurn(
-                getString(R.string.step_by_step_starter_success_format, currentStarterPlayer, earnedPoints),
-                true
-        );
-    }
-
-    private void enterBonusMode() {
-        if (turnFinished) {
-            return;
-        }
-
-        if (currentStarterPlayer == 1) {
-            firestoreRepository.updateKorakPoKorakStatistics(currentRound.getClues().length, 0, false);
-        }
-
-        bonusMode = true;
-        revealAllClues();
-        answerInput.setText("");
-        answerInput.setEnabled(true);
-        submitButton.setEnabled(true);
-        host().setPhaseText(
-                getString(
-                        R.string.step_by_step_bonus_phase_format,
-                        currentStarterPlayer,
-                        bonusPlayer
-                )
-        );
-
-        startRoundTimer(10, this::completeTurnWithoutBonusPoints);
-    }
-
-    private void completeTurnWithBonusSuccess() {
-        awardPoints(bonusPlayer, 5);
-
-        if (bonusPlayer == 1) {
-            firestoreRepository.updateKorakPoKorakStatistics(currentRound.getClues().length, 5, false);
-        }
-
-        finalizeCurrentTurn(
-                getString(R.string.step_by_step_bonus_success_format, bonusPlayer),
-                true
-        );
-    }
-
-    private void completeTurnWithoutBonusPoints() {
-        finalizeCurrentTurn(
-                getString(R.string.step_by_step_no_bonus_points),
-                false
-        );
     }
 
     private void finalizeCurrentTurn(String message, boolean revealAnswerInInput) {
-        turnFinished = true;
         stopRoundTimer();
         host().setTimerValue(0);
-        revealAllClues();
+        korakPoKorakService.revealAllClues();
+        renderClues();
 
         answerInput.setEnabled(false);
         submitButton.setEnabled(false);
 
-        if (revealAnswerInInput || bonusMode) {
-            answerInput.setText(currentRound.getAnswer());
+        if (revealAnswerInInput || korakPoKorakService.isBonusMode()) {
+            answerInput.setText(korakPoKorakService.getCurrentAnswer());
         }
 
         host().setPhaseText(message);
         Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
 
         submitButton.postDelayed(() -> {
-            if (currentTurnIndex == 0) {
+            if (korakPoKorakService.getCurrentTurnIndex() == 0) {
                 startTurn(1);
             } else {
                 host().goToNextRound();
@@ -230,26 +158,55 @@ public class KorakPoKorakFragment extends BaseGameFragment {
         host().setScores(host().getPlayerOneScore(), host().getPlayerTwoScore() + points);
     }
 
-    private void updatePhaseForStarter() {
+    private void updateStarterPhase() {
         host().setPhaseText(
                 getString(
                         R.string.step_by_step_round_phase_format,
-                        currentTurnIndex + 1,
-                        currentStarterPlayer
+                        korakPoKorakService.getCurrentTurnIndex() + 1,
+                        korakPoKorakService.getCurrentStarterPlayer()
                 )
         );
     }
 
     private void renderClues() {
-        String[] clues = currentRound.getClues();
+        String[] clues = korakPoKorakService.getVisibleClues();
 
         for (int index = 0; index < clueViews.length; index++) {
-            clueViews[index].setText(index < openedClues ? clues[index] : "");
+            clueViews[index].setText(index < clues.length ? clues[index] : "");
         }
     }
 
-    private void revealAllClues() {
-        openedClues = currentRound.getClues().length;
+    private void handleStarterTimeout() {
+        KorakPoKorakService.Resolution resolution = korakPoKorakService.handleStarterTimeout();
+        persistStatistics(resolution.getStatisticsUpdate());
         renderClues();
+        answerInput.setText("");
+        answerInput.setEnabled(true);
+        submitButton.setEnabled(true);
+        host().setPhaseText(
+                getString(
+                        R.string.step_by_step_bonus_phase_format,
+                        korakPoKorakService.getCurrentStarterPlayer(),
+                        korakPoKorakService.getBonusPlayer()
+                )
+        );
+        startRoundTimer(10, this::handleBonusTimeout);
+    }
+
+    private void handleBonusTimeout() {
+        korakPoKorakService.handleBonusTimeout();
+        finalizeCurrentTurn(getString(R.string.step_by_step_no_bonus_points), false);
+    }
+
+    private void persistStatistics(KorakPoKorakService.StatisticsUpdate statisticsUpdate) {
+        if (statisticsUpdate == null) {
+            return;
+        }
+
+        firestoreRepository.updateKorakPoKorakStatistics(
+                statisticsUpdate.getOpenedClues(),
+                statisticsUpdate.getScore(),
+                statisticsUpdate.isSolved()
+        );
     }
 }

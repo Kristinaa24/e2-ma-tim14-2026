@@ -358,101 +358,26 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
-                <LinearLayout
+                <ListView
+                    android:id="@+id/rankingListView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:background="@drawable/bg_home_game_tile"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="10dp">
+                    android:divider="@android:color/transparent"
+                    android:dividerHeight="8dp"
+                    android:focusable="false"
+                    android:listSelector="@android:color/transparent"
+                    android:nestedScrollingEnabled="true" />
 
-                    <TextView
-                        android:layout_width="28dp"
-                        android:layout_height="wrap_content"
-                        android:text="@string/ranking_place_1"
-                        android:textColor="@color/slagalica_yellow"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/ranking_player_1"
-                        android:textColor="@color/white"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/ranking_points_1"
-                        android:textColor="@color/slagalica_light_blue"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <LinearLayout
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:background="@drawable/bg_home_game_tile"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="10dp">
-
-                    <TextView
-                        android:layout_width="28dp"
-                        android:layout_height="wrap_content"
-                        android:text="@string/ranking_place_2"
-                        android:textColor="@color/slagalica_yellow"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/ranking_player_2"
-                        android:textColor="@color/white"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/ranking_points_2"
-                        android:textColor="@color/slagalica_light_blue"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:background="@drawable/bg_home_game_tile"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal"
-                    android:padding="10dp">
-
-                    <TextView
-                        android:layout_width="28dp"
-                        android:layout_height="wrap_content"
-                        android:text="@string/ranking_place_3"
-                        android:textColor="@color/slagalica_yellow"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/ranking_player_3"
-                        android:textColor="@color/white"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/ranking_points_3"
-                        android:textColor="@color/slagalica_light_blue"
-                        android:textStyle="bold" />
-                </LinearLayout>
+                    android:gravity="center"
+                    android:text="@string/weekly_ranking_footer"
+                    android:textColor="@color/slagalica_light_blue"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
             </LinearLayout>
 
             <LinearLayout
@@ -480,15 +405,30 @@
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/friendsFilterAllButton"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:background="@drawable/bg_lobby_tab_inactive"
+                        android:background="@drawable/bg_lobby_tab_active"
                         android:paddingStart="12dp"
                         android:paddingTop="7dp"
                         android:paddingEnd="12dp"
                         android:paddingBottom="7dp"
                         android:text="@string/friends_filter_all"
                         android:textColor="@color/white"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/friendsFilterOnlineButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:background="@drawable/bg_lobby_tab_inactive"
+                        android:paddingStart="12dp"
+                        android:paddingTop="7dp"
+                        android:paddingEnd="12dp"
+                        android:paddingBottom="7dp"
+                        android:text="@string/friends_filter_online"
+                        android:textColor="@color/slagalica_dark_blue"
                         android:textStyle="bold" />
                 </LinearLayout>
 
@@ -503,299 +443,17 @@
                     android:textStyle="bold"
                     android:visibility="gone" />
 
-                <HorizontalScrollView
+                <ListView
+                    android:id="@+id/friendsListView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="10dp"
+                    android:divider="@android:color/transparent"
+                    android:dividerHeight="8dp"
+                    android:focusable="false"
+                    android:listSelector="@android:color/transparent"
                     android:overScrollMode="never"
-                    android:scrollbars="none">
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-
-                        <LinearLayout
-                            android:layout_width="100dp"
-                            android:layout_height="wrap_content"
-                            android:background="@drawable/bg_home_shortcut_tile"
-                            android:gravity="center_horizontal"
-                            android:orientation="vertical"
-                            android:padding="12dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/friend_rank_1"
-                                android:textColor="@color/slagalica_light_blue"
-                                android:textSize="18sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="40dp"
-                                android:layout_height="40dp"
-                                android:layout_marginTop="4dp"
-                                android:background="@drawable/bg_avatar_circle"
-                                android:gravity="center"
-                                android:text="@string/friend_initial_1"
-                                android:textColor="@color/slagalica_dark_blue"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="@string/friend_name_1"
-                                android:textColor="@color/white"
-                                android:textStyle="bold" />
-
-                            <LinearLayout
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:gravity="center"
-                                android:orientation="horizontal">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/status_stars_icon"
-                                    android:textColor="@color/slagalica_yellow"
-                                    android:textSize="12sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="4dp"
-                                    android:text="@string/friend_score_1"
-                                    android:textColor="@color/slagalica_light_blue"
-                                    android:textSize="11sp"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="100dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:background="@drawable/bg_home_shortcut_tile"
-                            android:gravity="center_horizontal"
-                            android:orientation="vertical"
-                            android:padding="12dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/friend_rank_2"
-                                android:textColor="@color/slagalica_light_blue"
-                                android:textSize="18sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="40dp"
-                                android:layout_height="40dp"
-                                android:layout_marginTop="4dp"
-                                android:background="@drawable/bg_avatar_circle"
-                                android:gravity="center"
-                                android:text="@string/friend_initial_2"
-                                android:textColor="@color/slagalica_dark_blue"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="@string/friend_name_2"
-                                android:textColor="@color/white"
-                                android:textStyle="bold" />
-
-                            <LinearLayout
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:gravity="center"
-                                android:orientation="horizontal">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/status_stars_icon"
-                                    android:textColor="@color/slagalica_yellow"
-                                    android:textSize="12sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="4dp"
-                                    android:text="@string/friend_score_2"
-                                    android:textColor="@color/slagalica_light_blue"
-                                    android:textSize="11sp"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="100dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:background="@drawable/bg_home_shortcut_tile"
-                            android:gravity="center_horizontal"
-                            android:orientation="vertical"
-                            android:padding="12dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/friend_rank_3"
-                                android:textColor="@color/slagalica_light_blue"
-                                android:textSize="18sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="40dp"
-                                android:layout_height="40dp"
-                                android:layout_marginTop="4dp"
-                                android:background="@drawable/bg_avatar_circle"
-                                android:gravity="center"
-                                android:text="@string/friend_initial_3"
-                                android:textColor="@color/slagalica_dark_blue"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="@string/friend_name_3"
-                                android:textColor="@color/white"
-                                android:textStyle="bold" />
-
-                            <LinearLayout
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:gravity="center"
-                                android:orientation="horizontal">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/status_stars_icon"
-                                    android:textColor="@color/slagalica_yellow"
-                                    android:textSize="12sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="4dp"
-                                    android:text="@string/friend_score_3"
-                                    android:textColor="@color/slagalica_light_blue"
-                                    android:textSize="11sp"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="100dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:background="@drawable/bg_home_shortcut_tile"
-                            android:gravity="center_horizontal"
-                            android:orientation="vertical"
-                            android:padding="12dp">
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:text="@string/friend_rank_4"
-                                android:textColor="@color/slagalica_light_blue"
-                                android:textSize="18sp"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="40dp"
-                                android:layout_height="40dp"
-                                android:layout_marginTop="4dp"
-                                android:background="@drawable/bg_avatar_circle"
-                                android:gravity="center"
-                                android:text="@string/friend_initial_4"
-                                android:textColor="@color/slagalica_dark_blue"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="@string/friend_name_4"
-                                android:textColor="@color/white"
-                                android:textStyle="bold" />
-
-                            <LinearLayout
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:gravity="center"
-                                android:orientation="horizontal">
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="@string/status_stars_icon"
-                                    android:textColor="@color/slagalica_yellow"
-                                    android:textSize="12sp"
-                                    android:textStyle="bold" />
-
-                                <TextView
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:layout_marginStart="4dp"
-                                    android:text="@string/friend_score_4"
-                                    android:textColor="@color/slagalica_light_blue"
-                                    android:textSize="11sp"
-                                    android:textStyle="bold" />
-                            </LinearLayout>
-                        </LinearLayout>
-
-                        <LinearLayout
-                            android:layout_width="112dp"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:background="@drawable/bg_home_shortcut_tile"
-                            android:gravity="center_horizontal"
-                            android:orientation="vertical"
-                            android:padding="12dp">
-
-                            <TextView
-                                android:layout_width="40dp"
-                                android:layout_height="40dp"
-                                android:background="@drawable/bg_avatar_circle"
-                                android:gravity="center"
-                                android:text="@string/friend_invite_initial"
-                                android:textColor="@color/slagalica_dark_blue"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="8dp"
-                                android:text="@string/friend_invite_title"
-                                android:textColor="@color/white"
-                                android:gravity="center"
-                                android:textStyle="bold" />
-
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginTop="4dp"
-                                android:gravity="center"
-                                android:text="@string/friend_invite_subtitle"
-                                android:textColor="@color/slagalica_light_blue"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-                    </LinearLayout>
-                </HorizontalScrollView>
+                    android:scrollbars="none" />
             </LinearLayout>
         </LinearLayout>
     </ScrollView>

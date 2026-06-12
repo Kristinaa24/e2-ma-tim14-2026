@@ -24,7 +24,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Tip notifikacije"
+                android:text="@string/notification_type_placeholder"
                 android:textColor="@color/slagalica_dark_blue"
                 android:textStyle="bold" />
 
@@ -32,7 +32,7 @@
                 android:id="@+id/notificationDate"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="12.05.2024 14:30"
+                android:text="@string/notification_date_placeholder"
                 android:textColor="@color/slagalica_text"
                 android:textSize="12sp" />
         </LinearLayout>
@@ -42,7 +42,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="Ovo je primer poruke iz notifikacije koja može biti malo duža."
+            android:text="@string/notification_message_placeholder"
             android:textColor="@color/slagalica_text" />
 
         <TextView
@@ -51,7 +51,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="end"
             android:layout_marginTop="4dp"
-            android:text="Označi kao pročitano"
+            android:text="@string/notification_mark_as_read"
             android:textColor="@color/slagalica_blue"
             android:textSize="12sp"
             android:textStyle="italic" />
