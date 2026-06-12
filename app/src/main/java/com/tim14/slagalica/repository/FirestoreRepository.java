@@ -332,17 +332,18 @@ public class FirestoreRepository {
                             statistics = new PlayerStatistics(userId);
                         }
 
-                    statistics.korakPoKorakTotalRounds++;
+                        statistics.korakPoKorakTotalRounds++;
 
-                    if (solved) {
-                        statistics.korakPoKorakSolved++;
+                        if (solved) {
+                            statistics.korakPoKorakSolved++;
 
-                        if (isKorakPoKorakStep(openedClues)) {
-                            incrementKorakPoKorakStepHit(statistics, openedClues);
+                            if (isKorakPoKorakStep(openedClues)) {
+                                incrementKorakPoKorakStepHit(statistics, openedClues);
 
-                            if (statistics.korakPoKorakBestStep == 0
-                                    || openedClues < statistics.korakPoKorakBestStep) {
-                                statistics.korakPoKorakBestStep = openedClues;
+                                if (statistics.korakPoKorakBestStep == 0
+                                        || openedClues < statistics.korakPoKorakBestStep) {
+                                    statistics.korakPoKorakBestStep = openedClues;
+                                }
                             }
                         }
 
@@ -355,6 +356,7 @@ public class FirestoreRepository {
                                         Log.d(TAG, "Korak po korak statistics updated."))
                                 .addOnFailureListener(e ->
                                         Log.w(TAG, "Error updating Korak po korak statistics.", e));
+
                     } catch (Exception e) {
                         Log.e(TAG, "Serialization error in updateKorakPoKorakStatistics", e);
                     }
