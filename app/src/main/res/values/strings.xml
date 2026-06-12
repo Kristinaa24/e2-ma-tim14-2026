@@ -21,7 +21,7 @@
     <string name="statistics_loading_runtime">Loading statistics...</string>
     <string name="statistics_chart_placeholder">Chart will be shown here after games are played.</string>
     <string name="statistics_load_failed">Statistics could not be loaded.</string>
-    <string name="statistics_summary_format">Summary\nGames played: %1$d\nWins: %2$d\nLosses: %3$d\n\nQuiz\nCorrect answers: %4$d\nWrong answers: %5$d\nSuccess: %6$d%%\nTotal score: %7$d\n\nPairs\nCorrect pairs: %8$d\nTotal pairs: %9$d\nSuccess: %10$d%%\nTotal score: %11$d\n\nStep by Step\nSolved rounds: %12$d\nBest solved step: %13$s\nTotal score: %14$d\n\nMy Number\nExact hits: %15$d\nClose hits (&lt;= 5): %16$d\nTotal score: %17$d</string>
+    <string name="statistics_summary_format">Summary\nGames played: %1$d\nWins: %2$d\nLosses: %3$d\n\nQuiz\nCorrect answers: %4$d\nWrong answers: %5$d\nSuccess: %6$d%%\nTotal score: %7$d\n\nPairs\nCorrect pairs: %8$d\nTotal pairs: %9$d\nSuccess: %10$d%%\nTotal score: %11$d\n\nStep by Step\nSolved rounds: %12$d\nBest solved step: %13$s\nTotal score: %14$d\n\nMy Number\nExact hits: %15$d\nClose hits: %16$d\nTotal score: %17$d</string>
     <string name="avatar_icon">👤</string>
     <string name="silver_medal_icon">🥈</string>
     <string name="region_reward_loading">Region reward: ...</string>
@@ -234,8 +234,8 @@
     <string name="my_number_time_up">Time is up. Target number was %1$d.</string>
     <string name="my_number_round_owner_format">Round %1$d/2. Player %2$d starts this round.</string>
     <string name="my_number_lock_target_phase">Round %1$d/2. Player %2$d starts. Stop the target number.</string>
-    <string name="my_number_lock_numbers_phase">Round %1$d/2. Target is ready. Stop the offered numbers.</string>
-    <string name="my_number_round_phase_format">Round %1$d/2. Both players can enter expressions and submit when ready.</string>
+    <string name="my_number_lock_numbers_phase">Round %1$d/2. Player %2$d is choosing. Stop the offered numbers.</string>
+    <string name="my_number_round_phase_format">Round %1$d/2. Player %2$d started. Both players can enter expressions and submit when ready.</string>
     <string name="my_number_active_input_format">Active input: Player %1$d</string>
     <string name="my_number_player_one_expression_title">PLAYER 1 EXPRESSION</string>
     <string name="my_number_player_two_expression_title">PLAYER 2 EXPRESSION</string>
@@ -476,7 +476,11 @@
     <string name="statistics_percent_format">%1$d%%</string>
     <string name="statistics_ko_chart_format">Ko zna zna %1$d%%</string>
     <string name="statistics_spojnice_chart_format">Spojnice %1$d%%</string>
+    <string name="statistics_moj_broj_chart_format">Moj broj %1$d%%</string>
+    <string name="statistics_korak_po_korak_chart_format">Korak po korak solved rounds %1$d%%</string>
     <string name="statistics_details_format">Correct: %1$d&#10;Wrong: %2$d&#10;Score: %3$d</string>
+    <string name="statistics_moj_broj_details_format">Exact hits: %1$d&#10;Close hits: %2$d&#10;Score: %3$d</string>
+    <string name="statistics_korak_po_korak_details_format">Solved rounds: %1$d&#10;Best step: %2$s&#10;Score: %3$d&#10;&#10;Step 1: %4$d%%   Step 2: %5$d%%&#10;Step 3: %6$d%%   Step 4: %7$d%%&#10;Step 5: %8$d%%   Step 6: %9$d%%&#10;Step 7: %10$d%%</string>
     <string name="statistics_game_success">Game success</string>
 
     <string name="match_result_phase">Match finished</string>

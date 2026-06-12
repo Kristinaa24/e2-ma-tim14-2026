@@ -19,11 +19,20 @@ public class PlayerStatistics {
     public int spojnicaTotalScore;
 
     public int korakPoKorakSolved;
+    public int korakPoKorakTotalRounds;
     public int korakPoKorakBestStep;
     public int korakPoKorakTotalScore;
+    public int korakPoKorakStep1Hits;
+    public int korakPoKorakStep2Hits;
+    public int korakPoKorakStep3Hits;
+    public int korakPoKorakStep4Hits;
+    public int korakPoKorakStep5Hits;
+    public int korakPoKorakStep6Hits;
+    public int korakPoKorakStep7Hits;
 
     public int mojBrojExactHits;
     public int mojBrojCloseHits;
+    public int mojBrojTotalRounds;
     public int mojBrojTotalScore;
 
     public int skockoTotalScore;
@@ -50,10 +59,19 @@ public class PlayerStatistics {
         this.spojnicaTotalPairs = 0;
         this.spojnicaTotalScore = 0;
         this.korakPoKorakSolved = 0;
+        this.korakPoKorakTotalRounds = 0;
         this.korakPoKorakBestStep = 0;
         this.korakPoKorakTotalScore = 0;
+        this.korakPoKorakStep1Hits = 0;
+        this.korakPoKorakStep2Hits = 0;
+        this.korakPoKorakStep3Hits = 0;
+        this.korakPoKorakStep4Hits = 0;
+        this.korakPoKorakStep5Hits = 0;
+        this.korakPoKorakStep6Hits = 0;
+        this.korakPoKorakStep7Hits = 0;
         this.mojBrojExactHits = 0;
         this.mojBrojCloseHits = 0;
+        this.mojBrojTotalRounds = 0;
         this.mojBrojTotalScore = 0;
         this.skockoTotalScore = 0;
         this.skockoSolvedCount = 0;
