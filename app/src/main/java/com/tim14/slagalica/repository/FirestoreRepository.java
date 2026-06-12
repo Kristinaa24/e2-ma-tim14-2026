@@ -157,17 +157,19 @@ public class FirestoreRepository {
                 .document(userId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
-                    PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
+                    try {
+                        PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
 
-                    if (statistics == null) {
-                        statistics = new PlayerStatistics(userId);
+                        if (statistics == null) {
+                            statistics = new PlayerStatistics(userId);
+                            db.collection(STATISTICS_COLLECTION).document(userId).set(statistics);
+                        }
 
-                        db.collection(STATISTICS_COLLECTION)
-                                .document(userId)
-                                .set(statistics);
+                        callback.onSuccess(statistics);
+                    } catch (Exception e) {
+                        Log.e(TAG, "Serialization error in getStatistics", e);
+                        callback.onSuccess(new PlayerStatistics(userId));
                     }
-
-                    callback.onSuccess(statistics);
                 })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
@@ -243,23 +245,27 @@ public class FirestoreRepository {
                 .document(userId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
-                    PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
+                    try {
+                        PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
 
-                    if (statistics == null) {
-                        statistics = new PlayerStatistics(userId);
+                        if (statistics == null) {
+                            statistics = new PlayerStatistics(userId);
+                        }
+
+                        statistics.koZnaZnaCorrect += correctAnswers;
+                        statistics.koZnaZnaWrong += wrongAnswers;
+                        statistics.koZnaZnaTotalScore += score;
+
+                        db.collection(STATISTICS_COLLECTION)
+                                .document(userId)
+                                .set(statistics)
+                                .addOnSuccessListener(unused ->
+                                        Log.d(TAG, "Ko zna zna statistics updated."))
+                                .addOnFailureListener(e ->
+                                        Log.w(TAG, "Error updating Ko zna zna statistics.", e));
+                    } catch (Exception e) {
+                        Log.e(TAG, "Serialization error in updateKoZnaZnaStatistics", e);
                     }
-
-                    statistics.koZnaZnaCorrect += correctAnswers;
-                    statistics.koZnaZnaWrong += wrongAnswers;
-                    statistics.koZnaZnaTotalScore += score;
-
-                    db.collection(STATISTICS_COLLECTION)
-                            .document(userId)
-                            .set(statistics)
-                            .addOnSuccessListener(unused ->
-                                    Log.d(TAG, "Ko zna zna statistics updated."))
-                            .addOnFailureListener(e ->
-                                    Log.w(TAG, "Error updating Ko zna zna statistics.", e));
                 })
                 .addOnFailureListener(e ->
                         Log.w(TAG, "Error reading statistics.", e));
@@ -279,23 +285,27 @@ public class FirestoreRepository {
                 .document(userId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
-                    PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
+                    try {
+                        PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
 
-                    if (statistics == null) {
-                        statistics = new PlayerStatistics(userId);
+                        if (statistics == null) {
+                            statistics = new PlayerStatistics(userId);
+                        }
+
+                        statistics.spojnicaCorrectPairs += correctPairs;
+                        statistics.spojnicaTotalPairs += totalPairs;
+                        statistics.spojnicaTotalScore += score;
+
+                        db.collection(STATISTICS_COLLECTION)
+                                .document(userId)
+                                .set(statistics)
+                                .addOnSuccessListener(unused ->
+                                        Log.d(TAG, "Spojnice statistics updated."))
+                                .addOnFailureListener(e ->
+                                        Log.w(TAG, "Error updating Spojnice statistics.", e));
+                    } catch (Exception e) {
+                        Log.e(TAG, "Serialization error in updateSpojniceStatistics", e);
                     }
-
-                    statistics.spojnicaCorrectPairs += correctPairs;
-                    statistics.spojnicaTotalPairs += totalPairs;
-                    statistics.spojnicaTotalScore += score;
-
-                    db.collection(STATISTICS_COLLECTION)
-                            .document(userId)
-                            .set(statistics)
-                            .addOnSuccessListener(unused ->
-                                    Log.d(TAG, "Spojnice statistics updated."))
-                            .addOnFailureListener(e ->
-                                    Log.w(TAG, "Error updating Spojnice statistics.", e));
                 })
                 .addOnFailureListener(e ->
                         Log.w(TAG, "Error reading statistics.", e));
@@ -315,11 +325,12 @@ public class FirestoreRepository {
                 .document(userId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
-                    PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
+                    try {
+                        PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
 
-                    if (statistics == null) {
-                        statistics = new PlayerStatistics(userId);
-                    }
+                        if (statistics == null) {
+                            statistics = new PlayerStatistics(userId);
+                        }
 
                     statistics.korakPoKorakTotalRounds++;
 
@@ -334,17 +345,19 @@ public class FirestoreRepository {
                                 statistics.korakPoKorakBestStep = openedClues;
                             }
                         }
+
+                        statistics.korakPoKorakTotalScore += score;
+
+                        db.collection(STATISTICS_COLLECTION)
+                                .document(userId)
+                                .set(statistics)
+                                .addOnSuccessListener(unused ->
+                                        Log.d(TAG, "Korak po korak statistics updated."))
+                                .addOnFailureListener(e ->
+                                        Log.w(TAG, "Error updating Korak po korak statistics.", e));
+                    } catch (Exception e) {
+                        Log.e(TAG, "Serialization error in updateKorakPoKorakStatistics", e);
                     }
-
-                    statistics.korakPoKorakTotalScore += score;
-
-                    db.collection(STATISTICS_COLLECTION)
-                            .document(userId)
-                            .set(statistics)
-                            .addOnSuccessListener(unused ->
-                                    Log.d(TAG, "Korak po korak statistics updated."))
-                            .addOnFailureListener(e ->
-                                    Log.w(TAG, "Error updating Korak po korak statistics.", e));
                 })
                 .addOnFailureListener(e ->
                         Log.w(TAG, "Error reading statistics.", e));
@@ -397,11 +410,12 @@ public class FirestoreRepository {
                 .document(userId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
-                    PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
+                    try {
+                        PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
 
-                    if (statistics == null) {
-                        statistics = new PlayerStatistics(userId);
-                    }
+                        if (statistics == null) {
+                            statistics = new PlayerStatistics(userId);
+                        }
 
                     statistics.mojBrojTotalRounds++;
 
@@ -411,18 +425,77 @@ public class FirestoreRepository {
                         statistics.mojBrojCloseHits++;
                     }
 
-                    statistics.mojBrojTotalScore += score;
+                        statistics.mojBrojTotalScore += score;
 
-                    db.collection(STATISTICS_COLLECTION)
-                            .document(userId)
-                            .set(statistics)
-                            .addOnSuccessListener(unused ->
-                                    Log.d(TAG, "Moj broj statistics updated."))
-                            .addOnFailureListener(e ->
-                                    Log.w(TAG, "Error updating Moj broj statistics.", e));
+                        db.collection(STATISTICS_COLLECTION)
+                                .document(userId)
+                                .set(statistics)
+                                .addOnSuccessListener(unused ->
+                                        Log.d(TAG, "Moj broj statistics updated."))
+                                .addOnFailureListener(e ->
+                                        Log.w(TAG, "Error updating Moj broj statistics.", e));
+                    } catch (Exception e) {
+                        Log.e(TAG, "Serialization error in updateMojBrojStatistics", e);
+                    }
                 })
                 .addOnFailureListener(e ->
                         Log.w(TAG, "Error reading statistics.", e));
+    }
+
+    public void updateSkockoStatistics(int attemptIndex, int score, boolean solved) {
+        String userId;
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            return;
+        }
+
+        db.collection(STATISTICS_COLLECTION).document(userId).get().addOnSuccessListener(documentSnapshot -> {
+            try {
+                PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
+                if (statistics == null) statistics = new PlayerStatistics(userId);
+
+                if (solved && attemptIndex >= 0 && attemptIndex < 6) {
+                    statistics.skockoSolvedCount++;
+                    if (statistics.skockoAttemptsCount != null && statistics.skockoAttemptsCount.size() > attemptIndex) {
+                        int currentVal = statistics.skockoAttemptsCount.get(attemptIndex);
+                        statistics.skockoAttemptsCount.set(attemptIndex, currentVal + 1);
+                    }
+                }
+                statistics.skockoTotalScore += score;
+
+                db.collection(STATISTICS_COLLECTION).document(userId).set(statistics);
+            } catch (Exception e) {
+                Log.e(TAG, "Serialization error in updateSkockoStatistics", e);
+            }
+        });
+    }
+
+    public void updateAsocijacijeStatistics(boolean solved, int score) {
+        String userId;
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            return;
+        }
+
+        db.collection(STATISTICS_COLLECTION).document(userId).get().addOnSuccessListener(documentSnapshot -> {
+            try {
+                PlayerStatistics statistics = documentSnapshot.toObject(PlayerStatistics.class);
+                if (statistics == null) statistics = new PlayerStatistics(userId);
+
+                if (solved) {
+                    statistics.asocijacijeSolved++;
+                } else {
+                    statistics.asocijacijeUnsolved++;
+                }
+                statistics.asocijacijeTotalScore += score;
+
+                db.collection(STATISTICS_COLLECTION).document(userId).set(statistics);
+            } catch (Exception e) {
+                Log.e(TAG, "Serialization error in updateAsocijacijeStatistics", e);
+            }
+        });
     }
 
     private String requireUserId() {

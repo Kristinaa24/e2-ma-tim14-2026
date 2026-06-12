@@ -1,5 +1,6 @@
 package com.tim14.slagalica.repository;
 
+import com.tim14.slagalica.model.AsocijacijeRound;
 import com.tim14.slagalica.model.KorakPoKorakRound;
 
 import java.util.ArrayList;
@@ -11,6 +12,27 @@ import java.util.Random;
 public class LocalGameRepository {
 
     private final Random random = new Random();
+
+    private final List<AsocijacijeRound> asocijacijeRounds = Arrays.asList(
+            new AsocijacijeRound("VODA",
+                    "PICE", Arrays.asList("Casa", "Bokal", "Zed", "Sok"),
+                    "REKA", Arrays.asList("Dunav", "Sava", "Most", "Obala"),
+                    "MORE", Arrays.asList("So", "Plaza", "Plivanje", "Talas"),
+                    "KISA", Arrays.asList("Oblak", "Kapi", "Barica", "Grmljavina")
+            ),
+            new AsocijacijeRound("SKOLA",
+                    "DJAK", Arrays.asList("Torba", "Ucenik", "Kecelja", "Klupa"),
+                    "UCITELJ", Arrays.asList("Dnevnik", "Ocena", "Tabla", "Kreda"),
+                    "KNJIGA", Arrays.asList("Strana", "Citanje", "Slova", "Pisac"),
+                    "UCIONICA", Arrays.asList("Vrata", "Prozor", "Stolica", "Odmor")
+            )
+    );
+
+    public List<AsocijacijeRound> getAsocijacijeRounds() {
+        List<AsocijacijeRound> shuffled = new ArrayList<>(asocijacijeRounds);
+        Collections.shuffle(shuffled);
+        return shuffled.subList(0, Math.min(2, shuffled.size()));
+    }
 
     private final List<KorakPoKorakRound> korakRounds = Arrays.asList(
             new KorakPoKorakRound(
