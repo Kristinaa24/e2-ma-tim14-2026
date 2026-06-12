@@ -8,6 +8,9 @@
     <string name="avatar_change_placeholder">Avatar change screen placeholder.</string>
     <string name="profile_info_format">Username: %1$s\nEmail: %2$s\nRegion: %3$s\nTokens: %4$d\nStars: %5$d\nLeague: %6$s\nAvatar frame: %7$s\nQR code: %8$s</string>
     <string name="change_avatar">Change avatar</string>
+    <string name="choose_avatar">Choose avatar</string>
+    <string name="profile_loading_message">Profile is still loading.</string>
+    <string name="avatar_saved_message">Avatar saved.</string>
     <string name="logout">Logout</string>
     <string name="silver_league">Silver League</string>
     <string name="qr_code">QR CODE</string>
@@ -21,6 +24,26 @@
     <string name="statistics_summary_format">Summary\nGames played: %1$d\nWins: %2$d\nLosses: %3$d\n\nQuiz\nCorrect answers: %4$d\nWrong answers: %5$d\nSuccess: %6$d%%\nTotal score: %7$d\n\nPairs\nCorrect pairs: %8$d\nTotal pairs: %9$d\nSuccess: %10$d%%\nTotal score: %11$d\n\nStep by Step\nSolved rounds: %12$d\nBest solved step: %13$s\nTotal score: %14$d\n\nMy Number\nExact hits: %15$d\nClose hits (&lt;= 5): %16$d\nTotal score: %17$d</string>
     <string name="avatar_icon">👤</string>
     <string name="silver_medal_icon">🥈</string>
+    <string name="region_reward_loading">Region reward: ...</string>
+    <string name="region_reward_format">Region reward: %1$s Frame</string>
+    <string name="no_avatar_frame">None</string>
+    <string name="bronze_frame">Bronze</string>
+    <string name="silver_frame">Silver</string>
+    <string name="gold_frame">Gold</string>
+    <string name="profile_details">Details</string>
+    <string name="profile_username_label">Username</string>
+    <string name="profile_region_label">Region</string>
+    <string name="profile_email_label">Email</string>
+    <string name="profile_default_username">Test User</string>
+    <string name="profile_default_email">test@example.com</string>
+    <string name="profile_default_region">Serbia</string>
+    <string name="player_id_label">Player ID</string>
+    <string name="scan_code_to_add_friend">Scan this code to add friend</string>
+    <string name="bronze_league">Bronze League</string>
+    <string name="gold_league">Gold League</string>
+    <string name="platinum_league">Platinum League</string>
+    <string name="diamond_league">Diamond League</string>
+    <string name="master_league">Master League</string>
 
     <string name="ko_zna_zna">Ko zna zna</string>
     <string name="time_25">Game time: 25s</string>
@@ -396,6 +419,62 @@
     <string name="status_league_icon">🏆</string>
     <string name="guest_login_required_message">Log in or register to open this section.</string>
     <string name="match_surrendered_message">You quit the match.</string>
+
+
+    <string name="phase_ko_zna_zna">Choose the correct answer</string>
+    <string name="phase_ko_zna_zna_finished">Ko zna zna finished</string>
+
+    <string name="phase_spojnice">Match the correct pairs</string>
+    <string name="phase_spojnice_finished">Spojnice finished</string>
+
+    <string name="loading_questions">Loading questions...</string>
+    <string name="loading_spojnice">Loading Spojnice...</string>
+    <string name="not_enough_questions">Not enough questions in database.</string>
+    <string name="need_at_least_5_questions">You need at least 5 questions in Firestore.</string>
+    <string name="questions_load_failed">Questions could not be loaded.</string>
+    <string name="question_time_format">Question time: %1$ds</string>
+    <string name="no_answer_next_question">No answer. Moving to next question.</string>
+    <string name="invalid_question_answers">Question has invalid answers.</string>
+    <string name="question_counter_format">Question %1$d / 5</string>
+    <string name="correct_points_message">Correct! +10</string>
+    <string name="wrong_points_message">Wrong! -5</string>
+    <string name="player_two_answered_first">Player 2 answered first! +10</string>
+    <string name="ko_zna_zna_end_format">End of game. Player 1: %1$d | Player 2: %2$d</string>
+
+    <string name="not_enough_spojnice_rounds">Not enough Spojnice rounds in database.</string>
+    <string name="need_at_least_2_spojnice_rounds">You need at least 2 Spojnice rounds in Firestore.</string>
+    <string name="spojnice_load_failed">Spojnice could not be loaded.</string>
+    <string name="spojnice_start_info">First player connects all 5 pairs. If some pairs remain, the other player gets a second chance.</string>
+    <string name="invalid_spojnice_data">Invalid Spojnice data in Firestore.</string>
+    <string name="selected_pair_format">Selected pair: %1$s - %2$s</string>
+    <string name="select_both_columns">Select one item from both columns.</string>
+    <string name="correct_connection_points">Correct connection! +2</string>
+    <string name="wrong_connection">Wrong connection.</string>
+    <string name="all_pairs_solved">All pairs solved in this round.</string>
+    <string name="second_chance_player_format">Second chance: Player %1$d connects the remaining %2$d pairs.</string>
+    <string name="second_player_remaining_time">Second player gets 30 seconds for remaining pairs.</string>
+    <string name="round_one_finished">Round 1 finished. Round 2 starts soon.</string>
+    <string name="end_of_spojnice">End of Spojnice.</string>
+    <string name="spojnice_end_format">End of Spojnice. Player 1: %1$d | Player 2: %2$d</string>
+    <string name="round_counter_format">Round %1$d / 2</string>
+    <string name="current_player_format">Current player: Player %1$d</string>
+
+    <string name="answers_title">ANSWERS</string>
+
+    <string name="ko_zna_zna_rules_short">Choose one of the four answers. Correct answer gives +10 points, wrong answer gives -5 points.</string>
+
+    <string name="spojnice_rules_short">Connect each item from the left column with the correct item from the right column. Each correct pair gives +2 points.</string>
+    <string name="statistics_games">Games</string>
+    <string name="statistics_wins">Wins</string>
+    <string name="statistics_losses">Losses</string>
+    <string name="statistics_loading">Loading...</string>
+    <string name="statistics_percent_zero">0%</string>
+    <string name="statistics_percent_format">%1$d%%</string>
+    <string name="statistics_ko_chart_format">Ko zna zna %1$d%%</string>
+    <string name="statistics_spojnice_chart_format">Spojnice %1$d%%</string>
+    <string name="statistics_details_format">Correct: %1$d&#10;Wrong: %2$d&#10;Score: %3$d</string>
+    <string name="statistics_game_success">Game success</string>
+
     <string name="match_result_phase">Match finished</string>
     <string name="match_finished_title">MATCH FINISHED</string>
     <string name="match_result_summary">Final score</string>
