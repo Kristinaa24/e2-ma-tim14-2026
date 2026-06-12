@@ -265,11 +265,13 @@
     <!-- Skočko -->
     <string name="skocko">Skočko</string>
     <string name="skocko_symbol">🧐</string>
-    <string name="square_symbol">⬛</string>
-    <string name="circle_symbol">🔵</string>
-    <string name="heart_symbol">❤️</string>
-    <string name="triangle_symbol">🔺</string>
     <string name="star_symbol">⭐</string>
+    <string name="spade_symbol">♠</string>
+    <string name="heart_symbol">❤️</string>
+    <string name="diamond_symbol">♦</string>
+    <string name="club_symbol">♣</string>
+    <string name="skocko_opponent_attempt">Opponent attempt</string>
+    <string name="skocko_correct_solution">Correct solution</string>
     <string name="submit_combination">Check</string>
 
     <!-- Notifications -->
@@ -419,6 +421,8 @@
     <string name="status_league_icon">🏆</string>
     <string name="guest_login_required_message">Log in or register to open this section.</string>
     <string name="match_surrendered_message">You quit the match.</string>
+    <string name="quit_confirmation_title">Quit Match</string>
+    <string name="quit_confirmation_message">Are you sure you want to quit the match? This will count as a loss.</string>
 
 
     <string name="phase_ko_zna_zna">Choose the correct answer</string>
@@ -490,4 +494,23 @@
     <string name="notification_date_placeholder">12/05/2024 14:30</string>
     <string name="notification_message_placeholder">This is a sample notification message that can be a little longer.</string>
     <string name="notification_mark_as_read">Mark as read</string>
+    <string name="my_moves">MY MOVES</string>
+    <string name="opponent">OPPONENT</string>
+    <string name="solution">SOLUTION</string>
+    <string name="label_a1">A1</string>
+    <string name="label_a2">A2</string>
+    <string name="label_a3">A3</string>
+    <string name="label_a4">A4</string>
+    <string name="label_b1">B1</string>
+    <string name="label_b2">B2</string>
+    <string name="label_b3">B3</string>
+    <string name="label_b4">B4</string>
+    <string name="label_c1">C1</string>
+    <string name="label_c2">C2</string>
+    <string name="label_c3">C3</string>
+    <string name="label_c4">C4</string>
+    <string name="label_d1">D1</string>
+    <string name="label_d2">D2</string>
+    <string name="label_d3">D3</string>
+    <string name="label_d4">D4</string>
 </resources>

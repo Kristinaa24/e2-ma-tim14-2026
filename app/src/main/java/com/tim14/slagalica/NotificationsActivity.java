@@ -2,9 +2,10 @@ package com.tim14.slagalica;
 
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
+
+import com.tim14.slagalica.fragments.NotificationsFragment;
 
 public class NotificationsActivity extends AppCompatActivity {
 
@@ -13,14 +14,14 @@ public class NotificationsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_notifications);
+        setContentView(R.layout.activity_notifications_host);
 
         Log.d(TAG, "onCreate");
 
-        Button btnBack = findViewById(R.id.btnBackFromNotif);
-
-        if (btnBack != null) {
-            btnBack.setOnClickListener(v -> finish());
+        if (savedInstanceState == null) {
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.notifContainer, new NotificationsFragment())
+                    .commit();
         }
     }
 

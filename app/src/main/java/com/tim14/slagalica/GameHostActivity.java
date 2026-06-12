@@ -6,14 +6,17 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 
+import com.tim14.slagalica.fragments.AsocijacijeFragment;
 import com.tim14.slagalica.fragments.KoZnaZnaFragment;
 import com.tim14.slagalica.fragments.KorakPoKorakFragment;
 import com.tim14.slagalica.fragments.MatchResultFragment;
 import com.tim14.slagalica.fragments.MojBrojFragment;
 import com.tim14.slagalica.fragments.PlaceholderRoundFragment;
+import com.tim14.slagalica.fragments.SkockoFragment;
 import com.tim14.slagalica.fragments.SpojniceFragment;
 import com.tim14.slagalica.game.GameNavigator;
 import com.tim14.slagalica.game.GameRound;
@@ -131,6 +134,12 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
             case SPOJNICE:
                 fragment = new SpojniceFragment();
                 break;
+            case SKOCKO:
+                fragment = new SkockoFragment();
+                break;
+            case ASOCIJACIJE:
+                fragment = new AsocijacijeFragment();
+                break;
             case KORAK_PO_KORAK:
                 fragment = new KorakPoKorakFragment();
                 break;
@@ -200,7 +209,14 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     }
 
     private void surrenderMatch() {
-        Toast.makeText(this, R.string.match_surrendered_message, Toast.LENGTH_SHORT).show();
-        finishMatch();
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.quit_confirmation_title)
+                .setMessage(R.string.quit_confirmation_message)
+                .setPositiveButton(R.string.yes, (dialog, which) -> {
+                    Toast.makeText(this, R.string.match_surrendered_message, Toast.LENGTH_SHORT).show();
+                    finishMatch();
+                })
+                .setNegativeButton(R.string.no, null)
+                .show();
     }
 }

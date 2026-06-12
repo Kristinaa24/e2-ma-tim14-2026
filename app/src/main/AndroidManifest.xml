@@ -48,12 +48,6 @@
             android:name=".ProfileActivity"
             android:exported="false" />
         <activity
-            android:name=".AsocijacijeActivity"
-            android:exported="false" />
-        <activity
-            android:name=".SkockoActivity"
-            android:exported="false" />
-        <activity
             android:name=".NotificationsActivity"
             android:exported="false" />
         <activity

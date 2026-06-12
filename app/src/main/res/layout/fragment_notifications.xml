@@ -4,7 +4,6 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/slagalica_blue"
-    android:fitsSystemWindows="true"
     android:orientation="vertical">
 
     <!-- Header -->
@@ -15,7 +14,7 @@
         android:layout_height="?attr/actionBarSize"
         app:title="@string/notifications" />
 
-    <!-- Filters Bar (Requirement 11.d) -->
+    <!-- Filters Bar -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
