@@ -321,12 +321,18 @@ public class FirestoreRepository {
                         statistics = new PlayerStatistics(userId);
                     }
 
+                    statistics.korakPoKorakTotalRounds++;
+
                     if (solved) {
                         statistics.korakPoKorakSolved++;
 
-                        if (statistics.korakPoKorakBestStep == 0
-                                || openedClues < statistics.korakPoKorakBestStep) {
-                            statistics.korakPoKorakBestStep = openedClues;
+                        if (isKorakPoKorakStep(openedClues)) {
+                            incrementKorakPoKorakStepHit(statistics, openedClues);
+
+                            if (statistics.korakPoKorakBestStep == 0
+                                    || openedClues < statistics.korakPoKorakBestStep) {
+                                statistics.korakPoKorakBestStep = openedClues;
+                            }
                         }
                     }
 
@@ -342,6 +348,39 @@ public class FirestoreRepository {
                 })
                 .addOnFailureListener(e ->
                         Log.w(TAG, "Error reading statistics.", e));
+    }
+
+    private boolean isKorakPoKorakStep(int openedClues) {
+        return openedClues >= 1 && openedClues <= 7;
+    }
+
+    private void incrementKorakPoKorakStepHit(PlayerStatistics statistics, int openedClues) {
+        switch (openedClues) {
+            case 1:
+                statistics.korakPoKorakStep1Hits++;
+                break;
+            case 2:
+                statistics.korakPoKorakStep2Hits++;
+                break;
+            case 3:
+                statistics.korakPoKorakStep3Hits++;
+                break;
+            case 4:
+                statistics.korakPoKorakStep4Hits++;
+                break;
+            case 5:
+                statistics.korakPoKorakStep5Hits++;
+                break;
+            case 6:
+                statistics.korakPoKorakStep6Hits++;
+                break;
+            case 7:
+                statistics.korakPoKorakStep7Hits++;
+                break;
+            default:
+                Log.w(TAG, "Invalid Korak po korak step: " + openedClues);
+                break;
+        }
     }
 
     public void updateMojBrojStatistics(int difference, int score) {
@@ -364,9 +403,11 @@ public class FirestoreRepository {
                         statistics = new PlayerStatistics(userId);
                     }
 
+                    statistics.mojBrojTotalRounds++;
+
                     if (difference == 0) {
                         statistics.mojBrojExactHits++;
-                    } else if (difference <= 5) {
+                    } else if (score > 0) {
                         statistics.mojBrojCloseHits++;
                     }
 
