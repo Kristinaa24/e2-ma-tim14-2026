@@ -1,11 +1,13 @@
 package com.tim14.slagalica.repository;
 
+import android.content.Context;
 import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.tim14.slagalica.R;
 import com.tim14.slagalica.model.KoZnaZnaQuestion;
 import com.tim14.slagalica.model.PlayerStatistics;
 import com.tim14.slagalica.model.SpojniceRound;
@@ -23,9 +25,15 @@ public class FirestoreRepository {
     private static final String SPOJNICE_COLLECTION = "spojniceRounds";
 
     private final FirebaseFirestore db;
+    private final Context context;
 
     public FirestoreRepository() {
+        this(null);
+    }
+
+    public FirestoreRepository(Context context) {
         db = FirebaseFirestore.getInstance();
+        this.context = context != null ? context.getApplicationContext() : null;
     }
 
     public void isUsernameTaken(String username, FirebaseCallback<Boolean> callback) {
@@ -77,7 +85,10 @@ public class FirestoreRepository {
                     User user = documentSnapshot.toObject(User.class);
 
                     if (user == null) {
-                        callback.onError("User profile was not found.");
+                        callback.onError(text(
+                                R.string.firestore_error_profile_not_found,
+                                "User profile was not found."
+                        ));
                         return;
                     }
 
@@ -314,7 +325,10 @@ public class FirestoreRepository {
 
     private String requireUserId() {
         if (FirebaseAuth.getInstance().getCurrentUser() == null) {
-            throw new IllegalStateException("User is not logged in.");
+            throw new IllegalStateException(text(
+                    R.string.firestore_error_user_not_logged_in,
+                    "User is not logged in."
+            ));
         }
 
         return FirebaseAuth.getInstance().getCurrentUser().getUid();
@@ -331,5 +345,9 @@ public class FirestoreRepository {
 
         Log.d(TAG, "Loaded round: " + round.getId());
         return round;
+    }
+
+    private String text(int resId, String fallback) {
+        return context != null ? context.getString(resId) : fallback;
     }
 }

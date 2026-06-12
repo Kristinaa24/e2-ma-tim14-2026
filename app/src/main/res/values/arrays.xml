@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="serbia_regions">
+        <item>Belgrade</item>
+        <item>Vojvodina</item>
+        <item>Sumadija and Western Serbia</item>
+        <item>Southern and Eastern Serbia</item>
+        <item>Kosovo i Metohija</item>
+    </string-array>
+</resources>
