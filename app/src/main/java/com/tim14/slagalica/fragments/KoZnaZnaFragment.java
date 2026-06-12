@@ -17,8 +17,8 @@ import com.tim14.slagalica.game.BaseGameFragment;
 import com.tim14.slagalica.model.KoZnaZnaQuestion;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
+import com.tim14.slagalica.service.KoZnaZnaService;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class KoZnaZnaFragment extends BaseGameFragment {
@@ -37,22 +37,12 @@ public class KoZnaZnaFragment extends BaseGameFragment {
     private Button playerTwoAnswerButton;
 
     private FirestoreRepository firestoreRepository;
+    private KoZnaZnaService koZnaZnaService;
     private final Handler handler = new Handler(Looper.getMainLooper());
-
-    private int questionIndex = 0;
-    private int playerOneScore = 0;
-    private int playerTwoScore = 0;
-
-    private int correctAnswers = 0;
-    private int wrongAnswers = 0;
 
     private CountDownTimer gameTimer;
     private CountDownTimer questionTimer;
-
-    private boolean questionAnswered = false;
-    private boolean gameFinished = false;
-
-    private List<KoZnaZnaQuestion> questions = new ArrayList<>();
+    private boolean gameEnded;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -62,6 +52,7 @@ public class KoZnaZnaFragment extends BaseGameFragment {
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         firestoreRepository = new FirestoreRepository();
+        koZnaZnaService = new KoZnaZnaService();
 
         questionTimerText = view.findViewById(R.id.questionTimerText);
         questionCounterText = view.findViewById(R.id.questionCounterText);
@@ -74,12 +65,9 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         answerDButton = view.findViewById(R.id.answerDButton);
         playerTwoAnswerButton = view.findViewById(R.id.playerTwoAnswerButton);
 
-        playerOneScore = host().getPlayerOneScore();
-        playerTwoScore = host().getPlayerTwoScore();
-
         host().setPhaseText(getString(R.string.phase_ko_zna_zna));
         host().setTimerValue(25);
-        host().setScores(playerOneScore, playerTwoScore);
+        host().setScores(host().getPlayerOneScore(), host().getPlayerTwoScore());
 
         ruleInfoText.setText(getString(R.string.ko_zna_zna_rules_short));
 
@@ -91,7 +79,6 @@ public class KoZnaZnaFragment extends BaseGameFragment {
 
         disableAnswerButtons();
         questionText.setText(getString(R.string.loading_questions));
-        updateScores();
 
         loadQuestionsFromFirestore();
     }
@@ -100,11 +87,15 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         firestoreRepository.getKoZnaZnaQuestions(new FirebaseCallback<List<KoZnaZnaQuestion>>() {
             @Override
             public void onSuccess(List<KoZnaZnaQuestion> result) {
-                if (!isAdded() || gameFinished) {
+                if (!isAdded() || gameEnded) {
                     return;
                 }
 
-                if (result == null || result.size() < 5) {
+                if (!koZnaZnaService.startGame(
+                        result,
+                        host().getPlayerOneScore(),
+                        host().getPlayerTwoScore()
+                )) {
                     questionText.setText(getString(R.string.not_enough_questions));
                     Toast.makeText(requireContext(),
                             R.string.need_at_least_5_questions,
@@ -112,9 +103,7 @@ public class KoZnaZnaFragment extends BaseGameFragment {
                     return;
                 }
 
-                questions = result;
-
-                Log.d(TAG, "Questions loaded from Firestore: " + questions.size());
+                Log.d(TAG, "Questions loaded from Firestore: " + result.size());
 
                 startGameTimer();
                 loadQuestion();
@@ -122,7 +111,7 @@ public class KoZnaZnaFragment extends BaseGameFragment {
 
             @Override
             public void onError(String error) {
-                if (!isAdded() || gameFinished) {
+                if (!isAdded() || gameEnded) {
                     return;
                 }
 
@@ -169,8 +158,9 @@ public class KoZnaZnaFragment extends BaseGameFragment {
                 questionTimer = null;
                 questionTimerText.setText(getString(R.string.question_time_format, 0));
 
-                if (!questionAnswered && !gameFinished) {
-                    questionAnswered = true;
+                if (!koZnaZnaService.isQuestionAnswered()
+                        && !koZnaZnaService.isGameFinished()) {
+                    koZnaZnaService.timeoutCurrentQuestion();
                     disableAnswerButtons();
 
                     Toast.makeText(requireContext(),
@@ -190,22 +180,23 @@ public class KoZnaZnaFragment extends BaseGameFragment {
     }
 
     private void loadQuestion() {
-        if (gameFinished || questions.isEmpty()) {
+        if (koZnaZnaService.isGameFinished() || !koZnaZnaService.startCurrentQuestion()) {
             return;
         }
 
-        KoZnaZnaQuestion currentQuestion = questions.get(questionIndex);
+        KoZnaZnaQuestion currentQuestion = koZnaZnaService.getCurrentQuestion();
 
-        if (currentQuestion.answers == null || currentQuestion.answers.size() < 4) {
+        if (!koZnaZnaService.isCurrentQuestionValid()) {
             Toast.makeText(requireContext(), R.string.invalid_question_answers, Toast.LENGTH_LONG).show();
             endGame();
             return;
         }
 
-        questionAnswered = false;
         enableAnswerButtons();
 
-        questionCounterText.setText(getString(R.string.question_counter_format, questionIndex + 1));
+        questionCounterText.setText(
+                getString(R.string.question_counter_format, koZnaZnaService.getQuestionNumber())
+        );
         questionText.setText(currentQuestion.question);
 
         answerAButton.setText(currentQuestion.answers.get(0));
@@ -218,23 +209,17 @@ public class KoZnaZnaFragment extends BaseGameFragment {
     }
 
     private void checkPlayerOneAnswer(int selectedIndex) {
-        if (questionAnswered || gameFinished) {
+        KoZnaZnaService.AnswerResult result =
+                koZnaZnaService.answerCurrentQuestion(selectedIndex);
+        if (result.getType() == KoZnaZnaService.AnswerType.NO_OP) {
             return;
         }
-
-        questionAnswered = true;
         disableAnswerButtons();
         cancelQuestionTimer();
 
-        KoZnaZnaQuestion currentQuestion = questions.get(questionIndex);
-
-        if (selectedIndex == currentQuestion.correctIndex) {
-            playerOneScore += 10;
-            correctAnswers++;
+        if (result.getType() == KoZnaZnaService.AnswerType.CORRECT) {
             Toast.makeText(requireContext(), R.string.correct_points_message, Toast.LENGTH_SHORT).show();
         } else {
-            playerOneScore -= 5;
-            wrongAnswers++;
             Toast.makeText(requireContext(), R.string.wrong_points_message, Toast.LENGTH_SHORT).show();
         }
 
@@ -247,15 +232,13 @@ public class KoZnaZnaFragment extends BaseGameFragment {
     }
 
     private void playerTwoAnswered() {
-        if (questionAnswered || gameFinished) {
+        KoZnaZnaService.AnswerResult result = koZnaZnaService.playerTwoAnswersFirst();
+        if (result.getType() == KoZnaZnaService.AnswerType.NO_OP) {
             return;
         }
 
-        questionAnswered = true;
         disableAnswerButtons();
         cancelQuestionTimer();
-
-        playerTwoScore += 10;
 
         Toast.makeText(requireContext(), R.string.player_two_answered_first, Toast.LENGTH_SHORT).show();
 
@@ -268,12 +251,11 @@ public class KoZnaZnaFragment extends BaseGameFragment {
     }
 
     private void goToNextQuestion() {
-        if (gameFinished) {
+        if (koZnaZnaService.isGameFinished()) {
             return;
         }
 
-        if (questionIndex < 4) {
-            questionIndex++;
+        if (koZnaZnaService.goToNextQuestion()) {
             loadQuestion();
         } else {
             endGame();
@@ -281,11 +263,12 @@ public class KoZnaZnaFragment extends BaseGameFragment {
     }
 
     private void endGame() {
-        if (gameFinished) {
+        if (gameEnded) {
             return;
         }
 
-        gameFinished = true;
+        gameEnded = true;
+        koZnaZnaService.finishGame();
 
         cancelGameTimer();
         cancelQuestionTimer();
@@ -294,17 +277,24 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         playerTwoAnswerButton.setEnabled(false);
 
         firestoreRepository.updateKoZnaZnaStatistics(
-                correctAnswers,
-                wrongAnswers,
-                playerOneScore
+                koZnaZnaService.getCorrectAnswers(),
+                koZnaZnaService.getWrongAnswers(),
+                koZnaZnaService.getTotalScore()
         );
 
-        host().setScores(playerOneScore, playerTwoScore);
+        host().setScores(
+                koZnaZnaService.getPlayerOneScore(),
+                koZnaZnaService.getPlayerTwoScore()
+        );
         host().setTimerValue(0);
         host().setPhaseText(getString(R.string.phase_ko_zna_zna_finished));
 
         Toast.makeText(requireContext(),
-                getString(R.string.ko_zna_zna_end_format, playerOneScore, playerTwoScore),
+                getString(
+                        R.string.ko_zna_zna_end_format,
+                        koZnaZnaService.getPlayerOneScore(),
+                        koZnaZnaService.getPlayerTwoScore()
+                ),
                 Toast.LENGTH_LONG).show();
 
         handler.postDelayed(() -> {
@@ -315,7 +305,10 @@ public class KoZnaZnaFragment extends BaseGameFragment {
     }
 
     private void updateScores() {
-        host().setScores(playerOneScore, playerTwoScore);
+        host().setScores(
+                koZnaZnaService.getPlayerOneScore(),
+                koZnaZnaService.getPlayerTwoScore()
+        );
     }
 
     private void enableAnswerButtons() {

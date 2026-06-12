@@ -146,7 +146,7 @@ public class KorakPoKorakService {
             turnFinished = true;
 
             StatisticsUpdate statisticsUpdate = bonusPlayer == 1
-                    ? new StatisticsUpdate(currentRound.getClues().length, 5, false)
+                    ? new StatisticsUpdate(0, 5, false)
                     : null;
 
             return new Resolution(
@@ -198,7 +198,11 @@ public class KorakPoKorakService {
         }
 
         turnFinished = true;
-        return new Resolution(ResolutionType.BONUS_EXPIRED, 0, 0, null);
+        StatisticsUpdate statisticsUpdate = bonusPlayer == 1
+                ? new StatisticsUpdate(currentRound.getClues().length, 0, false)
+                : null;
+
+        return new Resolution(ResolutionType.BONUS_EXPIRED, 0, 0, statisticsUpdate);
     }
 
     public void revealAllClues() {
