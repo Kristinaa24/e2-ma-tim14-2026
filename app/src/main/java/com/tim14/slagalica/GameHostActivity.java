@@ -42,6 +42,7 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     private int playerTwoScore;
     private GameRound currentRound;
     private boolean isGuest;
+    private boolean matchResultRecorded;
     private FirestoreRepository firestoreRepository;
 
     @Override
@@ -182,7 +183,20 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     }
 
     @Override
+    public void recordMatchResult() {
+        if (matchResultRecorded || isGuest) {
+            return;
+        }
+
+        recordMatchStatistics(
+                playerOneScore > playerTwoScore,
+                playerOneScore < playerTwoScore
+        );
+    }
+
+    @Override
     public void restartMatch() {
+        matchResultRecorded = false;
         setScores(0, 0);
         goToRound(GameRound.KO_ZNA_ZNA, null);
     }
@@ -213,10 +227,20 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
                 .setTitle(R.string.quit_confirmation_title)
                 .setMessage(R.string.quit_confirmation_message)
                 .setPositiveButton(R.string.yes, (dialog, which) -> {
+                    recordMatchStatistics(false, true);
                     Toast.makeText(this, R.string.match_surrendered_message, Toast.LENGTH_SHORT).show();
                     finishMatch();
                 })
                 .setNegativeButton(R.string.no, null)
                 .show();
+    }
+
+    private void recordMatchStatistics(boolean won, boolean lost) {
+        if (matchResultRecorded || isGuest) {
+            return;
+        }
+
+        matchResultRecorded = true;
+        firestoreRepository.updateMatchStatistics(won, lost);
     }
 }

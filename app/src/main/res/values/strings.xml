@@ -474,14 +474,9 @@
     <string name="statistics_loading">Loading...</string>
     <string name="statistics_percent_zero">0%</string>
     <string name="statistics_percent_format">%1$d%%</string>
-    <string name="statistics_ko_chart_format">Ko zna zna %1$d%%</string>
-    <string name="statistics_spojnice_chart_format">Spojnice %1$d%%</string>
-    <string name="statistics_moj_broj_chart_format">Moj broj %1$d%%</string>
-    <string name="statistics_korak_po_korak_chart_format">Korak po korak solved rounds %1$d%%</string>
     <string name="statistics_details_format">Correct: %1$d&#10;Wrong: %2$d&#10;Score: %3$d</string>
     <string name="statistics_moj_broj_details_format">Exact hits: %1$d&#10;Close hits: %2$d&#10;Score: %3$d</string>
     <string name="statistics_korak_po_korak_details_format">Solved rounds: %1$d&#10;Best step: %2$s&#10;Score: %3$d&#10;&#10;Step 1: %4$d%%   Step 2: %5$d%%&#10;Step 3: %6$d%%   Step 4: %7$d%%&#10;Step 5: %8$d%%   Step 6: %9$d%%&#10;Step 7: %10$d%%</string>
-    <string name="statistics_game_success">Game success</string>
 
     <string name="match_result_phase">Match finished</string>
     <string name="match_finished_title">MATCH FINISHED</string>
