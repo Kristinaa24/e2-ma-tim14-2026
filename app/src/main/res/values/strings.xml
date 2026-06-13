@@ -498,6 +498,9 @@
     <string name="notification_date_placeholder">12/05/2024 14:30</string>
     <string name="notification_message_placeholder">This is a sample notification message that can be a little longer.</string>
     <string name="notification_mark_as_read">Mark as read</string>
+    <string name="notification_accept">Accept</string>
+    <string name="notification_decline">Decline</string>
+    <string name="notification_claim">Claim</string>
     <string name="my_moves">MY MOVES</string>
     <string name="opponent">OPPONENT</string>
     <string name="solution">SOLUTION</string>

@@ -128,6 +128,8 @@ public class HomeActivity extends AppCompatActivity {
             loadUserStatus();
         }
 
+        checkTargetSection(getIntent());
+
         playTabButton.setOnClickListener(v -> scrollToSection(startSection));
         inviteFriendsTabButton.setOnClickListener(v -> scrollToSection(friendsSection));
         buyTokensTabButton.setOnClickListener(v -> {
@@ -399,6 +401,35 @@ public class HomeActivity extends AppCompatActivity {
         params.height = totalHeight + (listView.getDividerHeight() * (adapter.getCount() - 1));
         listView.setLayoutParams(params);
         listView.requestLayout();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        checkTargetSection(intent);
+    }
+
+    private void checkTargetSection(Intent intent) {
+        if (intent == null || intent.getExtras() == null) return;
+        String section = intent.getStringExtra("TARGET_SECTION");
+        if (section == null) return;
+
+        switch (section) {
+            case "ranking":
+                scrollToSection(rankingSection);
+                break;
+            case "profile":
+                openProfile();
+                break;
+            case "friends":
+                scrollToSection(friendsSection);
+                break;
+            case "chat":
+                Toast.makeText(this, "Entering Regional Chat Room...", Toast.LENGTH_LONG).show();
+                // Future: openChatActivity();
+                break;
+        }
     }
 
     @Override protected void onStart() { super.onStart(); Log.d(TAG, "onStart"); }

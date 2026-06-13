@@ -14,44 +14,33 @@
         android:layout_height="?attr/actionBarSize"
         app:title="@string/notifications" />
 
-    <!-- Filters Bar -->
-    <LinearLayout
+    <!-- Filters Bar (TabLayout) -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/notificationsTabLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="@dimen/space_small"
-        android:gravity="center">
+        android:background="@color/slagalica_dark_blue"
+        app:tabIndicatorColor="@color/slagalica_yellow"
+        app:tabIndicatorHeight="3dp"
+        app:tabSelectedTextColor="@color/slagalica_yellow"
+        app:tabTextColor="@color/slagalica_light_blue">
 
-        <Button
-            android:id="@+id/btnAllNotifs"
-            style="@style/SlagalicaConfirmButton"
-            android:layout_width="0dp"
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginEnd="4dp"
-            android:text="@string/all_notifications"
-            android:textSize="@dimen/small_text_size" />
+            android:text="@string/all_notifications" />
 
-        <Button
-            android:id="@+id/btnReadNotifs"
-            style="@style/SlagalicaSecondaryButton"
-            android:layout_width="0dp"
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginHorizontal="4dp"
-            android:text="@string/read_notifications"
-            android:textSize="@dimen/small_text_size" />
+            android:text="@string/read_notifications" />
 
-        <Button
-            android:id="@+id/btnUnreadNotifs"
-            style="@style/SlagalicaSecondaryButton"
-            android:layout_width="0dp"
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="4dp"
-            android:text="@string/unread_notifications"
-            android:textSize="@dimen/small_text_size" />
-    </LinearLayout>
+            android:text="@string/unread_notifications" />
+
+    </com.google.android.material.tabs.TabLayout>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/notificationsRecyclerView"
@@ -59,6 +48,16 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:padding="@dimen/space_small" />
+
+    <Button
+        android:id="@+id/btnTestSystemNotif"
+        style="@style/SlagalicaSecondaryButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/space_medium"
+        android:layout_marginBottom="8dp"
+        android:text="Test System Notification"
+        android:textSize="12sp" />
 
     <Button
         android:id="@+id/btnBackFromNotif"
