@@ -22,6 +22,7 @@ import com.tim14.slagalica.model.HomeRankingItem;
 import com.tim14.slagalica.model.User;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
+import com.tim14.slagalica.service.NotificationHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -78,6 +79,8 @@ public class HomeActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
+        NotificationHelper.createNotificationChannels(this);
+
         Log.d(TAG, "onCreate");
 
         homeScrollView = findViewById(R.id.homeScrollView);
@@ -124,6 +127,8 @@ public class HomeActivity extends AppCompatActivity {
         if (!isGuest) {
             loadUserStatus();
         }
+
+        checkTargetSection(getIntent());
 
         playTabButton.setOnClickListener(v -> scrollToSection(startSection));
         inviteFriendsTabButton.setOnClickListener(v -> scrollToSection(friendsSection));
@@ -396,6 +401,35 @@ public class HomeActivity extends AppCompatActivity {
         params.height = totalHeight + (listView.getDividerHeight() * (adapter.getCount() - 1));
         listView.setLayoutParams(params);
         listView.requestLayout();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        checkTargetSection(intent);
+    }
+
+    private void checkTargetSection(Intent intent) {
+        if (intent == null || intent.getExtras() == null) return;
+        String section = intent.getStringExtra("TARGET_SECTION");
+        if (section == null) return;
+
+        switch (section) {
+            case "ranking":
+                scrollToSection(rankingSection);
+                break;
+            case "profile":
+                openProfile();
+                break;
+            case "friends":
+                scrollToSection(friendsSection);
+                break;
+            case "chat":
+                Toast.makeText(this, "Entering Regional Chat Room...", Toast.LENGTH_LONG).show();
+                // Future: openChatActivity();
+                break;
+        }
     }
 
     @Override protected void onStart() { super.onStart(); Log.d(TAG, "onStart"); }
