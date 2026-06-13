@@ -12,6 +12,7 @@ import androidx.core.app.NotificationManagerCompat;
 
 import com.tim14.slagalica.HomeActivity;
 import com.tim14.slagalica.R;
+import com.tim14.slagalica.repository.FirestoreRepository;
 
 public class NotificationHelper {
 
@@ -66,6 +67,9 @@ public class NotificationHelper {
         } catch (SecurityException e) {
             // Handle notification permission missing for Android 13+
         }
+
+        // Save to Firebase so the user can see it in the in-app notification history
+        new FirestoreRepository().saveNotification(title, message, type);
     }
 
     private static String getChannelIdByType(String type) {

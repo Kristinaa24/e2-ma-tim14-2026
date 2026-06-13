@@ -11,6 +11,9 @@ public class Notification {
     public String timestamp;
     public boolean read;
     public Type type;
+    public String typeString;
+    public long createdAt;
+    public String userId;
 
     public Notification() {}
 
@@ -21,5 +24,16 @@ public class Notification {
         this.timestamp = timestamp;
         this.read = read;
         this.type = type;
+        this.typeString = type != null ? type.name() : Type.OTHER.name();
+        this.createdAt = System.currentTimeMillis();
+    }
+
+    public static Type typeFromString(String typeStr) {
+        if (typeStr == null) return Type.OTHER;
+        try {
+            return Type.valueOf(typeStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return Type.OTHER;
+        }
     }
 }

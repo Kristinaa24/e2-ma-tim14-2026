@@ -16,6 +16,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.google.android.material.tabs.TabLayout;
 import com.tim14.slagalica.R;
 import com.tim14.slagalica.model.Notification;
+import com.tim14.slagalica.repository.FirebaseCallback;
+import com.tim14.slagalica.repository.FirestoreRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +29,7 @@ public class NotificationsFragment extends Fragment {
     private NotificationAdapter adapter;
     private TabLayout tabLayout;
     private String currentFilter = "all";
+    private FirestoreRepository firestoreRepository;
 
     @Nullable
     @Override
@@ -37,18 +40,18 @@ public class NotificationsFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        firestoreRepository = new FirestoreRepository(requireContext());
 
         RecyclerView recyclerView = view.findViewById(R.id.notificationsRecyclerView);
         tabLayout = view.findViewById(R.id.notificationsTabLayout);
         Button btnBack = view.findViewById(R.id.btnBackFromNotif);
         Button btnTestSystem = view.findViewById(R.id.btnTestSystemNotif);
 
-        setupMockData();
-
         adapter = new NotificationAdapter(filteredNotifications, new NotificationAdapter.OnNotificationActionListener() {
             @Override
             public void onMarkAsRead(Notification notification) {
                 notification.read = true;
+                if (notification.id != null) firestoreRepository.markNotificationAsRead(notification.id);
                 applyFilter(currentFilter);
             }
 
@@ -57,12 +60,14 @@ public class NotificationsFragment extends Fragment {
                 String actionText = positive ? "Accepted/Claimed" : "Declined";
                 Toast.makeText(getContext(), actionText + ": " + notification.title, Toast.LENGTH_SHORT).show();
                 notification.read = true;
+                if (notification.id != null) firestoreRepository.markNotificationAsRead(notification.id);
                 applyFilter(currentFilter);
             }
 
             @Override
             public void onItemClick(Notification notification) {
                 notification.read = true;
+                if (notification.id != null) firestoreRepository.markNotificationAsRead(notification.id);
                 applyFilter(currentFilter);
 
                 android.content.Intent intent = new android.content.Intent(getActivity(), com.tim14.slagalica.HomeActivity.class);
@@ -117,7 +122,40 @@ public class NotificationsFragment extends Fragment {
             });
         }
 
-        applyFilter("all");
+        loadNotifications();
+    }
+
+    private void loadNotifications() {
+        firestoreRepository.getNotifications(new FirebaseCallback<List<Notification>>() {
+            @Override
+            public void onSuccess(List<Notification> notifications) {
+                if (!isAdded()) return;
+                allNotifications.clear();
+                if (notifications.isEmpty()) {
+                    allNotifications.addAll(getSampleNotifications());
+                } else {
+                    allNotifications.addAll(notifications);
+                }
+                applyFilter(currentFilter);
+            }
+
+            @Override
+            public void onError(String error) {
+                if (!isAdded()) return;
+                allNotifications.addAll(getSampleNotifications());
+                applyFilter(currentFilter);
+            }
+        });
+    }
+
+    private List<Notification> getSampleNotifications() {
+        List<Notification> samples = new ArrayList<>();
+        samples.add(new Notification("s1", "League Reward", "You reached Silver League! Claim your reward.", "Today, 10:30", false, Notification.Type.REWARD));
+        samples.add(new Notification("s2", "Game Invite", "Ana invited you to a match.", "Today, 09:15", false, Notification.Type.INVITE));
+        samples.add(new Notification("s3", "Ranking Update", "You are in 3rd place on the Weekly Leaderboard!", "Yesterday, 14:20", true, Notification.Type.RANKING));
+        samples.add(new Notification("s4", "Chat Message", "Mina: Great game! Well played.", "Yesterday, 13:05", true, Notification.Type.CHAT));
+        samples.add(new Notification("s5", "Game Invite", "Ivan invited you to a match.", "13/06/2025", false, Notification.Type.INVITE));
+        return samples;
     }
 
     private void sendTestBroadcast() {
@@ -135,15 +173,6 @@ public class NotificationsFragment extends Fragment {
         if (requestCode == 101 && grantResults.length > 0 && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
             sendTestBroadcast();
         }
-    }
-
-    private void setupMockData() {
-        allNotifications.clear();
-        allNotifications.add(new Notification("1", "League Reward", "You reached Silver League! Claim your reward.", "Today, 10:30", false, Notification.Type.REWARD));
-        allNotifications.add(new Notification("2", "Game Invite", "Ana invited you to a match.", "Today, 09:15", false, Notification.Type.INVITE));
-        allNotifications.add(new Notification("3", "Ranking", "You are 3rd in the Weekly Ranking!", "Yesterday, 14:20", true, Notification.Type.RANKING));
-        allNotifications.add(new Notification("4", "Chat Message", "Mina: Good game!", "Yesterday, 13:05", true, Notification.Type.CHAT));
-        allNotifications.add(new Notification("5", "Friend Request", "Ivan wants to be your friend.", "05/05/2024", false, Notification.Type.INVITE));
     }
 
     private void applyFilter(String filter) {

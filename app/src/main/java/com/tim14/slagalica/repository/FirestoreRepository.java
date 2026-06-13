@@ -9,13 +9,20 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.tim14.slagalica.R;
 import com.google.firebase.firestore.SetOptions;
+import com.tim14.slagalica.model.AsocijacijeRound;
 import com.tim14.slagalica.model.KoZnaZnaQuestion;
+import com.tim14.slagalica.model.Notification;
 import com.tim14.slagalica.model.PlayerStatistics;
 import com.tim14.slagalica.model.SpojniceRound;
 import com.tim14.slagalica.model.User;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class FirestoreRepository {
 
@@ -26,6 +33,8 @@ public class FirestoreRepository {
     private static final String STATISTICS_COLLECTION = "statistics";
     private static final String KO_ZNA_ZNA_COLLECTION = "koZnaZnaQuestions";
     private static final String SPOJNICE_COLLECTION = "spojniceRounds";
+    private static final String ASOCIJACIJE_COLLECTION = "asocijacijeRounds";
+    private static final String NOTIFICATIONS_COLLECTION = "notifications";
 
     private final FirebaseFirestore db;
     private final Context context;
@@ -498,6 +507,93 @@ public class FirestoreRepository {
                 Log.e(TAG, "Serialization error in updateAsocijacijeStatistics", e);
             }
         });
+    }
+
+    // ── Asocijacije ──────────────────────────────────────────────────────────
+
+    public void getAsocijacijeRounds(FirebaseCallback<List<AsocijacijeRound>> callback) {
+        db.collection(ASOCIJACIJE_COLLECTION)
+                .limit(10)
+                .get()
+                .addOnSuccessListener(querySnapshot ->
+                        callback.onSuccess(querySnapshot.toObjects(AsocijacijeRound.class)))
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    // ── Notifications ─────────────────────────────────────────────────────────
+
+    public void saveNotification(String title, String message, String type) {
+        String userId;
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            return;
+        }
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("userId", userId);
+        data.put("title", title);
+        data.put("message", message);
+        data.put("typeString", type != null ? type.toUpperCase() : "OTHER");
+        data.put("timestamp", new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(new Date()));
+        data.put("read", false);
+        data.put("createdAt", System.currentTimeMillis());
+
+        db.collection(NOTIFICATIONS_COLLECTION)
+                .add(data)
+                .addOnFailureListener(e -> Log.w(TAG, "Error saving notification", e));
+    }
+
+    public void getNotifications(FirebaseCallback<List<Notification>> callback) {
+        String userId;
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        db.collection(NOTIFICATIONS_COLLECTION)
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<Notification> notifications = new ArrayList<>();
+                    for (com.google.firebase.firestore.DocumentSnapshot doc : querySnapshot.getDocuments()) {
+                        notifications.add(notificationFromDocument(doc));
+                    }
+                    notifications.sort((a, b) -> Long.compare(b.createdAt, a.createdAt));
+                    callback.onSuccess(notifications);
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void markNotificationAsRead(String notificationId) {
+        try {
+            requireUserId();
+        } catch (IllegalStateException e) {
+            return;
+        }
+
+        db.collection(NOTIFICATIONS_COLLECTION)
+                .document(notificationId)
+                .update("read", true)
+                .addOnFailureListener(e -> Log.w(TAG, "Error marking notification as read", e));
+    }
+
+    private Notification notificationFromDocument(com.google.firebase.firestore.DocumentSnapshot doc) {
+        Notification n = new Notification();
+        n.id = doc.getId();
+        n.title = doc.getString("title");
+        n.message = doc.getString("message");
+        n.timestamp = doc.getString("timestamp");
+        Boolean readVal = doc.getBoolean("read");
+        n.read = readVal != null && readVal;
+        n.typeString = doc.getString("typeString");
+        n.type = Notification.typeFromString(n.typeString);
+        Long createdAt = doc.getLong("createdAt");
+        n.createdAt = createdAt != null ? createdAt : 0L;
+        n.userId = doc.getString("userId");
+        return n;
     }
 
     private String requireUserId() {

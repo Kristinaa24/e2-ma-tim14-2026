@@ -20,10 +20,13 @@ import com.tim14.slagalica.R;
 import com.tim14.slagalica.game.BaseGameFragment;
 import com.tim14.slagalica.game.GameNavigator;
 import com.tim14.slagalica.model.AsocijacijeRound;
+import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
 import com.tim14.slagalica.repository.LocalGameRepository;
 import com.tim14.slagalica.service.AsocijacijeService;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class AsocijacijeFragment extends BaseGameFragment {
@@ -63,10 +66,8 @@ public class AsocijacijeFragment extends BaseGameFragment {
         playerOneScore = navigator.getPlayerOneScore();
         playerTwoScore = navigator.getPlayerTwoScore();
 
-        roundDataList = new LocalGameRepository().getAsocijacijeRounds();
-
         setupUI(view);
-        startRound();
+        loadRoundsAndStart();
     }
 
     private void setupUI(View view) {
@@ -103,6 +104,30 @@ public class AsocijacijeFragment extends BaseGameFragment {
         btnConfirm = view.findViewById(R.id.confirmSolutionButton);
 
         btnConfirm.setOnClickListener(v -> checkSolutions());
+    }
+
+    private void loadRoundsAndStart() {
+        firestoreRepository.getAsocijacijeRounds(new FirebaseCallback<List<AsocijacijeRound>>() {
+            @Override
+            public void onSuccess(List<AsocijacijeRound> result) {
+                if (!isAdded()) return;
+                if (result == null || result.isEmpty()) {
+                    roundDataList = new LocalGameRepository().getAsocijacijeRounds();
+                } else {
+                    List<AsocijacijeRound> shuffled = new ArrayList<>(result);
+                    Collections.shuffle(shuffled);
+                    roundDataList = shuffled.subList(0, Math.min(2, shuffled.size()));
+                }
+                startRound();
+            }
+
+            @Override
+            public void onError(String error) {
+                if (!isAdded()) return;
+                roundDataList = new LocalGameRepository().getAsocijacijeRounds();
+                startRound();
+            }
+        });
     }
 
     private void startRound() {
