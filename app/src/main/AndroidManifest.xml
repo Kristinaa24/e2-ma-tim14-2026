@@ -22,12 +22,6 @@
             android:name=".WelcomeActivity"
             android:exported="false" />
         <activity
-            android:name=".MojBrojActivity"
-            android:exported="false" />
-        <activity
-            android:name=".KorakPoKorakActivity"
-            android:exported="false" />
-        <activity
             android:name=".ResetPasswordActivity"
             android:exported="false" />
         <activity
@@ -38,12 +32,6 @@
             android:exported="false" />
         <activity
             android:name=".HomeActivity"
-            android:exported="false" />
-        <activity
-            android:name=".SpojniceActivity"
-            android:exported="false" />
-        <activity
-            android:name=".KoZnaZnaActivity"
             android:exported="false" />
         <activity
             android:name=".ProfileActivity"

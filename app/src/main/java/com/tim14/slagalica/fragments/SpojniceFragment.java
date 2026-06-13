@@ -85,7 +85,7 @@ public class SpojniceFragment extends BaseGameFragment {
 
         spojniceService.startGame(host().getPlayerOneScore(), host().getPlayerTwoScore());
 
-        host().setPhaseText(getString(R.string.spojnice));
+        host().setPhaseText(getString(R.string.phase_spojnice));
         host().setTimerValue(30);
         host().setScores(
                 spojniceService.getPlayerOneScore(),
