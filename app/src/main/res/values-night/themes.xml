@@ -3,18 +3,26 @@
     <style name="Base.Theme.Slagalica"
         parent="Theme.Material3.DayNight.NoActionBar">
 
-        <item
-            name="android:windowSplashScreenBackground"
-            tools:targetApi="31">
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">
             @color/slagalica_blue
         </item>
 
-        <item
-            name="android:windowSplashScreenAnimatedIcon"
-            tools:targetApi="31">
+        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="31">
             @drawable/empty_splash
         </item>
 
+        <item name="colorPrimary">@color/slagalica_blue</item>
+        <item name="colorPrimaryContainer">@color/slagalica_dark_blue</item>
+        <item name="colorSecondary">@color/slagalica_yellow</item>
+
+        <item name="android:windowBackground">@drawable/bg_screen</item>
+        <item name="android:statusBarColor">@color/slagalica_dark_blue</item>
+        <item name="android:navigationBarColor">@color/slagalica_dark_blue</item>
+
+        <item name="toolbarStyle">@style/Widget.Slagalica.Toolbar</item>
+        <item name="materialButtonStyle">@style/Widget.Slagalica.Button</item>
+
     </style>
+
 
 </resources>

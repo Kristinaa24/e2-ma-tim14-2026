@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_round_title_bar"
+            android:paddingStart="14dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="8dp"
+            android:text="@string/korak_po_korak"
+            android:textColor="@color/white"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_round_board"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:text="@string/step_by_step_instructions"
+                android:textColor="@color/slagalica_light_blue"
+                android:textSize="13sp" />
+
+            <TextView
+                android:id="@+id/step1Text"
+                style="@style/SlagalicaQuestionField"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="12dp"
+                android:gravity="center"
+                android:text="@string/step_1_sunce" />
+
+            <TextView
+                android:id="@+id/step2Text"
+                style="@style/SlagalicaQuestionField"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:text="" />
+
+            <TextView
+                android:id="@+id/step3Text"
+                style="@style/SlagalicaQuestionField"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:text="" />
+
+            <TextView
+                android:id="@+id/step4Text"
+                style="@style/SlagalicaQuestionField"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:text="" />
+
+            <TextView
+                android:id="@+id/step5Text"
+                style="@style/SlagalicaQuestionField"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:text="" />
+
+            <TextView
+                android:id="@+id/step6Text"
+                style="@style/SlagalicaQuestionField"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:text="" />
+
+            <TextView
+                android:id="@+id/step7Text"
+                style="@style/SlagalicaQuestionField"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:layout_marginTop="6dp"
+                android:gravity="center"
+                android:text="" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_round_input_shell"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/step_by_step_final_answer_title"
+                android:textColor="@color/slagalica_dark_blue"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/answerInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@android:color/transparent"
+                android:hint="@string/enter_final_answer"
+                android:inputType="textCapWords"
+                android:paddingBottom="8dp"
+                android:textColor="@color/slagalica_text"
+                android:textColorHint="@color/slagalica_text" />
+
+            <Button
+                android:id="@+id/nextStepButton"
+                style="@style/SlagalicaSecondaryButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="8dp"
+                android:text="@string/next_step" />
+
+            <Button
+                android:id="@+id/submitButton"
+                style="@style/SlagalicaConfirmButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="8dp"
+                android:text="@string/submit_answer" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

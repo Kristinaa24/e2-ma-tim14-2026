@@ -4,6 +4,7 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <application
         android:allowBackup="true"
@@ -15,13 +16,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Slagalica">
         <activity
+            android:name=".GameHostActivity"
+            android:exported="false" />
+        <activity
             android:name=".WelcomeActivity"
-            android:exported="false" />
-        <activity
-            android:name=".MojBrojActivity"
-            android:exported="false" />
-        <activity
-            android:name=".KorakPoKorakActivity"
             android:exported="false" />
         <activity
             android:name=".ResetPasswordActivity"
@@ -36,23 +34,21 @@
             android:name=".HomeActivity"
             android:exported="false" />
         <activity
-            android:name=".SpojniceActivity"
-            android:exported="false" />
-        <activity
-            android:name=".KoZnaZnaActivity"
-            android:exported="false" />
-        <activity
             android:name=".ProfileActivity"
-            android:exported="false" />
-        <activity
-            android:name=".AsocijacijeActivity"
-            android:exported="false" />
-        <activity
-            android:name=".SkockoActivity"
             android:exported="false" />
         <activity
             android:name=".NotificationsActivity"
             android:exported="false" />
+
+        <receiver
+            android:name=".service.SlagalicaReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.tim14.slagalica.SHOW_NOTIFICATION" />
+            </intent-filter>
+        </receiver>
+
         <activity
             android:name=".SplashScreenActivity"
             android:exported="true">

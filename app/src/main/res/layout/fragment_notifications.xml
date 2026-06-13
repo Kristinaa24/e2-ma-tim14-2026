@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/slagalica_blue"
+    android:orientation="vertical">
+
+    <!-- Header -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/notifToolbar"
+        style="@style/Widget.Slagalica.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        app:title="@string/notifications" />
+
+    <!-- Filters Bar (TabLayout) -->
+    <com.google.android.material.tabs.TabLayout
+        android:id="@+id/notificationsTabLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/slagalica_dark_blue"
+        app:tabIndicatorColor="@color/slagalica_yellow"
+        app:tabIndicatorHeight="3dp"
+        app:tabSelectedTextColor="@color/slagalica_yellow"
+        app:tabTextColor="@color/slagalica_light_blue">
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/all_notifications" />
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/read_notifications" />
+
+        <com.google.android.material.tabs.TabItem
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/unread_notifications" />
+
+    </com.google.android.material.tabs.TabLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/notificationsRecyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="@dimen/space_small" />
+
+    <Button
+        android:id="@+id/btnTestSystemNotif"
+        style="@style/SlagalicaSecondaryButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/space_medium"
+        android:layout_marginBottom="8dp"
+        android:text="Test System Notification"
+        android:textSize="12sp" />
+
+    <Button
+        android:id="@+id/btnBackFromNotif"
+        style="@style/SlagalicaConfirmButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/space_medium"
+        android:layout_marginBottom="@dimen/space_medium"
+        android:text="@string/back_to_home" />
+
+</LinearLayout>

@@ -2,10 +2,15 @@
     <string name="app_name">Slagalica</string>
 
     <string name="profile">Profile</string>
-    <string name="avatar_placeholder">Avatar</string>
     <string name="profile_info_placeholder">Profile info</string>
+    <string name="loading_profile">Loading profile...</string>
+    <string name="profile_load_failed">Profile could not be loaded.</string>
+    <string name="avatar_change_placeholder">Avatar change screen placeholder.</string>
+    <string name="profile_info_format">Username: %1$s\nEmail: %2$s\nRegion: %3$s\nTokens: %4$d\nStars: %5$d\nLeague: %6$s\nAvatar frame: %7$s\nQR code: %8$s</string>
     <string name="change_avatar">Change avatar</string>
-    <string name="statistics_placeholder">Statistics</string>
+    <string name="choose_avatar">Choose avatar</string>
+    <string name="profile_loading_message">Profile is still loading.</string>
+    <string name="avatar_saved_message">Avatar saved.</string>
     <string name="logout">Logout</string>
     <string name="silver_league">Silver League</string>
     <string name="qr_code">QR CODE</string>
@@ -13,6 +18,32 @@
     <string name="avatar_frame">Avatar frame: Silver</string>
     <string name="view_statistics">View statistics</string>
     <string name="player_statistics">Player statistics</string>
+    <string name="statistics_loading_runtime">Loading statistics...</string>
+    <string name="statistics_chart_placeholder">Chart will be shown here after games are played.</string>
+    <string name="statistics_load_failed">Statistics could not be loaded.</string>
+    <string name="statistics_summary_format">Summary\nGames played: %1$d\nWins: %2$d\nLosses: %3$d\n\nQuiz\nCorrect answers: %4$d\nWrong answers: %5$d\nSuccess: %6$d%%\nTotal score: %7$d\n\nPairs\nCorrect pairs: %8$d\nTotal pairs: %9$d\nSuccess: %10$d%%\nTotal score: %11$d\n\nStep by Step\nSolved rounds: %12$d\nBest solved step: %13$s\nTotal score: %14$d\n\nMy Number\nExact hits: %15$d\nClose hits: %16$d\nTotal score: %17$d</string>
+    <string name="avatar_icon">👤</string>
+    <string name="silver_medal_icon">🥈</string>
+    <string name="region_reward_loading">Region reward: ...</string>
+    <string name="region_reward_format">Region reward: %1$s Frame</string>
+    <string name="no_avatar_frame">None</string>
+    <string name="bronze_frame">Bronze</string>
+    <string name="silver_frame">Silver</string>
+    <string name="gold_frame">Gold</string>
+    <string name="profile_details">Details</string>
+    <string name="profile_username_label">Username</string>
+    <string name="profile_region_label">Region</string>
+    <string name="profile_email_label">Email</string>
+    <string name="profile_default_username">Test User</string>
+    <string name="profile_default_email">test@example.com</string>
+    <string name="profile_default_region">Serbia</string>
+    <string name="player_id_label">Player ID</string>
+    <string name="scan_code_to_add_friend">Scan this code to add friend</string>
+    <string name="bronze_league">Bronze League</string>
+    <string name="gold_league">Gold League</string>
+    <string name="platinum_league">Platinum League</string>
+    <string name="diamond_league">Diamond League</string>
+    <string name="master_league">Master League</string>
 
     <string name="ko_zna_zna">Ko zna zna</string>
     <string name="time_25">Game time: 25s</string>
@@ -26,8 +57,7 @@
     <string name="quit_game">Quit game</string>
     <string name="player_one_score">Player 1 score: 0</string>
     <string name="player_two_score">Player 2 score: 0</string>
-    <string name="rules">Rules</string>
-    <string name="simulate_opponent">Simulate faster Player 2 answer</string>
+
     <string name="ko_zna_zna_rules">Correct answer: +10 | Wrong answer: -5&#10;\nEach question lasts 5 seconds. Faster correct player gets points.</string>
     <string name="player_two_answer">Player 2 answer</string>
 
@@ -41,6 +71,15 @@
     <string name="selected_pair_none">Selected pair: none</string>
     <string name="confirm_connection">Confirm connection</string>
     <string name="second_chance_message">Second chance: other player connects the remaining pairs.</string>
+
+    <string name="close">X</string>
+    <string name="statistics_success">Success&#10;60%</string>
+    <string name="statistics_games_played">Games played&#10;12</string>
+    <string name="statistics_average_scores">Average score per game:&#10;&#10;Ko zna zna: 34 / 50&#10;Spojnice: 14 / 20&#10;Asocijacije: 38 / 60&#10;Skočko: 25 / 40&#10;Korak po korak: 18 / 40&#10;Moj broj: 7 / 20</string>
+    <string name="statistics_knowledge_numbers_pairs">Ko zna zna:&#10;Correct answers: 42&#10;Wrong answers: 18&#10;&#10;Moj broj:&#10;Exact target number found: 40%&#10;&#10;Spojnice:&#10;Successfully connected pairs: 60%</string>
+    <string name="statistics_steps" formatted="false">Korak po korak:&#10;Step 1: 5%&#10;Step 2: 8%&#10;Step 3: 12%&#10;Step 4: 20%&#10;Step 5: 25%&#10;Step 6: 18%&#10;Step 7: 12%</string>
+    <string name="statistics_associations_skocko" formatted="false">Asocijacije:&#10;Solved: 9&#10;Unsolved: 4&#10;&#10;Skočko:&#10;Attempt 1: 5%&#10;Attempt 2: 10%&#10;Attempt 3: 20%&#10;Attempt 4: 25%&#10;Attempt 5: 25%&#10;Attempt 6: 15%</string>
+    <string name="statistics_total">Total played games: 12&#10;Wins: 7&#10;Losses: 5&#10;Win rate: 58%&#10;Loss rate: 42%</string>
 
     <string name="adele">Adele</string>
     <string name="lady_gaga">Lady Gaga</string>
@@ -74,6 +113,22 @@
     <string name="login_successful">Login successful</string>
     <string name="enter_email_username">Enter email or username.</string>
     <string name="enter_password">Enter password.</string>
+    <string name="enter_email">Enter email.</string>
+    <string name="invalid_email">Enter a valid email address.</string>
+    <string name="password_too_short">Password must have at least 6 characters.</string>
+    <string name="username_taken">That username is already taken.</string>
+    <string name="profile_setup_failed">Profile setup failed.</string>
+    <string name="verify_email_before_login">Verify your email before logging in.</string>
+    <string name="registration_verification_sent">Registration successful. Check your email and confirm the account before logging in.</string>
+    <string name="select_region">Select region</string>
+    <string name="select_region_error">Select a region from the list.</string>
+    <string name="auth_error_username_not_found">User with that username does not exist.</string>
+    <string name="auth_error_username_email_missing">Email for that username could not be found.</string>
+    <string name="auth_error_user_not_created">User was not created.</string>
+    <string name="auth_error_login_required_for_password_change">You must be logged in to change the password.</string>
+    <string name="auth_error_old_password_incorrect">Old password is not correct.</string>
+    <string name="firestore_error_profile_not_found">User profile was not found.</string>
+    <string name="firestore_error_user_not_logged_in">User is not logged in.</string>
 
 
     <!-- Register -->
@@ -98,6 +153,10 @@
     <string name="confirm">Confirm</string>
     <string name="new_passwords_do_not_match">New passwords do not match</string>
     <string name="password_changed_successfully">Password changed successfully</string>
+    <string name="change_password_message">Enter your current password and choose a new one.</string>
+    <string name="reset_password_email_message">Enter your account email and we will send you a password reset link.</string>
+    <string name="send_reset_link">Send reset link</string>
+    <string name="reset_link_sent">Password reset link sent to your email.</string>
 
     <string name="change_password">Change password</string>
 
@@ -123,9 +182,15 @@
     <string name="moj_broj_rules">Using offered numbers and operations +, -, *, /, (, ) try to get the target number.</string>
     <string name="target_number_placeholder">---</string>
     <string name="number_placeholder">/?</string>
+    <string name="operator_plus">+</string>
+    <string name="operator_minus">-</string>
+    <string name="operator_multiply">*</string>
+    <string name="operator_divide">/</string>
+    <string name="operator_open_bracket">(</string>
+    <string name="operator_close_bracket">)</string>
 
 
-    <string name="home_title">Slagalica - Home</string>
+    <string name="home_title">Main Room</string>
     <string name="user_info_placeholder">User info</string>
     <string name="korak_po_korak">Korak po korak</string>
     <string name="time_70">Time: 70s</string>
@@ -134,7 +199,59 @@
     <string name="enter_final_answer">Enter final answer</string>
     <string name="next_step">Next step</string>
     <string name="submit_answer">Submit answer</string>
+    <string name="step_by_step_instructions">Open clues one by one and try to guess as early as possible.</string>
+    <string name="step_by_step_final_answer_title">FINAL ANSWER</string>
+    <string name="step_by_step_phase">Open clues and guess the final answer</string>
+    <string name="step_by_step_all_clues_opened">All clues are already open.</string>
+    <string name="step_by_step_enter_answer">Enter an answer.</string>
+    <string name="step_by_step_wrong">Wrong answer. Try again.</string>
+    <string name="step_by_step_correct_format">Correct answer! Points won: %1$d</string>
+    <string name="step_by_step_timeout">Time is up. Correct answer: %1$s</string>
+    <string name="step_by_step_correct_phase">Correct answer</string>
+    <string name="step_by_step_finished_phase">Step by Step finished</string>
+    <string name="step_by_step_round_phase_format">Round %1$d/2. Player %2$d opens the clues.</string>
+    <string name="step_by_step_starter_success_format">Player %1$d solved the round and won %2$d points.</string>
+    <string name="step_by_step_bonus_phase_format">Player %1$d missed the answer. Player %2$d now has 10 seconds for a 5-point bonus.</string>
+    <string name="step_by_step_bonus_success_format">Player %1$d solved the bonus chance and won 5 points.</string>
+    <string name="step_by_step_no_bonus_points">Bonus chance finished without points.</string>
     <string name="user_info_format">User: %1$s&#10;Email: %2$s&#10;Region: %3$s&#10;Tokens: %4$d&#10;Stars: %5$d&#10;League: %6$d</string>
+
+    <string name="my_number_title">MOJ BROJ</string>
+    <string name="target_number_header">TARGET NUMBER</string>
+    <string name="offered_numbers_header">OFFERED NUMBERS</string>
+    <string name="operations_header">OPERATIONS</string>
+    <string name="enter_expression_title">ENTER EXPRESSION</string>
+    <string name="my_number_lock_values_phase">Stop the target and offered numbers first</string>
+    <string name="my_number_phase">Build an expression and reach the target number</string>
+    <string name="my_number_stop_both_first">First stop the target and offered numbers.</string>
+    <string name="my_number_enter_expression">Enter an expression.</string>
+    <string name="my_number_invalid_characters">Use only numbers and operations +, -, *, /, ( and ).</string>
+    <string name="my_number_use_offered_numbers">Use only offered numbers and each at most once.</string>
+    <string name="my_number_invalid_expression">Expression is not valid.</string>
+    <string name="my_number_finished_phase">My Number finished</string>
+    <string name="my_number_round_finished">Round finished.</string>
+    <string name="my_number_result_format">Result: %1$d&#10;Target: %2$d&#10;Difference: %3$d&#10;Points: %4$d</string>
+    <string name="my_number_time_up">Time is up. Target number was %1$d.</string>
+    <string name="my_number_round_owner_format">Round %1$d/2. Player %2$d starts this round.</string>
+    <string name="my_number_lock_target_phase">Round %1$d/2. Player %2$d starts. Stop the target number.</string>
+    <string name="my_number_lock_numbers_phase">Round %1$d/2. Player %2$d is choosing. Stop the offered numbers.</string>
+    <string name="my_number_round_phase_format">Round %1$d/2. Player %2$d started. Both players can enter expressions and submit when ready.</string>
+    <string name="my_number_active_input_format">Active input: Player %1$d</string>
+    <string name="my_number_player_one_expression_title">PLAYER 1 EXPRESSION</string>
+    <string name="my_number_player_two_expression_title">PLAYER 2 EXPRESSION</string>
+    <string name="my_number_preview_round">Submit round</string>
+    <string name="my_number_clear_active">Delete</string>
+    <string name="my_number_current_preview_title">Current preview</string>
+    <string name="my_number_rules_extended">Stop the target first, then stop the offered numbers. If you do not press STOP within 5 seconds, values lock automatically. You can also lock them with a shake gesture.</string>
+    <string name="my_number_ready_for_input_message">Both players can now enter expressions. Tap Submit round when you want to score this round, or wait for the timer to expire.</string>
+    <string name="my_number_submit_without_input">At least one player must enter an expression before submitting the round.</string>
+    <string name="my_number_preview_empty_format">Player %1$d: no expression entered.</string>
+    <string name="my_number_preview_invalid_format">Player %1$d: invalid expression. %2$s</string>
+    <string name="my_number_preview_value_format">Player %1$d: result %2$d, difference %3$d.</string>
+    <string name="my_number_round_summary_title">Round %1$d result</string>
+    <string name="my_number_round_target_format">Target number: %1$d</string>
+    <string name="my_number_round_points_format">Points won - Player 1: %1$d | Player 2: %2$d</string>
+    <string name="my_number_round_finished_phase_format">Round %1$d finished</string>
 
     <!-- Associations -->
     <string name="asocijacije">Asocijacije</string>
@@ -148,11 +265,13 @@
     <!-- Skočko -->
     <string name="skocko">Skočko</string>
     <string name="skocko_symbol">🧐</string>
-    <string name="square_symbol">⬛</string>
-    <string name="circle_symbol">🔵</string>
-    <string name="heart_symbol">❤️</string>
-    <string name="triangle_symbol">🔺</string>
     <string name="star_symbol">⭐</string>
+    <string name="spade_symbol">♠</string>
+    <string name="heart_symbol">❤️</string>
+    <string name="diamond_symbol">♦</string>
+    <string name="club_symbol">♣</string>
+    <string name="skocko_opponent_attempt">Opponent attempt</string>
+    <string name="skocko_correct_solution">Correct solution</string>
     <string name="submit_combination">Check</string>
 
     <!-- Notifications -->
@@ -163,8 +282,6 @@
     <string name="no_notifications">No new notifications.</string>
     <string name="back_to_home">Back to Home</string>
 
-    <!-- TODO: Remove or change this placeholder text -->
-    <string name="hello_blank_fragment">Hello blank fragment</string>
 
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
@@ -184,10 +301,8 @@
     <string name="play_as_guest">Play as guest</string>
 
 
-    <string name="hello_world">Hello World!</string>
-
     <string name="ready_for_battle">Ready for battle?</string>
-    <string name="start_game">START GAME</string>
+    <string name="start_game">START MATCH</string>
     <string name="players_online">Players online: 37/74</string>
     <string name="available_games">Available games</string>
     <string name="profile_short">👤&#10;Profile</string>
@@ -195,4 +310,217 @@
     <string name="rank_short">🏆&#10;Rank</string>
     <string name="alerts_short">🔔&#10;Alerts</string>
 
+
+    <string name="loading">Loading...</string>
+
+
+    <string name="status_tokens">200</string>
+    <string name="status_stars">120</string>
+    <string name="status_league">Silver</string>
+    <string name="nav_header_icon">★</string>
+    <string name="nav_header_title">Slagalica</string>
+    <string name="nav_header_subtitle">Play. Win. Climb the league.</string>
+    <string name="tokens_label">TOKENS</string>
+    <string name="stars_label">STARS</string>
+    <string name="league_label">LEAGUE</string>
+    <string name="timer_label">TIMER</string>
+    <string name="player_one_name">Player 1</string>
+    <string name="player_two_name">Player 2</string>
+    <string name="player_avatar">Player avatar</string>
+    <string name="chat_bubble_text">...</string>
+    <string name="match_locked_hint">Match in progress</string>
+    <string name="surrender_match">Quit</string>
+    <string name="tab_play">Play</string>
+    <string name="tab_invite_friends">Friends</string>
+    <string name="tab_buy_tokens">Tokens</string>
+    <string name="tab_rankings">Rankings</string>
+    <string name="tab_help">Help</string>
+    <string name="tab_faq">FAQ</string>
+    <string name="quick_access_title">Quick access</string>
+    <string name="home_profile_action">Profile</string>
+    <string name="home_statistics_action">Statistics</string>
+    <string name="home_friends_action">Friends</string>
+    <string name="home_rankings_action">Rankings</string>
+    <string name="home_notifications_action">Alerts</string>
+    <string name="guest_access_message">Guest mode shows the full lobby as preview. Log in or register to unlock profile, statistics, friends and saved progress.</string>
+    <string name="guest_progress_title">Account progress</string>
+    <string name="guest_progress_message">Log in to save tokens, collect stars and join a league.</string>
+    <string name="guest_ranking_hint">Preview only. Log in to join the weekly ranking.</string>
+    <string name="guest_friends_hint">Log in to add friends and send invites.</string>
+    <string name="guest_buy_tokens_cta">Log in for tokens</string>
+    <string name="home_start_panel_title">Start a ranked match</string>
+    <string name="home_start_panel_subtitle">A match starts only from this button and then follows the required round order.</string>
+    <string name="home_active_players">Players active: 1077</string>
+    <string name="home_buy_tokens_cta">Buy tokens</string>
+    <string name="match_order_title">Round order</string>
+    <string name="match_order_subtitle">These round cards stay visible as a guide, but the match starts only from the Start Match button.</string>
+    <string name="round_quiz">1. Quiz</string>
+    <string name="round_pairs">2. Pairs</string>
+    <string name="round_mastermind">3. Mastermind</string>
+    <string name="round_associations">4. Associations</string>
+    <string name="round_step_by_step">5. Step by Step</string>
+    <string name="round_my_number">6. My Number</string>
+    <string name="weekly_ranking_title">Weekly ranking</string>
+    <string name="ranking_header_position">#</string>
+    <string name="ranking_header_player">Player</string>
+    <string name="ranking_header_stars">Stars</string>
+    <string name="ranking_place_1">1</string>
+    <string name="ranking_place_2">2</string>
+    <string name="ranking_place_3">3</string>
+    <string name="ranking_place_4">4</string>
+    <string name="ranking_player_1">Rastko Radenkovic</string>
+    <string name="ranking_player_2">Milica Nedic</string>
+    <string name="ranking_player_3">Teodora Nikolic</string>
+    <string name="ranking_player_4">Mina Pavlovic</string>
+    <string name="ranking_points_1">20</string>
+    <string name="ranking_points_2">18</string>
+    <string name="ranking_points_3">16</string>
+    <string name="ranking_points_4">14</string>
+    <string name="weekly_ranking_footer">Silver Division</string>
+    <string name="friends_panel_title">Play with friends</string>
+    <string name="friends_filter_all">All friends</string>
+    <string name="friends_filter_online">Online</string>
+    <string name="friend_status_online">Online</string>
+    <string name="friend_status_offline">Offline</string>
+    <string name="friend_name_1">Ana</string>
+    <string name="friend_name_2">Mina</string>
+    <string name="friend_name_3">Teodora</string>
+    <string name="friend_name_4">Ivan</string>
+    <string name="friend_rank_1">1</string>
+    <string name="friend_rank_2">2</string>
+    <string name="friend_rank_3">3</string>
+    <string name="friend_rank_4">4</string>
+    <string name="friend_initial_1">A</string>
+    <string name="friend_initial_2">M</string>
+    <string name="friend_initial_3">T</string>
+    <string name="friend_initial_4">I</string>
+    <string name="friend_score_1">1189</string>
+    <string name="friend_score_2">1138</string>
+    <string name="friend_score_3">757</string>
+    <string name="friend_score_4">737</string>
+    <string name="friend_invite_initial">+</string>
+    <string name="friend_invite_title">Invite a friend</string>
+    <string name="friend_invite_subtitle">Send a new match invite</string>
+    <string name="phase_waiting_for_round">Next round starts soon</string>
+    <string name="placeholder_round_title">ROUND</string>
+    <string name="placeholder_round_default_title">Round</string>
+    <string name="placeholder_phase_format">%1$s placeholder</string>
+    <string name="placeholder_round_message">This round will be moved to a dedicated fragment later. For now you can continue the match in the official order.</string>
+    <string name="continue_match">Continue match</string>
+    <string name="round_order_message">A match starts from Start Match and follows the official project round order.</string>
+    <string name="already_in_main_room_message">You are already in the main room.</string>
+    <string name="friends_placeholder_message">Friends panel and invitations are available in the shared lobby layout and can be connected later.</string>
+    <string name="invite_friends_placeholder_message">Friends and invitations will be connected here when your teammate finishes that part.</string>
+    <string name="buy_tokens_placeholder_message">Token purchase screen can be connected here later.</string>
+    <string name="rankings_placeholder_message">The ranking screen can be connected here later. The shared template already exposes the entry point.</string>
+    <string name="help_placeholder_message">Help content can be added here later.</string>
+    <string name="faq_placeholder_message">FAQ content can be added here later.</string>
+    <string name="chat_placeholder_message">Chat bubble is ready in the shared match header. Message sending can be connected later.</string>
+    <string name="status_tokens_icon">🪙</string>
+    <string name="status_stars_icon">⭐</string>
+    <string name="status_league_icon">🏆</string>
+    <string name="guest_login_required_message">Log in or register to open this section.</string>
+    <string name="match_surrendered_message">You quit the match.</string>
+    <string name="quit_confirmation_title">Quit Match</string>
+    <string name="quit_confirmation_message">Are you sure you want to quit the match? This will count as a loss.</string>
+
+
+    <string name="phase_ko_zna_zna">Choose the correct answer</string>
+    <string name="phase_ko_zna_zna_finished">Ko zna zna finished</string>
+
+    <string name="phase_spojnice">Match the correct pairs</string>
+    <string name="phase_spojnice_finished">Spojnice finished</string>
+
+    <string name="loading_questions">Loading questions...</string>
+    <string name="loading_spojnice">Loading Spojnice...</string>
+    <string name="not_enough_questions">Not enough questions in database.</string>
+    <string name="need_at_least_5_questions">You need at least 5 questions in Firestore.</string>
+    <string name="questions_load_failed">Questions could not be loaded.</string>
+    <string name="question_time_format">Question time: %1$ds</string>
+    <string name="no_answer_next_question">No answer. Moving to next question.</string>
+    <string name="invalid_question_answers">Question has invalid answers.</string>
+    <string name="question_counter_format">Question %1$d / 5</string>
+    <string name="correct_points_message">Correct! +10</string>
+    <string name="wrong_points_message">Wrong! -5</string>
+    <string name="player_two_answered_first">Player 2 answered first! +10</string>
+    <string name="ko_zna_zna_end_format">End of game. Player 1: %1$d | Player 2: %2$d</string>
+
+    <string name="not_enough_spojnice_rounds">Not enough Spojnice rounds in database.</string>
+    <string name="need_at_least_2_spojnice_rounds">You need at least 2 Spojnice rounds in Firestore.</string>
+    <string name="spojnice_load_failed">Spojnice could not be loaded.</string>
+    <string name="spojnice_start_info">First player connects all 5 pairs. If some pairs remain, the other player gets a second chance.</string>
+    <string name="invalid_spojnice_data">Invalid Spojnice data in Firestore.</string>
+    <string name="selected_pair_format">Selected pair: %1$s - %2$s</string>
+    <string name="select_both_columns">Select one item from both columns.</string>
+    <string name="correct_connection_points">Correct connection! +2</string>
+    <string name="wrong_connection">Wrong connection.</string>
+    <string name="all_pairs_solved">All pairs solved in this round.</string>
+    <string name="second_chance_player_format">Second chance: Player %1$d connects the remaining %2$d pairs.</string>
+    <string name="second_player_remaining_time">Second player gets 30 seconds for remaining pairs.</string>
+    <string name="round_one_finished">Round 1 finished. Round 2 starts soon.</string>
+    <string name="end_of_spojnice">End of Spojnice.</string>
+    <string name="spojnice_end_format">End of Spojnice. Player 1: %1$d | Player 2: %2$d</string>
+    <string name="round_counter_format">Round %1$d / 2</string>
+    <string name="current_player_format">Current player: Player %1$d</string>
+
+    <string name="answers_title">ANSWERS</string>
+
+    <string name="ko_zna_zna_rules_short">Choose one of the four answers. Correct answer gives +10 points, wrong answer gives -5 points.</string>
+
+    <string name="spojnice_rules_short">Connect each item from the left column with the correct item from the right column. Each correct pair gives +2 points.</string>
+    <string name="statistics_games">Games</string>
+    <string name="statistics_wins">Wins</string>
+    <string name="statistics_losses">Losses</string>
+    <string name="statistics_loading">Loading...</string>
+    <string name="statistics_percent_zero">0%</string>
+    <string name="statistics_percent_format">%1$d%%</string>
+    <string name="statistics_details_format">Correct: %1$d&#10;Wrong: %2$d&#10;Score: %3$d</string>
+    <string name="statistics_moj_broj_details_format">Exact hits: %1$d&#10;Close hits: %2$d&#10;Score: %3$d</string>
+    <string name="statistics_korak_po_korak_details_format">Solved rounds: %1$d&#10;Best step: %2$s&#10;Score: %3$d&#10;&#10;Step 1: %4$d%%   Step 2: %5$d%%&#10;Step 3: %6$d%%   Step 4: %7$d%%&#10;Step 5: %8$d%%   Step 6: %9$d%%&#10;Step 7: %10$d%%</string>
+
+    <string name="match_result_phase">Match finished</string>
+    <string name="match_finished_title">MATCH FINISHED</string>
+    <string name="match_result_summary">Final score</string>
+    <string name="match_result_player_one_format">Player 1: %1$d</string>
+    <string name="match_result_player_two_format">Player 2: %1$d</string>
+    <string name="match_result_winner_player_one">Winner: Player 1</string>
+    <string name="match_result_winner_player_two">Winner: Player 2</string>
+    <string name="match_result_draw">Result: Draw</string>
+    <string name="back_to_main_room">Back to main room</string>
+    <string name="play_rematch">Rematch</string>
+    <string name="friend_invite_subtitle_home">Send a new match invite</string>
+    <string name="notification_type_placeholder">Notification type</string>
+    <string name="notification_date_placeholder">12/05/2024 14:30</string>
+    <string name="notification_message_placeholder">This is a sample notification message that can be a little longer.</string>
+    <string name="notification_mark_as_read">Mark as read</string>
+    <string name="notification_accept">Accept</string>
+    <string name="notification_decline">Decline</string>
+    <string name="notification_claim">Claim</string>
+    <string name="my_moves">MY MOVES</string>
+    <string name="opponent">OPPONENT</string>
+    <string name="solution">SOLUTION</string>
+    <string name="label_a1">A1</string>
+    <string name="label_a2">A2</string>
+    <string name="label_a3">A3</string>
+    <string name="label_a4">A4</string>
+    <string name="label_b1">B1</string>
+    <string name="label_b2">B2</string>
+    <string name="label_b3">B3</string>
+    <string name="label_b4">B4</string>
+    <string name="label_c1">C1</string>
+    <string name="label_c2">C2</string>
+    <string name="label_c3">C3</string>
+    <string name="label_c4">C4</string>
+    <string name="label_d1">D1</string>
+    <string name="label_d2">D2</string>
+    <string name="label_d3">D3</string>
+    <string name="label_d4">D4</string>
+    <string name="msg_correct">Correct! +%1$d points</string>
+    <string name="msg_opponent_chance">Opponent\'s Chance!</string>
+    <string name="msg_opponent_success">Opponent guessed! +10 points</string>
+    <string name="msg_opponent_failed">Opponent failed!</string>
+    <string name="msg_times_up">Time\'s up!</string>
+    <string name="msg_column_solved">Column %1$s solved! +%2$d points</string>
+    <string name="msg_final_solved">Final solution solved! +%1$d points</string>
+    <string name="msg_next_player">Wrong or no solution. Next player\'s turn.</string>
 </resources>

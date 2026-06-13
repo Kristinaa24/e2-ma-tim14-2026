@@ -2,159 +2,440 @@ package com.tim14.slagalica;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.ListAdapter;
+import android.widget.ListView;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
-import androidx.drawerlayout.widget.DrawerLayout;
-import android.view.View;
-import android.widget.LinearLayout;
+import androidx.core.content.ContextCompat;
 
-import com.google.android.material.navigation.NavigationView;
+import com.tim14.slagalica.game.GameRound;
+import com.tim14.slagalica.model.HomeFriendItem;
+import com.tim14.slagalica.model.HomeRankingItem;
+import com.tim14.slagalica.model.User;
+import com.tim14.slagalica.repository.FirebaseCallback;
+import com.tim14.slagalica.repository.FirestoreRepository;
+import com.tim14.slagalica.service.NotificationHelper;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class HomeActivity extends AppCompatActivity {
 
-    private Button startGameButton, koZnaZnaButton, spojniceButton;
-    private Button korakPoKorakButton, mojBrojButton, asocijacijeButton, skockoButton;
-    private Button logoutButton;
-    private TextView notificationsMenuButton;
-    private TextView tvProfile, tvFriends, tvRanking;
-    private LinearLayout statusBarLayout;
+    private static final String TAG = "HomeActivity";
 
-    private DrawerLayout drawerLayout;
-    private NavigationView navigationView;
-    private Toolbar homeToolbar;
-    private ActionBarDrawerToggle drawerToggle;
+    private View startGameButton;
+    private View topTabsStrip;
+    private View statusBarLayout;
+    private View guestProgressCard;
+
+    private TextView playTabButton;
+    private TextView inviteFriendsTabButton;
+    private TextView buyTokensTabButton;
+    private TextView rankingTabButton;
+    private TextView friendsFilterAllButton;
+    private TextView friendsFilterOnlineButton;
+    private TextView guestRankingHint;
+    private TextView guestFriendsHint;
+    private TextView tvStatusTokens;
+    private TextView tvStatusStars;
+    private TextView tvStatusLeague;
+
+    private Button guestLoginButton;
+    private Button guestRegisterButton;
+    private Button buyTokensButton;
+
+    private TextView notificationsMenuButton;
+    private TextView tvProfile;
+    private TextView tvStatistics;
+    private TextView tvFriends;
+
+    private LinearLayout memberActionsGroup;
+    private LinearLayout guestActionsGroup;
+    private ScrollView homeScrollView;
+    private View startSection;
+    private View rankingSection;
+    private View friendsSection;
+    private ListView rankingListView;
+    private ListView friendsListView;
 
     private boolean isGuest;
+    private boolean onlineFilterEnabled;
+    private FirestoreRepository firestoreRepository;
+    private HomeRankingAdapter rankingAdapter;
+    private HomeFriendAdapter friendAdapter;
+    private final List<HomeRankingItem> rankingItems = new ArrayList<>();
+    private final List<HomeFriendItem> allFriendItems = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home);
 
-        drawerLayout = findViewById(R.id.drawerLayout);
-        navigationView = findViewById(R.id.navigationView);
-        homeToolbar = findViewById(R.id.homeToolbar);
+        NotificationHelper.createNotificationChannels(this);
+
+        Log.d(TAG, "onCreate");
+
+        homeScrollView = findViewById(R.id.homeScrollView);
+        startSection = findViewById(R.id.startSection);
+        rankingSection = findViewById(R.id.rankingSection);
+        friendsSection = findViewById(R.id.friendsSection);
 
         startGameButton = findViewById(R.id.startGameButton);
-        koZnaZnaButton = findViewById(R.id.koZnaZnaButton);
-        spojniceButton = findViewById(R.id.spojniceButton);
-        korakPoKorakButton = findViewById(R.id.korakPoKorakButton);
-        mojBrojButton = findViewById(R.id.mojBrojButton);
-        asocijacijeButton = findViewById(R.id.asocijacijeButton);
-        skockoButton = findViewById(R.id.skockoButton);
-        notificationsMenuButton = findViewById(R.id.notificationsMenuButton);
-        logoutButton = findViewById(R.id.logoutButton);
+        topTabsStrip = findViewById(R.id.topTabsStrip);
         statusBarLayout = findViewById(R.id.statusBarLayout);
+        guestProgressCard = findViewById(R.id.guestProgressCard);
+        tvStatusTokens = findViewById(R.id.tvStatusTokens);
+        tvStatusStars = findViewById(R.id.tvStatusStars);
+        tvStatusLeague = findViewById(R.id.tvStatusLeague);
 
+        playTabButton = findViewById(R.id.playTabButton);
+        inviteFriendsTabButton = findViewById(R.id.inviteFriendsTabButton);
+        buyTokensTabButton = findViewById(R.id.buyTokensTabButton);
+        rankingTabButton = findViewById(R.id.rankingTabButton);
+        friendsFilterAllButton = findViewById(R.id.friendsFilterAllButton);
+        friendsFilterOnlineButton = findViewById(R.id.friendsFilterOnlineButton);
+
+        guestLoginButton = findViewById(R.id.guestLoginButton);
+        guestRegisterButton = findViewById(R.id.guestRegisterButton);
+        buyTokensButton = findViewById(R.id.buyTokensButton);
+
+        notificationsMenuButton = findViewById(R.id.notificationsMenuButton);
         tvProfile = findViewById(R.id.tvProfile);
+        tvStatistics = findViewById(R.id.tvStatistics);
         tvFriends = findViewById(R.id.tvFriends);
-        tvRanking = findViewById(R.id.tvRanking);
+        guestRankingHint = findViewById(R.id.guestRankingHint);
+        guestFriendsHint = findViewById(R.id.guestFriendsHint);
+        rankingListView = findViewById(R.id.rankingListView);
+        friendsListView = findViewById(R.id.friendsListView);
+
+        memberActionsGroup = findViewById(R.id.memberActionsGroup);
+        guestActionsGroup = findViewById(R.id.guestActionsGroup);
+        firestoreRepository = new FirestoreRepository(this);
 
         isGuest = getIntent().getBooleanExtra("IS_GUEST", false);
+        configureGuestMode();
+        setupHomeLists();
 
-        if (isGuest) {
-            tvProfile.setVisibility(View.GONE);
-            tvFriends.setVisibility(View.GONE);
-            tvRanking.setVisibility(View.GONE);
-            notificationsMenuButton.setVisibility(View.GONE);
-            logoutButton.setVisibility(View.GONE);
-            statusBarLayout.setVisibility(View.GONE);
-
-            navigationView.getMenu().findItem(R.id.nav_profile).setVisible(false);
-        } else {
-            navigationView.getMenu().findItem(R.id.nav_login).setVisible(false);
-            navigationView.getMenu().findItem(R.id.nav_register).setVisible(false);
-            logoutButton.setVisibility(View.VISIBLE);
+        if (!isGuest) {
+            loadUserStatus();
         }
 
-        setSupportActionBar(homeToolbar);
+        checkTargetSection(getIntent());
 
-        drawerToggle = new ActionBarDrawerToggle(
-                this,
-                drawerLayout,
-                homeToolbar,
-                R.string.navigation_drawer_open,
-                R.string.navigation_drawer_close
-        );
-
-        drawerLayout.addDrawerListener(drawerToggle);
-        drawerToggle.syncState();
-
-        navigationView.setNavigationItemSelectedListener(item -> {
-            int id = item.getItemId();
-
-            if (id == R.id.nav_profile) {
-                startActivity(new Intent(HomeActivity.this, ProfileActivity.class));
-            } else if (id == R.id.nav_login) {
-                startActivity(new Intent(HomeActivity.this, LoginActivity.class));
-            } else if (id == R.id.nav_register) {
-                startActivity(new Intent(HomeActivity.this, RegisterActivity.class));
+        playTabButton.setOnClickListener(v -> scrollToSection(startSection));
+        inviteFriendsTabButton.setOnClickListener(v -> scrollToSection(friendsSection));
+        buyTokensTabButton.setOnClickListener(v -> {
+            if (isGuest) {
+                scrollToSection(guestProgressCard);
+            } else {
+                scrollToSection(startSection);
             }
+        });
+        rankingTabButton.setOnClickListener(v -> scrollToSection(rankingSection));
+        friendsFilterAllButton.setOnClickListener(v -> applyFriendFilter(false));
+        friendsFilterOnlineButton.setOnClickListener(v -> applyFriendFilter(true));
 
-            drawerLayout.closeDrawers();
-            return true;
+        startGameButton.setOnClickListener(v -> openMatch());
+        buyTokensButton.setOnClickListener(v -> {
+            if (isGuest) {
+                redirectGuestToLogin();
+            } else {
+                showToast(R.string.buy_tokens_placeholder_message);
+            }
         });
 
-        notificationsMenuButton.setOnClickListener(v ->
-                startActivity(new Intent(HomeActivity.this, NotificationsActivity.class))
+        guestLoginButton.setOnClickListener(v ->
+                startActivity(new Intent(HomeActivity.this, LoginActivity.class))
         );
 
-        tvProfile.setOnClickListener(v ->
-                startActivity(new Intent(HomeActivity.this, ProfileActivity.class))
+        guestRegisterButton.setOnClickListener(v ->
+                startActivity(new Intent(HomeActivity.this, RegisterActivity.class))
         );
 
-        tvFriends.setOnClickListener(v ->
-                Toast.makeText(this, "Otvaram prijatelje...", Toast.LENGTH_SHORT).show()
-        );
+        tvProfile.setOnClickListener(v -> openProfile());
 
-        tvRanking.setOnClickListener(v ->
-                Toast.makeText(this, "Otvaram rang listu...", Toast.LENGTH_SHORT).show()
-        );
+        tvStatistics.setOnClickListener(v -> openStatistics());
+        tvFriends.setOnClickListener(v -> scrollToSection(friendsSection));
 
-        startGameButton.setOnClickListener(v ->
-                openGameActivity(KoZnaZnaActivity.class)
-        );
-
-        koZnaZnaButton.setOnClickListener(v ->
-                openGameActivity(KoZnaZnaActivity.class)
-        );
-
-        spojniceButton.setOnClickListener(v ->
-                openGameActivity(SpojniceActivity.class)
-        );
-
-        korakPoKorakButton.setOnClickListener(v ->
-                openGameActivity(KorakPoKorakActivity.class)
-        );
-
-        mojBrojButton.setOnClickListener(v ->
-                openGameActivity(MojBrojActivity.class)
-        );
-
-        asocijacijeButton.setOnClickListener(v ->
-                openGameActivity(AsocijacijeActivity.class)
-        );
-
-        skockoButton.setOnClickListener(v ->
-                openGameActivity(SkockoActivity.class)
-        );
-
-        logoutButton.setOnClickListener(v -> {
-            Intent intent = new Intent(HomeActivity.this, WelcomeActivity.class);
-            startActivity(intent);
-            finish();
-        });
+        notificationsMenuButton.setOnClickListener(v -> openNotifications());
     }
 
-    private void openGameActivity(Class<?> activityClass) {
-        Intent intent = new Intent(HomeActivity.this, activityClass);
-        intent.putExtra("IS_GUEST", isGuest);
+    private void openProfile() {
+        if (isGuest) {
+            redirectGuestToLogin();
+            return;
+        }
+
+        startActivity(new Intent(HomeActivity.this, ProfileActivity.class));
+    }
+
+    private void openStatistics() {
+        if (isGuest) {
+            redirectGuestToLogin();
+            return;
+        }
+
+        Intent intent = new Intent(HomeActivity.this, ProfileActivity.class);
+        intent.putExtra(ProfileActivity.EXTRA_OPEN_STATISTICS, true);
         startActivity(intent);
     }
+
+    private void openMatch() {
+        Intent intent = new Intent(HomeActivity.this, GameHostActivity.class);
+        intent.putExtra("IS_GUEST", isGuest);
+        intent.putExtra(GameHostActivity.EXTRA_START_ROUND, GameRound.KO_ZNA_ZNA);
+        startActivity(intent);
+    }
+
+    private void openNotifications() {
+        if (isGuest) {
+            redirectGuestToLogin();
+            return;
+        }
+
+        startActivity(new Intent(HomeActivity.this, NotificationsActivity.class));
+    }
+
+    private void scrollToSection(View target) {
+        homeScrollView.post(() -> homeScrollView.smoothScrollTo(0, target.getTop()));
+    }
+
+    private void showToast(int messageResId) {
+        Toast.makeText(this, messageResId, Toast.LENGTH_SHORT).show();
+    }
+
+    private void redirectGuestToLogin() {
+        Toast.makeText(this, R.string.guest_login_required_message, Toast.LENGTH_SHORT).show();
+        startActivity(new Intent(HomeActivity.this, LoginActivity.class));
+    }
+
+    private void configureGuestMode() {
+        memberActionsGroup.setVisibility(View.VISIBLE);
+        guestActionsGroup.setVisibility(isGuest ? View.VISIBLE : View.GONE);
+
+        topTabsStrip.setVisibility(View.VISIBLE);
+        statusBarLayout.setVisibility(isGuest ? View.GONE : View.VISIBLE);
+        guestProgressCard.setVisibility(isGuest ? View.VISIBLE : View.GONE);
+
+        rankingSection.setVisibility(View.VISIBLE);
+        friendsSection.setVisibility(View.VISIBLE);
+        buyTokensButton.setVisibility(View.VISIBLE);
+        buyTokensButton.setText(isGuest
+                ? R.string.guest_buy_tokens_cta
+                : R.string.home_buy_tokens_cta
+        );
+
+        guestRankingHint.setVisibility(isGuest ? View.VISIBLE : View.GONE);
+        guestFriendsHint.setVisibility(isGuest ? View.VISIBLE : View.GONE);
+        memberActionsGroup.setAlpha(isGuest ? 0.82f : 1f);
+        setTopMargin(guestActionsGroup, 8);
+        setTopMargin(startSection, 10);
+    }
+
+    private void setupHomeLists() {
+        rankingItems.clear();
+        rankingItems.add(new HomeRankingItem(
+                1,
+                getString(R.string.ranking_player_1),
+                Integer.parseInt(getString(R.string.ranking_points_1))
+        ));
+        rankingItems.add(new HomeRankingItem(
+                2,
+                getString(R.string.ranking_player_2),
+                Integer.parseInt(getString(R.string.ranking_points_2))
+        ));
+        rankingItems.add(new HomeRankingItem(
+                3,
+                getString(R.string.ranking_player_3),
+                Integer.parseInt(getString(R.string.ranking_points_3))
+        ));
+        rankingItems.add(new HomeRankingItem(
+                4,
+                getString(R.string.ranking_player_4),
+                Integer.parseInt(getString(R.string.ranking_points_4))
+        ));
+
+        rankingAdapter = new HomeRankingAdapter(this, rankingItems);
+        rankingListView.setAdapter(rankingAdapter);
+        rankingListView.post(() -> setListViewHeightBasedOnChildren(rankingListView));
+
+        allFriendItems.clear();
+        allFriendItems.add(new HomeFriendItem(
+                1,
+                getString(R.string.friend_initial_1),
+                getString(R.string.friend_name_1),
+                Integer.parseInt(getString(R.string.friend_score_1)),
+                true
+        ));
+        allFriendItems.add(new HomeFriendItem(
+                2,
+                getString(R.string.friend_initial_2),
+                getString(R.string.friend_name_2),
+                Integer.parseInt(getString(R.string.friend_score_2)),
+                true
+        ));
+        allFriendItems.add(new HomeFriendItem(
+                3,
+                getString(R.string.friend_initial_3),
+                getString(R.string.friend_name_3),
+                Integer.parseInt(getString(R.string.friend_score_3)),
+                false
+        ));
+        allFriendItems.add(new HomeFriendItem(
+                4,
+                getString(R.string.friend_initial_4),
+                getString(R.string.friend_name_4),
+                Integer.parseInt(getString(R.string.friend_score_4)),
+                false
+        ));
+
+        friendAdapter = new HomeFriendAdapter(this, new ArrayList<>());
+        friendsListView.setAdapter(friendAdapter);
+        applyFriendFilter(false);
+    }
+
+    private void applyFriendFilter(boolean onlineOnly) {
+        onlineFilterEnabled = onlineOnly;
+
+        List<HomeFriendItem> visibleItems = new ArrayList<>();
+
+        for (HomeFriendItem item : allFriendItems) {
+            if (!onlineOnly || item.isOnline()) {
+                visibleItems.add(item);
+            }
+        }
+
+        visibleItems.add(HomeFriendItem.createInviteTile());
+
+        friendAdapter.clear();
+        friendAdapter.addAll(visibleItems);
+        friendAdapter.notifyDataSetChanged();
+
+        updateFriendFilterState();
+        friendsListView.post(() -> setListViewHeightBasedOnChildren(friendsListView));
+    }
+
+    private void updateFriendFilterState() {
+        friendsFilterAllButton.setBackgroundResource(
+                onlineFilterEnabled
+                        ? R.drawable.bg_lobby_tab_inactive
+                        : R.drawable.bg_lobby_tab_active
+        );
+        friendsFilterOnlineButton.setBackgroundResource(
+                onlineFilterEnabled
+                        ? R.drawable.bg_lobby_tab_active
+                        : R.drawable.bg_lobby_tab_inactive
+        );
+
+        friendsFilterAllButton.setTextColor(ContextCompat.getColor(
+                this,
+                onlineFilterEnabled ? R.color.slagalica_dark_blue : R.color.white
+        ));
+        friendsFilterOnlineButton.setTextColor(ContextCompat.getColor(
+                this,
+                onlineFilterEnabled ? R.color.white : R.color.slagalica_dark_blue
+        ));
+    }
+
+    private void loadUserStatus() {
+        firestoreRepository.getCurrentUser(new FirebaseCallback<User>() {
+            @Override
+            public void onSuccess(User user) {
+                tvStatusTokens.setText(String.valueOf(user.tokens));
+                tvStatusStars.setText(String.valueOf(user.stars));
+                tvStatusLeague.setText(LeagueUtils.getLeagueName(user.league));
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(HomeActivity.this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void setTopMargin(View view, int dpValue) {
+        ViewGroup.LayoutParams params = view.getLayoutParams();
+
+        if (!(params instanceof ViewGroup.MarginLayoutParams)) {
+            return;
+        }
+
+        ViewGroup.MarginLayoutParams marginParams = (ViewGroup.MarginLayoutParams) params;
+        marginParams.topMargin = dpToPx(dpValue);
+        view.setLayoutParams(marginParams);
+    }
+
+    private int dpToPx(int dpValue) {
+        float density = getResources().getDisplayMetrics().density;
+        return Math.round(dpValue * density);
+    }
+
+    private void setListViewHeightBasedOnChildren(ListView listView) {
+        ListAdapter adapter = listView.getAdapter();
+
+        if (adapter == null) {
+            return;
+        }
+
+        int totalHeight = 0;
+        int widthMeasureSpec = View.MeasureSpec.makeMeasureSpec(
+                listView.getWidth(),
+                View.MeasureSpec.AT_MOST
+        );
+
+        for (int index = 0; index < adapter.getCount(); index++) {
+            View listItem = adapter.getView(index, null, listView);
+            listItem.measure(widthMeasureSpec, View.MeasureSpec.UNSPECIFIED);
+            totalHeight += listItem.getMeasuredHeight();
+        }
+
+        ViewGroup.LayoutParams params = listView.getLayoutParams();
+        params.height = totalHeight + (listView.getDividerHeight() * (adapter.getCount() - 1));
+        listView.setLayoutParams(params);
+        listView.requestLayout();
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        checkTargetSection(intent);
+    }
+
+    private void checkTargetSection(Intent intent) {
+        if (intent == null || intent.getExtras() == null) return;
+        String section = intent.getStringExtra("TARGET_SECTION");
+        if (section == null) return;
+
+        switch (section) {
+            case "ranking":
+                scrollToSection(rankingSection);
+                break;
+            case "profile":
+                openProfile();
+                break;
+            case "friends":
+                scrollToSection(friendsSection);
+                break;
+            case "chat":
+                Toast.makeText(this, "Entering Regional Chat Room...", Toast.LENGTH_LONG).show();
+                // Future: openChatActivity();
+                break;
+        }
+    }
+
+    @Override protected void onStart() { super.onStart(); Log.d(TAG, "onStart"); }
+    @Override protected void onRestart() { super.onRestart(); Log.d(TAG, "onRestart"); }
+    @Override protected void onResume() { super.onResume(); Log.d(TAG, "onResume"); }
+    @Override protected void onPause() { super.onPause(); Log.d(TAG, "onPause"); }
+    @Override protected void onStop() { super.onStop(); Log.d(TAG, "onStop"); }
+    @Override protected void onDestroy() { super.onDestroy(); Log.d(TAG, "onDestroy"); }
 }

@@ -1,36 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="170dp"
-    android:orientation="vertical"
+    android:layout_height="@dimen/nav_header_height"
+    android:background="@drawable/bg_nav_header"
     android:gravity="bottom"
-    android:padding="20dp"
-    android:background="@drawable/bg_nav_header">
+    android:orientation="vertical"
+    android:padding="@dimen/nav_header_padding">
 
     <TextView
-        android:layout_width="58dp"
-        android:layout_height="58dp"
+        android:layout_width="@dimen/nav_header_icon_size"
+        android:layout_height="@dimen/nav_header_icon_size"
+        android:background="@drawable/bg_avatar_circle"
         android:gravity="center"
-        android:text="★"
-        android:textSize="34sp"
-        android:textStyle="bold"
+        android:text="@string/nav_header_icon"
         android:textColor="@color/slagalica_dark_blue"
-        android:background="@drawable/bg_avatar_circle" />
+        android:textSize="34sp"
+        android:textStyle="bold" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Slagalica"
+        android:layout_marginTop="@dimen/space_medium"
+        android:text="@string/nav_header_title"
         android:textColor="@color/white"
         android:textSize="24sp"
-        android:textStyle="bold"
-        android:layout_marginTop="14dp" />
+        android:textStyle="bold" />
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Play. Win. Climb the league."
+        android:text="@string/nav_header_subtitle"
         android:textColor="@color/slagalica_yellow"
-        android:textSize="14sp" />
+        android:textSize="@dimen/small_text_size" />
 
 </LinearLayout>

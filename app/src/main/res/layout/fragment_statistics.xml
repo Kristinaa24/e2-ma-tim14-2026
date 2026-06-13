@@ -2,133 +2,455 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#99000000"
-    android:padding="18dp">
+    android:background="@color/dialog_overlay"
+    android:padding="@dimen/screen_padding">
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:background="@color/slagalica_dark_blue">
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_home_panel"
+        android:fillViewport="true"
+        android:overScrollMode="never">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="18dp">
+            android:padding="14dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="52dp"
-                android:background="@color/slagalica_light_blue"
+                android:layout_height="wrap_content"
                 android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingStart="14dp"
-                android:paddingEnd="8dp">
+                android:orientation="horizontal">
 
                 <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:gravity="center"
                     android:text="@string/player_statistics"
-                    android:textColor="@color/slagalica_dark_blue"
-                    android:textSize="24sp"
+                    android:textColor="@color/slagalica_yellow"
+                    android:textSize="22sp"
                     android:textStyle="bold" />
 
                 <Button
                     android:id="@+id/closeStatisticsButton"
+                    style="@style/SlagalicaDangerButton"
                     android:layout_width="52dp"
                     android:layout_height="44dp"
-                    android:backgroundTint="@color/slagalica_red"
-                    android:text="X"
-                    android:textColor="@color/white"
-                    android:textStyle="bold" />
+                    android:text="@string/close" />
             </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
+                android:layout_marginTop="12dp"
                 android:orientation="horizontal">
 
-                <TextView
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="130dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="5dp"
                     android:layout_weight="1"
-                    android:background="@color/slagalica_blue"
+                    android:background="@drawable/bg_home_card"
                     android:gravity="center"
-                    android:text="Success\n60%"
-                    android:textColor="@color/white"
-                    android:textSize="24sp"
-                    android:textStyle="bold" />
+                    android:orientation="vertical"
+                    android:padding="10dp">
 
-                <TextView
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/statistics_games"
+                        android:textColor="@color/slagalica_dark_blue"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/gamesPlayedValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textColor="@color/slagalica_dark_blue"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
                     android:layout_width="0dp"
-                    android:layout_height="130dp"
-                    android:layout_marginStart="12dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="5dp"
+                    android:layout_marginEnd="5dp"
                     android:layout_weight="1"
-                    android:background="@color/slagalica_blue"
+                    android:background="@drawable/bg_home_card"
                     android:gravity="center"
-                    android:text="Games played\n12"
-                    android:textColor="@color/white"
-                    android:textSize="24sp"
-                    android:textStyle="bold" />
+                    android:orientation="vertical"
+                    android:padding="10dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/statistics_wins"
+                        android:textColor="@color/slagalica_dark_blue"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/winsValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textColor="@color/slagalica_dark_blue"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="5dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_home_card"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="10dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/statistics_losses"
+                        android:textColor="@color/slagalica_dark_blue"
+                        android:textSize="11sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/lossesValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textColor="@color/slagalica_dark_blue"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
             </LinearLayout>
 
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:background="@color/slagalica_card"
-                android:padding="14dp"
-                android:text="Average score per game:\n\nKo zna zna: 34 / 50\nSpojnice: 14 / 20\nAsocijacije: 38 / 60\nSkočko: 25 / 40\nKorak po korak: 18 / 40\nMoj broj: 7 / 20"
-                android:textColor="@color/slagalica_text"
-                android:textSize="16sp"
-                android:textStyle="bold" />
-
-            <TextView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:background="@color/slagalica_card"
-                android:padding="14dp"
-                android:text="Ko zna zna:\nCorrect answers: 42\nWrong answers: 18\n\nMoj broj:\nExact target number found: 40%\n\nSpojnice:\nSuccessfully connected pairs: 60%"
-                android:textColor="@color/slagalica_text"
-                android:textSize="16sp" />
+                android:background="@drawable/bg_home_game_tile"
+                android:orientation="vertical"
+                android:padding="16dp">
 
-            <TextView
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/ko_zna_zna"
+                        android:textColor="@color/slagalica_yellow"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/koZnaZnaPercentValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/slagalica_yellow"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/koZnaZnaDetailsValue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:lineSpacingExtra="3dp"
+                    android:textColor="@color/white"
+                    android:textSize="11sp"
+                    android:textStyle="bold" />
+
+                <ProgressBar
+                    android:id="@+id/koZnaZnaProgress"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="16dp"
+                    android:layout_marginTop="10dp"
+                    android:max="100"
+                    android:progressDrawable="@drawable/bg_progress_horizontal" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@color/slagalica_card"
-                android:padding="14dp"
-                android:text="Korak po korak:\nStep 1: 5%\nStep 2: 8%\nStep 3: 12%\nStep 4: 20%\nStep 5: 25%\nStep 6: 18%\nStep 7: 12%"
-                android:textColor="@color/slagalica_text"
-                android:textSize="16sp" />
 
-            <TextView
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_home_game_tile"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/spojnice"
+                        android:textColor="@color/slagalica_yellow"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/spojnicePercentValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/slagalica_yellow"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/spojniceDetailsValue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:lineSpacingExtra="3dp"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <ProgressBar
+                    android:id="@+id/spojniceProgress"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="16dp"
+                    android:layout_marginTop="10dp"
+                    android:max="100"
+                    android:progressDrawable="@drawable/bg_progress_horizontal" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:background="@color/slagalica_card"
-                android:padding="14dp"
-                android:text="Asocijacije:\nSolved: 9\nUnsolved: 4\n\nSkočko:\nAttempt 1: 5%\nAttempt 2: 10%\nAttempt 3: 20%\nAttempt 4: 25%\nAttempt 5: 25%\nAttempt 6: 15%"
-                android:textColor="@color/slagalica_text"
-                android:textSize="16sp" />
 
-            <TextView
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_home_game_tile"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/moj_broj"
+                        android:textColor="@color/slagalica_yellow"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/mojBrojPercentValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/slagalica_yellow"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/mojBrojDetailsValue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:lineSpacingExtra="3dp"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <ProgressBar
+                    android:id="@+id/mojBrojProgress"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="16dp"
+                    android:layout_marginTop="14dp"
+                    android:max="100"
+                    android:progressDrawable="@drawable/bg_progress_horizontal" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+
                 android:layout_marginTop="12dp"
-                android:background="@color/slagalica_yellow"
-                android:padding="14dp"
-                android:text="Total played games: 12\nWins: 7\nLosses: 5\nWin rate: 58%\nLoss rate: 42%"
-                android:textColor="@color/slagalica_dark_blue"
-                android:textSize="17sp"
-                android:textStyle="bold" />
+                android:background="@drawable/bg_home_game_tile"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/korak_po_korak"
+                        android:textColor="@color/slagalica_yellow"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/korakPoKorakPercentValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/slagalica_yellow"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/korakPoKorakDetailsValue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:lineSpacingExtra="3dp"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <ProgressBar
+                    android:id="@+id/korakPoKorakProgress"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="16dp"
+                    android:layout_marginTop="10dp"
+                    android:max="100"
+                    android:progressDrawable="@drawable/bg_progress_horizontal" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_home_game_tile"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/asocijacije"
+                        android:textColor="@color/slagalica_yellow"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/asocijacijePercentValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/slagalica_yellow"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/asocijacijeDetailsValue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:lineSpacingExtra="3dp"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <ProgressBar
+                    android:id="@+id/asocijacijeProgress"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="16dp"
+                    android:layout_marginTop="10dp"
+                    android:max="100"
+                    android:progressDrawable="@drawable/bg_progress_horizontal" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+
+                android:layout_marginTop="12dp"
+                android:background="@drawable/bg_home_game_tile"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/skocko"
+                        android:textColor="@color/slagalica_yellow"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/skockoPercentValue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/slagalica_yellow"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/skockoDetailsValue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:lineSpacingExtra="3dp"
+                    android:textColor="@color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <ProgressBar
+                    android:id="@+id/skockoProgress"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="16dp"
+                    android:layout_marginTop="10dp"
+                    android:max="100"
+                    android:progressDrawable="@drawable/bg_progress_horizontal" />
+            </LinearLayout>
 
         </LinearLayout>
     </ScrollView>
-
 </FrameLayout>

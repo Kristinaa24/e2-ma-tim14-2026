@@ -3,58 +3,105 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
+    android:layout_marginHorizontal="8dp"
+    android:layout_marginVertical="4dp"
     app:cardBackgroundColor="@color/slagalica_card"
     app:cardCornerRadius="8dp"
-    app:cardElevation="4dp">
+    app:cardElevation="2dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="12dp">
+        android:orientation="horizontal">
+
+        <!-- Type Accent Stripe -->
+        <View
+            android:id="@+id/typeAccentStripe"
+            android:layout_width="6dp"
+            android:layout_height="match_parent"
+            android:background="@color/slagalica_blue" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="vertical"
+            android:padding="12dp">
 
-            <TextView
-                android:id="@+id/notificationType"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="Tip notifikacije"
-                android:textColor="@color/slagalica_dark_blue"
-                android:textStyle="bold" />
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/notificationType"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/notification_type_placeholder"
+                    android:textColor="@color/slagalica_dark_blue"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/notificationDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/notification_date_placeholder"
+                    android:textColor="@color/slagalica_text"
+                    android:textSize="11sp" />
+            </LinearLayout>
 
             <TextView
-                android:id="@+id/notificationDate"
+                android:id="@+id/notificationMessage"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/notification_message_placeholder"
+                android:textColor="@color/slagalica_text"
+                android:textSize="14sp" />
+
+            <LinearLayout
+                android:id="@+id/actionButtonsContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="8dp"
+                android:visibility="gone">
+
+                <Button
+                    android:id="@+id/btnActionPositive"
+                    style="@style/SlagalicaConfirmButton"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="4dp"
+                    android:text="@string/notification_accept"
+                    android:textSize="12sp"
+                    android:padding="0dp" />
+
+                <Button
+                    android:id="@+id/btnActionNegative"
+                    style="@style/SlagalicaDangerButton"
+                    android:layout_width="0dp"
+                    android:layout_height="36dp"
+                    android:layout_weight="1"
+                    android:layout_marginStart="4dp"
+                    android:text="@string/notification_decline"
+                    android:textSize="12sp"
+                    android:padding="0dp" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/markAsRead"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="12.05.2024 14:30"
-                android:textColor="@color/slagalica_text"
-                android:textSize="12sp" />
+                android:layout_gravity="end"
+                android:layout_marginTop="4dp"
+                android:text="@string/notification_mark_as_read"
+                android:textColor="@color/slagalica_blue"
+                android:textSize="12sp"
+                android:textStyle="italic" />
+
         </LinearLayout>
-
-        <TextView
-            android:id="@+id/notificationMessage"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Ovo je primer poruke iz notifikacije koja može biti malo duža."
-            android:textColor="@color/slagalica_text" />
-
-        <TextView
-            android:id="@+id/markAsRead"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end"
-            android:layout_marginTop="4dp"
-            android:text="Označi kao pročitano"
-            android:textColor="@color/slagalica_blue"
-            android:textSize="12sp"
-            android:textStyle="italic" />
-
     </LinearLayout>
 </androidx.cardview.widget.CardView>

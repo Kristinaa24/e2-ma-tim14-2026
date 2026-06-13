@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_round_title_bar"
+            android:paddingStart="14dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="8dp"
+            android:text="@string/spojnice"
+            android:textColor="@color/white"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_round_board"
+            android:orientation="vertical"
+            android:padding="12dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/roundText"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/round_one"
+                    android:textColor="@color/slagalica_light_blue"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/currentPlayerText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text="@string/current_player_one"
+                android:textColor="@color/white"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/secondChanceInfoText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text="@string/second_chance_message"
+                android:textColor="@color/slagalica_light_blue"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/ruleText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center"
+                android:text="@string/spojnice_rules"
+                android:textColor="@color/slagalica_light_blue"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_round_board"
+            android:orientation="vertical"
+            android:padding="10dp">
+
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <Button
+                        android:id="@+id/left1Button"
+                        style="@style/SlagalicaAnswerButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:text="@string/adele"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/left2Button"
+                        style="@style/SlagalicaAnswerButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/lady_gaga"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/left3Button"
+                        style="@style/SlagalicaAnswerButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/ariana_grande"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/left4Button"
+                        style="@style/SlagalicaAnswerButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/taylor_swift"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/left5Button"
+                        style="@style/SlagalicaAnswerButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/beyonce"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <Button
+                        android:id="@+id/right1Button"
+                        style="@style/SlagalicaAnswerButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:text="@string/halo"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/right2Button"
+                        style="@style/SlagalicaAnswerButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/hello"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/right3Button"
+                        style="@style/SlagalicaAnswerButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/shake_it_off"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/right4Button"
+                        style="@style/SlagalicaAnswerButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/bad_romance"
+                        android:textSize="12sp" />
+
+                    <Button
+                        android:id="@+id/right5Button"
+                        style="@style/SlagalicaAnswerButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/seven_rings"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/selectedPairText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:gravity="center"
+                android:text="@string/selected_pair_none"
+                android:textColor="@color/slagalica_light_blue"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <Button
+                android:id="@+id/confirmConnectionButton"
+                style="@style/SlagalicaConfirmButton"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:layout_marginTop="8dp"
+                android:text="@string/confirm_connection" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>
