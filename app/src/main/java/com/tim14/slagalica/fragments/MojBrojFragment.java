@@ -54,6 +54,8 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
 
     private EditText playerOneExpressionInput;
     private EditText playerTwoExpressionInput;
+    private View playerOneExpressionContainer;
+    private View playerTwoExpressionContainer;
     private EditText activeInput;
 
     private Button stopTargetButton;
@@ -116,6 +118,8 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
 
         playerOneExpressionInput = view.findViewById(R.id.playerOneExpressionInput);
         playerTwoExpressionInput = view.findViewById(R.id.playerTwoExpressionInput);
+        playerOneExpressionContainer = view.findViewById(R.id.playerOneExpressionContainer);
+        playerTwoExpressionContainer = view.findViewById(R.id.playerTwoExpressionContainer);
 
         stopTargetButton = view.findViewById(R.id.stopTargetButton);
         stopNumbersButton = view.findViewById(R.id.stopNumbersButton);
@@ -464,14 +468,14 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
             if (hasFocus) {
                 activeInput = input;
                 updateActiveInputLabel();
-                updateNumberButtonStates();
+                updateInputAvailability();
             }
         });
 
         input.setOnClickListener(v -> {
             activeInput = input;
             updateActiveInputLabel();
-            updateNumberButtonStates();
+            updateInputAvailability();
         });
 
         input.addTextChangedListener(new TextWatcher() {
@@ -654,7 +658,41 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
 
         playerOneExpressionInput.setEnabled(inputEnabled);
         playerTwoExpressionInput.setEnabled(inputEnabled);
-        clearButton.setEnabled(inputEnabled);
+
+        // Visibility logic for local/remote mode
+        if (remoteMode) {
+            GameHostActivity activity = (GameHostActivity) requireActivity();
+            SharedMatchState state = activity.getSharedMatchState();
+            int localPlayer = activity.getLocalPlayerNumber();
+            boolean isDone = state != null && SharedMatchState.PHASE_MB_DONE.equals(state.phase);
+
+            // Hide everything during rolling phases
+            if (state != null && (SharedMatchState.PHASE_MB_TARGET.equals(state.phase) || SharedMatchState.PHASE_MB_NUMBERS.equals(state.phase))) {
+                playerOneExpressionContainer.setVisibility(View.GONE);
+                playerTwoExpressionContainer.setVisibility(View.GONE);
+            } else {
+                // Entry or Done: Show local player's field, or both if done
+                playerOneExpressionContainer.setVisibility((localPlayer == 1 || isDone) ? View.VISIBLE : View.GONE);
+                playerTwoExpressionContainer.setVisibility((localPlayer == 2 || isDone) ? View.VISIBLE : View.GONE);
+            }
+        } else {
+            // Local mode
+            MojBrojService.Phase phase = mojBrojService.getPhase();
+            if (phase == MojBrojService.Phase.ENTER_EXPRESSIONS) {
+                int activePlayer = (activeInput == playerTwoExpressionInput) ? 2 : 1;
+                playerOneExpressionContainer.setVisibility(activePlayer == 1 ? View.VISIBLE : View.GONE);
+                playerTwoExpressionContainer.setVisibility(activePlayer == 2 ? View.VISIBLE : View.GONE);
+            } else if (phase == MojBrojService.Phase.FINISHED) {
+                playerOneExpressionContainer.setVisibility(View.VISIBLE);
+                playerTwoExpressionContainer.setVisibility(View.VISIBLE);
+            } else {
+                // Rolling: Hide both
+                playerOneExpressionContainer.setVisibility(View.GONE);
+                playerTwoExpressionContainer.setVisibility(View.GONE);
+            }
+        }
+
+        clearButton.setEnabled(inputEnabled && activeInput != null && activeInput.length() > 0);
         submitButton.setEnabled(inputEnabled);
         updateNumberButtonStates();
     }
@@ -693,7 +731,8 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
             }
 
             int numberValue = Integer.parseInt(text);
-            int remainingUsedCount = usedCounts.getOrDefault(numberValue, 0);
+            Integer usedCount = usedCounts.get(numberValue);
+            int remainingUsedCount = usedCount != null ? usedCount : 0;
 
             if (remainingUsedCount > 0) {
                 usedCounts.put(numberValue, remainingUsedCount - 1);
@@ -719,7 +758,8 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
 
         while (matcher.find()) {
             int number = Integer.parseInt(matcher.group());
-            usedCounts.put(number, usedCounts.getOrDefault(number, 0) + 1);
+            Integer current = usedCounts.get(number);
+            usedCounts.put(number, (current != null ? current : 0) + 1);
         }
 
         return usedCounts;
@@ -849,6 +889,7 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
             bindNumberPlaceholders();
             startRemoteTargetAnimation();
             updateRemoteInputAvailability(false, false, false);
+            updateInputAvailability();
             startRemoteTimer(state);
             resultText.setText(getString(R.string.my_number_lock_target_phase,
                     state.currentTurnIndex + 1,
@@ -860,6 +901,7 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
             targetNumberText.setText(String.valueOf(round.targetNumber));
             startRemoteNumbersAnimation();
             updateRemoteInputAvailability(false, true, false);
+            updateInputAvailability();
             startRemoteTimer(state);
             resultText.setText(getString(R.string.my_number_lock_numbers_phase,
                     state.currentTurnIndex + 1,
@@ -872,6 +914,7 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
 
         if (SharedMatchState.PHASE_MB_ENTRY.equals(state.phase)) {
             updateRemoteInputAvailability(true, false, true);
+            updateInputAvailability();
             startRemoteTimer(state);
             resultText.setText(getString(R.string.my_number_ready_for_input_message));
             updateNumberButtonStates();
@@ -880,6 +923,7 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
 
         if (SharedMatchState.PHASE_MB_DONE.equals(state.phase)) {
             updateRemoteInputAvailability(false, false, false);
+            updateInputAvailability();
             resultText.setText(buildRemoteMyNumberSummary(state, round));
             scheduleRemoteMyNumberAdvanceIfCoordinator(state);
             return;

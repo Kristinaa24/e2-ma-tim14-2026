@@ -220,7 +220,7 @@ public class HomeActivity extends AppCompatActivity {
     private void startLocalMatch() {
         Intent intent = new Intent(HomeActivity.this, GameHostActivity.class);
         intent.putExtra("IS_GUEST", isGuest);
-        intent.putExtra(GameHostActivity.EXTRA_START_ROUND, GameRound.KO_ZNA_ZNA);
+        intent.putExtra(GameHostActivity.EXTRA_START_ROUND, GameRound.MOJ_BROJ);
         startActivity(intent);
     }
 
@@ -284,7 +284,7 @@ public class HomeActivity extends AppCompatActivity {
         intent.putExtra(GameHostActivity.EXTRA_REMOTE_MATCH, true);
         intent.putExtra(GameHostActivity.EXTRA_REMOTE_MATCH_ID, matchId);
         intent.putExtra(GameHostActivity.EXTRA_LOCAL_PLAYER_NUMBER, localPlayerNumber);
-        intent.putExtra(GameHostActivity.EXTRA_START_ROUND, GameRound.KORAK_PO_KORAK);
+        intent.putExtra(GameHostActivity.EXTRA_START_ROUND, GameRound.MOJ_BROJ);
         startActivity(intent);
     }
 

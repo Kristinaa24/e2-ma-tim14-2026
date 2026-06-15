@@ -221,10 +221,8 @@ public class StatisticsService {
         }
     }
 
-    public StatisticsUiData prepareStatistics(PlayerStatistics statistics) {
-        if (statistics == null) {
-            statistics = new PlayerStatistics();
-        }
+    public StatisticsUiData prepareStatistics(PlayerStatistics stats) {
+        final PlayerStatistics statistics = stats != null ? stats : new PlayerStatistics();
 
         int totalKoZnaZnaAnswers =
                 statistics.koZnaZnaCorrect + statistics.koZnaZnaWrong;
@@ -347,9 +345,9 @@ public class StatisticsService {
         }
 
         int count = Math.min(attempts.length, statistics.skockoAttemptsCount.size());
-        for (int index = 0; index < count; index++) {
-            Integer value = statistics.skockoAttemptsCount.get(index);
-            attempts[index] = value == null ? 0 : Math.max(0, value);
+        for (int i = 0; i < count; i++) {
+            Integer value = statistics.skockoAttemptsCount.get(i);
+            attempts[i] = value == null ? 0 : Math.max(0, value);
         }
 
         return attempts;

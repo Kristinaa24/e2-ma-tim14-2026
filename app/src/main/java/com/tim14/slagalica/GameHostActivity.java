@@ -125,7 +125,7 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
                     (GameRound) getIntent().getSerializableExtra(EXTRA_START_ROUND);
 
             if (startRound == null) {
-                startRound = GameRound.KO_ZNA_ZNA;
+                startRound = GameRound.MOJ_BROJ;
             }
 
             goToRound(startRound, null);
