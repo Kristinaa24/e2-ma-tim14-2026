@@ -1,7 +1,9 @@
 package com.tim14.slagalica.model;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class SharedAsocijacijeRound {
 
@@ -14,7 +16,7 @@ public class SharedAsocijacijeRound {
     public String columnDSolution;
     public List<String> columnDClues;
     public String finalSolution;
-    public List<List<Boolean>> openedFields;
+    public Map<String, List<Boolean>> openedFields;
     public List<Boolean> columnSolved;
     public List<Integer> columnSolvers;
     public boolean finalSolved;
@@ -29,7 +31,7 @@ public class SharedAsocijacijeRound {
         columnBClues = new ArrayList<>();
         columnCClues = new ArrayList<>();
         columnDClues = new ArrayList<>();
-        openedFields = new ArrayList<>();
+        openedFields = new HashMap<>();
         columnSolved = new ArrayList<>();
         columnSolvers = new ArrayList<>();
     }

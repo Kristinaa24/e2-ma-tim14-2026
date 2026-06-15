@@ -363,7 +363,10 @@ public class SharedMatchRepository {
             for (int columnIndex = 0; columnIndex < 4; columnIndex++) {
                 sharedRound.columnSolved.add(false);
                 sharedRound.columnSolvers.add(0);
-                sharedRound.openedFields.add(new ArrayList<>(Arrays.asList(false, false, false, false)));
+                sharedRound.openedFields.put(
+                        String.valueOf(columnIndex),
+                        new ArrayList<>(Arrays.asList(false, false, false, false))
+                );
             }
 
             state.asocijacijeRounds.add(sharedRound);

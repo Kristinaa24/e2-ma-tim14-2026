@@ -422,7 +422,7 @@ public class AsocijacijeFragment extends BaseGameFragment {
     private void applyRemoteBoard(SharedAsocijacijeRound roundState) {
         for (int column = 0; column < 4; column++) {
             for (int row = 0; row < 4; row++) {
-                boolean opened = roundState.openedFields.get(column).get(row);
+                boolean opened = isRemoteFieldOpened(roundState, column, row);
                 boolean solved = roundState.columnSolved.get(column);
                 fieldButtons[column][row].setText(
                         opened || solved
@@ -508,7 +508,7 @@ public class AsocijacijeFragment extends BaseGameFragment {
                         && !roundState.hasOpenedFieldThisTurn
                         && !roundState.finalSolved
                         && !roundState.columnSolved.get(column)
-                        && !roundState.openedFields.get(column).get(row);
+                        && !isRemoteFieldOpened(roundState, column, row);
 
                 fieldButtons[column][row].setEnabled(canOpen);
             }
@@ -535,12 +535,12 @@ public class AsocijacijeFragment extends BaseGameFragment {
                 || roundState.hasOpenedFieldThisTurn
                 || roundState.finalSolved
                 || roundState.columnSolved.get(column)
-                || roundState.openedFields.get(column).get(row)) {
+                || isRemoteFieldOpened(roundState, column, row)) {
             return;
         }
 
         SharedAsocijacijeRound updatedRound = copyRound(roundState);
-        updatedRound.openedFields.get(column).set(row, true);
+        setRemoteFieldOpened(updatedRound, column, row, true);
         updatedRound.hasOpenedFieldThisTurn = true;
 
         List<SharedAsocijacijeRound> allRounds = new ArrayList<>(state.asocijacijeRounds);
@@ -773,9 +773,9 @@ public class AsocijacijeFragment extends BaseGameFragment {
         copy.playerOneRoundScore = source.playerOneRoundScore;
         copy.playerTwoRoundScore = source.playerTwoRoundScore;
 
-        copy.openedFields = new ArrayList<>();
-        for (List<Boolean> column : source.openedFields) {
-            copy.openedFields.add(new ArrayList<>(column));
+        copy.openedFields = new java.util.HashMap<>();
+        for (java.util.Map.Entry<String, List<Boolean>> entry : source.openedFields.entrySet()) {
+            copy.openedFields.put(entry.getKey(), new ArrayList<>(entry.getValue()));
         }
 
         return copy;
@@ -785,13 +785,13 @@ public class AsocijacijeFragment extends BaseGameFragment {
         roundState.columnSolved.set(column, true);
         roundState.columnSolvers.set(column, solver);
         for (int row = 0; row < 4; row++) {
-            roundState.openedFields.get(column).set(row, true);
+            setRemoteFieldOpened(roundState, column, row, true);
         }
     }
 
     private int countUnopenedInColumn(SharedAsocijacijeRound roundState, int column) {
         int count = 0;
-        for (Boolean opened : roundState.openedFields.get(column)) {
+        for (Boolean opened : getRemoteOpenedColumn(roundState, column)) {
             if (!Boolean.TRUE.equals(opened)) {
                 count++;
             }
@@ -804,7 +804,7 @@ public class AsocijacijeFragment extends BaseGameFragment {
             return false;
         }
 
-        for (Boolean opened : roundState.openedFields.get(column)) {
+        for (Boolean opened : getRemoteOpenedColumn(roundState, column)) {
             if (Boolean.TRUE.equals(opened)) {
                 return true;
             }
@@ -825,6 +825,43 @@ public class AsocijacijeFragment extends BaseGameFragment {
         }
 
         return false;
+    }
+
+    private boolean isRemoteFieldOpened(SharedAsocijacijeRound roundState, int column, int row) {
+        List<Boolean> openedColumn = getRemoteOpenedColumn(roundState, column);
+        return row >= 0 && row < openedColumn.size() && Boolean.TRUE.equals(openedColumn.get(row));
+    }
+
+    private void setRemoteFieldOpened(
+            SharedAsocijacijeRound roundState,
+            int column,
+            int row,
+            boolean opened
+    ) {
+        List<Boolean> openedColumn = getRemoteOpenedColumn(roundState, column);
+        while (openedColumn.size() <= row) {
+            openedColumn.add(false);
+        }
+        openedColumn.set(row, opened);
+        roundState.openedFields.put(String.valueOf(column), openedColumn);
+    }
+
+    private List<Boolean> getRemoteOpenedColumn(SharedAsocijacijeRound roundState, int column) {
+        if (roundState.openedFields == null) {
+            roundState.openedFields = new java.util.HashMap<>();
+        }
+
+        String key = String.valueOf(column);
+        List<Boolean> openedColumn = roundState.openedFields.get(key);
+        if (openedColumn == null) {
+            openedColumn = new ArrayList<>();
+            for (int index = 0; index < 4; index++) {
+                openedColumn.add(false);
+            }
+            roundState.openedFields.put(key, openedColumn);
+        }
+
+        return openedColumn;
     }
 
     private String getRemoteClue(SharedAsocijacijeRound roundState, int column, int row) {
