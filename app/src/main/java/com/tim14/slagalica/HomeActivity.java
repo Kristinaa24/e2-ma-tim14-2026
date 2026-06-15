@@ -6,6 +6,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
@@ -13,6 +14,7 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
@@ -22,6 +24,7 @@ import com.tim14.slagalica.model.HomeRankingItem;
 import com.tim14.slagalica.model.User;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
+import com.tim14.slagalica.repository.SharedMatchRepository;
 import com.tim14.slagalica.service.NotificationHelper;
 
 import java.util.ArrayList;
@@ -189,9 +192,99 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void openMatch() {
+        if (isGuest) {
+            startLocalMatch();
+            return;
+        }
+
+        String[] options = {
+                getString(R.string.match_option_local),
+                getString(R.string.match_option_create_room),
+                getString(R.string.match_option_join_room)
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.match_mode_dialog_title)
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        startLocalMatch();
+                    } else if (which == 1) {
+                        createSharedMatch();
+                    } else {
+                        promptJoinSharedMatch();
+                    }
+                })
+                .show();
+    }
+
+    private void startLocalMatch() {
         Intent intent = new Intent(HomeActivity.this, GameHostActivity.class);
         intent.putExtra("IS_GUEST", isGuest);
         intent.putExtra(GameHostActivity.EXTRA_START_ROUND, GameRound.KO_ZNA_ZNA);
+        startActivity(intent);
+    }
+
+    private void createSharedMatch() {
+        SharedMatchRepository repository = new SharedMatchRepository();
+        repository.createStudentOneMatch(new FirebaseCallback<SharedMatchRepository.MatchJoinResult>() {
+            @Override
+            public void onSuccess(SharedMatchRepository.MatchJoinResult result) {
+                if (isFinishing()) {
+                    return;
+                }
+
+                new AlertDialog.Builder(HomeActivity.this)
+                        .setTitle(R.string.shared_match_created_title)
+                        .setMessage(getString(R.string.shared_match_created_message, result.roomCode))
+                        .setPositiveButton(R.string.shared_match_open_room, (dialog, which) ->
+                                openSharedMatch(result.matchId, result.localPlayerNumber)
+                        )
+                        .setCancelable(false)
+                        .show();
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(HomeActivity.this, error, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void promptJoinSharedMatch() {
+        EditText input = new EditText(this);
+        input.setHint(R.string.shared_match_room_code_hint);
+        input.setSingleLine();
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.shared_match_join_title)
+                .setView(input)
+                .setPositiveButton(R.string.join, (dialog, which) -> joinSharedMatch(input.getText().toString()))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void joinSharedMatch(String roomCode) {
+        SharedMatchRepository repository = new SharedMatchRepository();
+        repository.joinStudentOneMatch(roomCode, new FirebaseCallback<SharedMatchRepository.MatchJoinResult>() {
+            @Override
+            public void onSuccess(SharedMatchRepository.MatchJoinResult result) {
+                openSharedMatch(result.matchId, result.localPlayerNumber);
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(HomeActivity.this, error, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void openSharedMatch(String matchId, int localPlayerNumber) {
+        Intent intent = new Intent(HomeActivity.this, GameHostActivity.class);
+        intent.putExtra("IS_GUEST", false);
+        intent.putExtra(GameHostActivity.EXTRA_REMOTE_MATCH, true);
+        intent.putExtra(GameHostActivity.EXTRA_REMOTE_MATCH_ID, matchId);
+        intent.putExtra(GameHostActivity.EXTRA_LOCAL_PLAYER_NUMBER, localPlayerNumber);
+        intent.putExtra(GameHostActivity.EXTRA_START_ROUND, GameRound.KORAK_PO_KORAK);
         startActivity(intent);
     }
 

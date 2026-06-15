@@ -19,15 +19,19 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.tim14.slagalica.GameHostActivity;
 import com.tim14.slagalica.R;
 import com.tim14.slagalica.game.BaseGameFragment;
 import com.tim14.slagalica.game.MojBrojExpressionHelper;
+import com.tim14.slagalica.model.SharedMatchState;
+import com.tim14.slagalica.model.SharedMojBrojRound;
 import com.tim14.slagalica.repository.FirestoreRepository;
 import com.tim14.slagalica.repository.LocalGameRepository;
 import com.tim14.slagalica.service.MojBrojService;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -73,6 +77,7 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
 
     private FirestoreRepository firestoreRepository;
     private MojBrojService mojBrojService;
+    private boolean remoteMode;
 
     private SensorManager sensorManager;
     private Sensor accelerometer;
@@ -96,6 +101,7 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
                 new MojBrojExpressionHelper()
         );
         firestoreRepository = new FirestoreRepository(requireContext());
+        remoteMode = ((GameHostActivity) requireActivity()).isRemoteMatchMode();
 
         sensorManager = (SensorManager) requireContext().getSystemService(Context.SENSOR_SERVICE);
 
@@ -150,6 +156,11 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
         setAppendClick(divideButton);
         setAppendClick(openBracketButton);
         setAppendClick(closeBracketButton);
+
+        if (remoteMode) {
+            renderRemoteRound();
+            return;
+        }
 
         startRound(0);
     }
@@ -221,6 +232,11 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
     }
 
     private void stopTargetRolling() {
+        if (remoteMode) {
+            stopRemoteTargetRolling();
+            return;
+        }
+
         if (mojBrojService.isRoundFinished() || mojBrojService.isTargetLocked()) {
             return;
         }
@@ -242,6 +258,11 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
     }
 
     private void stopNumbersRolling() {
+        if (remoteMode) {
+            stopRemoteNumbersRolling();
+            return;
+        }
+
         if (mojBrojService.isRoundFinished() || mojBrojService.isNumbersLocked()) {
             return;
         }
@@ -269,6 +290,11 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
     }
 
     private void handleRoundTimeout() {
+        if (remoteMode) {
+            handleRemoteRoundTimeout();
+            return;
+        }
+
         if (mojBrojService.isRoundFinished()) {
             return;
         }
@@ -327,6 +353,11 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
     }
 
     private void submitRoundEarly() {
+        if (remoteMode) {
+            submitRemoteRound();
+            return;
+        }
+
         if (mojBrojService.isRoundFinished()) {
             return;
         }
@@ -531,6 +562,14 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
     }
 
     private boolean isInputReady() {
+        if (remoteMode) {
+            GameHostActivity activity = (GameHostActivity) requireActivity();
+            SharedMatchState state = activity.getSharedMatchState();
+            return state != null
+                    && SharedMatchState.PHASE_MB_ENTRY.equals(state.phase)
+                    && activity.getLocalPlayerNumber() == state.activePlayer;
+        }
+
         return mojBrojService.isInputReady();
     }
 
@@ -775,5 +814,402 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
     public void onDestroyView() {
         stopRollingCallbacks();
         super.onDestroyView();
+    }
+
+    private void renderRemoteRound() {
+        stopRoundTimer();
+        stopRollingCallbacks();
+
+        GameHostActivity activity = (GameHostActivity) requireActivity();
+        SharedMatchState state = activity.getSharedMatchState();
+        SharedMojBrojRound round = state == null ? null : activity.getSharedMojBrojRound(state.currentTurnIndex);
+
+        if (state == null || round == null) {
+            return;
+        }
+
+        roundOwnerText.setText(
+                getString(
+                        R.string.my_number_round_owner_format,
+                        state.currentTurnIndex + 1,
+                        state.currentTurnIndex == 0 ? 1 : 2
+                )
+        );
+
+        playerOneExpressionInput.setText(state.playerOneExpression == null ? "" : state.playerOneExpression);
+        playerTwoExpressionInput.setText(state.playerTwoExpression == null ? "" : state.playerTwoExpression);
+        activeInput = state.activePlayer == 2 ? playerTwoExpressionInput : playerOneExpressionInput;
+        activeInputText.setText(getString(R.string.my_number_active_input_format, state.activePlayer));
+
+        host().setPhaseText(state.phaseMessage);
+        host().setTimerValue(getRemoteRemainingSeconds(state));
+
+        if (SharedMatchState.PHASE_MB_TARGET.equals(state.phase)) {
+            targetNumberText.setText(getString(R.string.target_number_placeholder));
+            bindNumberPlaceholders();
+            startRemoteTargetAnimation();
+            updateRemoteInputAvailability(false, false, false);
+            startRemoteTimer(state);
+            resultText.setText(getString(R.string.my_number_lock_target_phase,
+                    state.currentTurnIndex + 1,
+                    state.currentTurnIndex == 0 ? 1 : 2));
+            return;
+        }
+
+        if (SharedMatchState.PHASE_MB_NUMBERS.equals(state.phase)) {
+            targetNumberText.setText(String.valueOf(round.targetNumber));
+            startRemoteNumbersAnimation();
+            updateRemoteInputAvailability(false, true, false);
+            startRemoteTimer(state);
+            resultText.setText(getString(R.string.my_number_lock_numbers_phase,
+                    state.currentTurnIndex + 1,
+                    state.currentTurnIndex == 0 ? 1 : 2));
+            return;
+        }
+
+        targetNumberText.setText(String.valueOf(round.targetNumber));
+        bindRemoteOfferedNumbers(round);
+
+        if (SharedMatchState.PHASE_MB_ENTRY.equals(state.phase)) {
+            updateRemoteInputAvailability(true, false, true);
+            startRemoteTimer(state);
+            resultText.setText(getString(R.string.my_number_ready_for_input_message));
+            updateNumberButtonStates();
+            return;
+        }
+
+        if (SharedMatchState.PHASE_MB_DONE.equals(state.phase)) {
+            updateRemoteInputAvailability(false, false, false);
+            resultText.setText(buildRemoteMyNumberSummary(state, round));
+            scheduleRemoteMyNumberAdvanceIfCoordinator(state);
+            return;
+        }
+    }
+
+    private void startRemoteTargetAnimation() {
+        Random random = new Random();
+        targetRoller = new Runnable() {
+            @Override
+            public void run() {
+                if (!isAdded()) {
+                    return;
+                }
+
+                SharedMatchState state = ((GameHostActivity) requireActivity()).getSharedMatchState();
+                if (state == null || !SharedMatchState.PHASE_MB_TARGET.equals(state.phase)) {
+                    return;
+                }
+
+                targetNumberText.setText(String.valueOf(100 + random.nextInt(900)));
+                handler.postDelayed(this, 120L);
+            }
+        };
+        handler.post(targetRoller);
+    }
+
+    private void startRemoteNumbersAnimation() {
+        Random random = new Random();
+        numbersRoller = new Runnable() {
+            @Override
+            public void run() {
+                if (!isAdded()) {
+                    return;
+                }
+
+                SharedMatchState state = ((GameHostActivity) requireActivity()).getSharedMatchState();
+                if (state == null || !SharedMatchState.PHASE_MB_NUMBERS.equals(state.phase)) {
+                    return;
+                }
+
+                bindOfferedNumbers(new int[]{
+                        random.nextInt(9) + 1,
+                        random.nextInt(9) + 1,
+                        random.nextInt(9) + 1,
+                        random.nextInt(9) + 1,
+                        new int[]{10, 15, 20}[random.nextInt(3)],
+                        new int[]{25, 50, 75, 100}[random.nextInt(4)]
+                });
+                handler.postDelayed(this, 180L);
+            }
+        };
+        handler.post(numbersRoller);
+    }
+
+    private void stopRemoteTargetRolling() {
+        GameHostActivity activity = (GameHostActivity) requireActivity();
+        SharedMatchState state = activity.getSharedMatchState();
+
+        if (state == null
+                || !SharedMatchState.PHASE_MB_TARGET.equals(state.phase)
+                || activity.getLocalPlayerNumber() != state.activePlayer) {
+            return;
+        }
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("phase", SharedMatchState.PHASE_MB_NUMBERS);
+        updates.put("phaseStartedAt", System.currentTimeMillis());
+        updates.put("phaseDurationSeconds", 5);
+        updates.put("phaseMessage", getString(R.string.shared_match_mb_numbers_phase_format, state.activePlayer));
+        activity.updateSharedMatch(updates);
+    }
+
+    private void stopRemoteNumbersRolling() {
+        GameHostActivity activity = (GameHostActivity) requireActivity();
+        SharedMatchState state = activity.getSharedMatchState();
+
+        if (state == null
+                || !SharedMatchState.PHASE_MB_NUMBERS.equals(state.phase)
+                || activity.getLocalPlayerNumber() != state.activePlayer) {
+            return;
+        }
+
+        int starterPlayer = state.currentTurnIndex == 0 ? 1 : 2;
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("phase", SharedMatchState.PHASE_MB_ENTRY);
+        updates.put("activePlayer", starterPlayer);
+        updates.put("phaseStartedAt", System.currentTimeMillis());
+        updates.put("phaseDurationSeconds", ROUND_DURATION_SECONDS);
+        updates.put("phaseMessage", getString(
+                R.string.shared_match_mb_entry_phase_format,
+                starterPlayer,
+                state.currentTurnIndex + 1
+        ));
+        activity.updateSharedMatch(updates);
+    }
+
+    private void handleRemoteRoundTimeout() {
+        GameHostActivity activity = (GameHostActivity) requireActivity();
+        SharedMatchState state = activity.getSharedMatchState();
+
+        if (state == null || activity.getLocalPlayerNumber() != state.activePlayer) {
+            return;
+        }
+
+        if (SharedMatchState.PHASE_MB_TARGET.equals(state.phase)) {
+            stopRemoteTargetRolling();
+            return;
+        }
+
+        if (SharedMatchState.PHASE_MB_NUMBERS.equals(state.phase)) {
+            stopRemoteNumbersRolling();
+            return;
+        }
+
+        if (SharedMatchState.PHASE_MB_ENTRY.equals(state.phase)) {
+            commitRemoteExpressionAndAdvance();
+        }
+    }
+
+    private void submitRemoteRound() {
+        GameHostActivity activity = (GameHostActivity) requireActivity();
+        SharedMatchState state = activity.getSharedMatchState();
+
+        if (state == null
+                || !SharedMatchState.PHASE_MB_ENTRY.equals(state.phase)
+                || activity.getLocalPlayerNumber() != state.activePlayer) {
+            return;
+        }
+
+        commitRemoteExpressionAndAdvance();
+    }
+
+    private void commitRemoteExpressionAndAdvance() {
+        GameHostActivity activity = (GameHostActivity) requireActivity();
+        SharedMatchState state = activity.getSharedMatchState();
+        SharedMojBrojRound round = state == null ? null : activity.getSharedMojBrojRound(state.currentTurnIndex);
+
+        if (state == null || round == null) {
+            return;
+        }
+
+        int starterPlayer = state.currentTurnIndex == 0 ? 1 : 2;
+        String playerOneExpression = state.playerOneExpression == null ? "" : state.playerOneExpression;
+        String playerTwoExpression = state.playerTwoExpression == null ? "" : state.playerTwoExpression;
+
+        if (state.activePlayer == 1) {
+            playerOneExpression = playerOneExpressionInput.getText().toString().trim();
+        } else {
+            playerTwoExpression = playerTwoExpressionInput.getText().toString().trim();
+        }
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("playerOneExpression", playerOneExpression);
+        updates.put("playerTwoExpression", playerTwoExpression);
+
+        if (state.activePlayer == starterPlayer) {
+            int opponent = starterPlayer == 1 ? 2 : 1;
+            updates.put("activePlayer", opponent);
+            updates.put("phase", SharedMatchState.PHASE_MB_ENTRY);
+            updates.put("phaseStartedAt", System.currentTimeMillis());
+            updates.put("phaseDurationSeconds", ROUND_DURATION_SECONDS);
+            updates.put("phaseMessage", getString(
+                    R.string.shared_match_mb_entry_phase_format,
+                    opponent,
+                    state.currentTurnIndex + 1
+            ));
+            activity.updateSharedMatch(updates);
+            return;
+        }
+
+        MojBrojService outcomeService = new MojBrojService(
+                new LocalGameRepository(),
+                new MojBrojExpressionHelper()
+        );
+        outcomeService.startRound(state.currentTurnIndex);
+        outcomeService.setPreparedRoundData(round.targetNumber, toIntArray(round.offeredNumbers));
+        MojBrojService.RoundOutcome outcome = outcomeService.finishRound(playerOneExpression, playerTwoExpression);
+
+        updates.put("phase", SharedMatchState.PHASE_MB_DONE);
+        updates.put("activePlayer", 0);
+        updates.put("phaseStartedAt", System.currentTimeMillis());
+        updates.put("phaseDurationSeconds", 2);
+        updates.put("playerOneScore", state.playerOneScore + outcome.getPlayerOnePoints());
+        updates.put("playerTwoScore", state.playerTwoScore + outcome.getPlayerTwoPoints());
+        updates.put("phaseMessage", getString(
+                R.string.shared_match_mb_done_phase_format,
+                outcome.getPlayerOnePoints(),
+                outcome.getPlayerTwoPoints()
+        ));
+        activity.updateSharedMatch(updates);
+
+        if (activity.getLocalPlayerNumber() == 1) {
+            firestoreRepository.updateMojBrojStatistics(
+                    outcome.getPlayerOneResult().hasResult()
+                            ? outcome.getPlayerOneResult().getDifference()
+                            : round.targetNumber,
+                    outcome.getPlayerOnePoints()
+            );
+        } else {
+            firestoreRepository.updateMojBrojStatistics(
+                    outcome.getPlayerTwoResult().hasResult()
+                            ? outcome.getPlayerTwoResult().getDifference()
+                            : round.targetNumber,
+                    outcome.getPlayerTwoPoints()
+            );
+        }
+    }
+
+    private void scheduleRemoteMyNumberAdvanceIfCoordinator(SharedMatchState state) {
+        GameHostActivity activity = (GameHostActivity) requireActivity();
+
+        if (activity.getLocalPlayerNumber() != 1) {
+            return;
+        }
+
+        resultText.postDelayed(() -> {
+            if (!isAdded()) {
+                return;
+            }
+
+            SharedMatchState currentState = activity.getSharedMatchState();
+            if (currentState == null
+                    || currentState.currentTurnIndex != state.currentTurnIndex
+                    || !SharedMatchState.PHASE_MB_DONE.equals(currentState.phase)) {
+                return;
+            }
+
+            if (currentState.currentTurnIndex == 0) {
+                Map<String, Object> updates = new HashMap<>();
+                updates.put("currentTurnIndex", 1);
+                updates.put("phase", SharedMatchState.PHASE_MB_TARGET);
+                updates.put("activePlayer", 2);
+                updates.put("phaseStartedAt", System.currentTimeMillis());
+                updates.put("phaseDurationSeconds", 5);
+                updates.put("phaseMessage", getString(R.string.shared_match_mb_round_two_phase));
+                updates.put("playerOneExpression", "");
+                updates.put("playerTwoExpression", "");
+                activity.updateSharedMatch(updates);
+            } else {
+                activity.goToNextRound();
+            }
+        }, 2200L);
+    }
+
+    private void updateRemoteInputAvailability(
+            boolean inputPhase,
+            boolean numbersPhase,
+            boolean entryPhase
+    ) {
+        GameHostActivity activity = (GameHostActivity) requireActivity();
+        SharedMatchState state = activity.getSharedMatchState();
+        boolean localTurn = state != null && activity.getLocalPlayerNumber() == state.activePlayer;
+
+        stopTargetButton.setEnabled(localTurn && inputPhase && SharedMatchState.PHASE_MB_TARGET.equals(state.phase));
+        stopNumbersButton.setEnabled(localTurn && numbersPhase && SharedMatchState.PHASE_MB_NUMBERS.equals(state.phase));
+
+        boolean expressionEnabled = localTurn && entryPhase;
+        numberButton1.setEnabled(expressionEnabled);
+        numberButton2.setEnabled(expressionEnabled);
+        numberButton3.setEnabled(expressionEnabled);
+        numberButton4.setEnabled(expressionEnabled);
+        numberButton5.setEnabled(expressionEnabled);
+        numberButton6.setEnabled(expressionEnabled);
+        plusButton.setEnabled(expressionEnabled);
+        minusButton.setEnabled(expressionEnabled);
+        multiplyButton.setEnabled(expressionEnabled);
+        divideButton.setEnabled(expressionEnabled);
+        openBracketButton.setEnabled(expressionEnabled);
+        closeBracketButton.setEnabled(expressionEnabled);
+        clearButton.setEnabled(expressionEnabled);
+        submitButton.setEnabled(expressionEnabled);
+
+        playerOneExpressionInput.setEnabled(expressionEnabled && state.activePlayer == 1);
+        playerTwoExpressionInput.setEnabled(expressionEnabled && state.activePlayer == 2);
+    }
+
+    private void startRemoteTimer(SharedMatchState state) {
+        int remainingSeconds = getRemoteRemainingSeconds(state);
+        if (remainingSeconds <= 0) {
+            return;
+        }
+
+        startRoundTimer(remainingSeconds, null, this::handleRemoteRoundTimeout);
+    }
+
+    private int getRemoteRemainingSeconds(SharedMatchState state) {
+        if (state == null || state.phaseDurationSeconds <= 0) {
+            return 0;
+        }
+
+        long elapsedMs = System.currentTimeMillis() - state.phaseStartedAt;
+        int remaining = state.phaseDurationSeconds - (int) Math.floor(elapsedMs / 1000d);
+        return Math.max(0, remaining);
+    }
+
+    private void bindRemoteOfferedNumbers(SharedMojBrojRound round) {
+        bindOfferedNumbers(toIntArray(round.offeredNumbers));
+    }
+
+    private int[] toIntArray(java.util.List<Integer> values) {
+        int[] result = new int[values == null ? 0 : values.size()];
+        if (values == null) {
+            return result;
+        }
+
+        for (int index = 0; index < values.size(); index++) {
+            result[index] = values.get(index);
+        }
+
+        return result;
+    }
+
+    private String buildRemoteMyNumberSummary(SharedMatchState state, SharedMojBrojRound round) {
+        MojBrojService summaryService = new MojBrojService(
+                new LocalGameRepository(),
+                new MojBrojExpressionHelper()
+        );
+        summaryService.startRound(state.currentTurnIndex);
+        summaryService.setPreparedRoundData(round.targetNumber, toIntArray(round.offeredNumbers));
+        MojBrojService.RoundOutcome outcome = summaryService.preview(
+                state.playerOneExpression,
+                state.playerTwoExpression
+        );
+
+        return buildRoundSummary(
+                outcome.getPlayerOneResult(),
+                outcome.getPlayerTwoResult(),
+                outcome.getPlayerOnePoints(),
+                outcome.getPlayerTwoPoints()
+        );
     }
 }
