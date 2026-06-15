@@ -228,9 +228,8 @@ public class StatisticsService {
 
         int totalKoZnaZnaAnswers =
                 statistics.koZnaZnaCorrect + statistics.koZnaZnaWrong;
-        int decidedMatches = statistics.wins + statistics.losses;
-        int winPercent = calculatePercent(statistics.wins, decidedMatches);
-        int lossPercent = calculatePercent(statistics.losses, decidedMatches);
+        int winPercent = calculatePercent(statistics.wins, statistics.gamesPlayed);
+        int lossPercent = calculatePercent(statistics.losses, statistics.gamesPlayed);
         int koZnaZnaSuccessPercent = calculatePercent(
                 statistics.koZnaZnaCorrect,
                 totalKoZnaZnaAnswers
@@ -272,11 +271,11 @@ public class StatisticsService {
         int[] skockoAttemptCounts = normalizeSkockoAttempts(statistics);
         int[] skockoAttemptPercents = calculateSkockoAttemptPercents(
                 skockoAttemptCounts,
-                statistics.skockoSolvedCount
+                statistics.skockoTotalRounds
         );
         int skockoSuccessPercent = calculatePercent(
                 statistics.skockoSolvedCount,
-                Math.max(statistics.skockoSolvedCount, sum(skockoAttemptCounts))
+                statistics.skockoTotalRounds
         );
         String korakPoKorakBestStep = statistics.korakPoKorakBestStep > 0
                 ? String.valueOf(statistics.korakPoKorakBestStep)

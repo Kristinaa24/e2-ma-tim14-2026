@@ -457,7 +457,7 @@ public class SkockoFragment extends BaseGameFragment {
 
         int rowIndex = SharedMatchState.PHASE_SKOCKO_BONUS.equals(state.phase)
                 ? 6
-                : Math.min(state.currentTurnIndex == 0 ? 5 : 5, 5);
+                : 0;
 
         if (SharedMatchState.PHASE_SKOCKO_PLAY.equals(state.phase)) {
             SharedSkockoRound roundState = activity.getSharedSkockoRound(state.currentTurnIndex);
@@ -469,8 +469,16 @@ public class SkockoFragment extends BaseGameFragment {
             TextView slot = row.findViewById(getSlotId(index));
             if (currentAttemptSymbols[index] != null) {
                 slot.setText(getSymbolEmoji(currentAttemptSymbols[index]));
-            } else if (slot.getText().toString().isEmpty()) {
+                int currentIndex = index;
+                slot.setOnClickListener(v -> {
+                    if (isRemoteInputAllowed()) {
+                        currentAttemptSymbols[currentIndex] = null;
+                        updateRemoteDraftRow();
+                    }
+                });
+            } else {
                 slot.setText("");
+                slot.setOnClickListener(null);
             }
         }
     }

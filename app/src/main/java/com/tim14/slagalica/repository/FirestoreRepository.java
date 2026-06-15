@@ -518,6 +518,7 @@ public class FirestoreRepository {
                     int currentVal = statistics.skockoAttemptsCount.get(attemptIndex);
                     statistics.skockoAttemptsCount.set(attemptIndex, currentVal + 1);
                 }
+                statistics.skockoTotalRounds++;
                 statistics.skockoTotalScore += score;
 
                 db.collection(STATISTICS_COLLECTION).document(userId).set(statistics);

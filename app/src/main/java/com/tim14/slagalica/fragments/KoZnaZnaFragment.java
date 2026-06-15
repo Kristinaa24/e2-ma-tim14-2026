@@ -147,10 +147,10 @@ public class KoZnaZnaFragment extends BaseGameFragment {
     private void startGameTimer() {
         cancelGameTimer();
 
-        gameTimer = new CountDownTimer(26000, 1000) {
+        gameTimer = new CountDownTimer(25000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
-                host().setTimerValue((int) (millisUntilFinished / 1000));
+                host().setTimerValue((int) Math.ceil(millisUntilFinished / 1000.0));
             }
 
             @Override
@@ -167,11 +167,11 @@ public class KoZnaZnaFragment extends BaseGameFragment {
     private void startQuestionTimer() {
         cancelQuestionTimer();
 
-        questionTimer = new CountDownTimer(6000, 1000) {
+        questionTimer = new CountDownTimer(5000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 questionTimerText.setText(
-                        getString(R.string.question_time_format, millisUntilFinished / 1000)
+                        getString(R.string.question_time_format, (int) Math.ceil(millisUntilFinished / 1000.0))
                 );
             }
 
@@ -240,7 +240,7 @@ public class KoZnaZnaFragment extends BaseGameFragment {
             if (isAdded()) {
                 goToNextQuestion();
             }
-        }, 900);
+        }, 1500);
     }
 
     private void playerTwoAnswered() {
@@ -259,7 +259,7 @@ public class KoZnaZnaFragment extends BaseGameFragment {
             if (isAdded()) {
                 goToNextQuestion();
             }
-        }, 900);
+        }, 1500);
     }
 
     private void goToNextQuestion() {
