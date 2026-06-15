@@ -21,9 +21,13 @@ import com.tim14.slagalica.fragments.SkockoFragment;
 import com.tim14.slagalica.fragments.SpojniceFragment;
 import com.tim14.slagalica.game.GameNavigator;
 import com.tim14.slagalica.game.GameRound;
+import com.tim14.slagalica.model.KoZnaZnaQuestion;
+import com.tim14.slagalica.model.SharedAsocijacijeRound;
 import com.tim14.slagalica.model.SharedKorakPoKorakRound;
 import com.tim14.slagalica.model.SharedMatchState;
 import com.tim14.slagalica.model.SharedMojBrojRound;
+import com.tim14.slagalica.model.SharedSkockoRound;
+import com.tim14.slagalica.model.SharedSpojniceRound;
 import com.tim14.slagalica.model.User;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
@@ -335,6 +339,50 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         return sharedMatchState.korakRounds.get(turnIndex);
     }
 
+    public KoZnaZnaQuestion getSharedQuizQuestion(int questionIndex) {
+        if (sharedMatchState == null
+                || sharedMatchState.quizQuestions == null
+                || questionIndex < 0
+                || questionIndex >= sharedMatchState.quizQuestions.size()) {
+            return null;
+        }
+
+        return sharedMatchState.quizQuestions.get(questionIndex);
+    }
+
+    public SharedSpojniceRound getSharedSpojniceRound(int roundIndex) {
+        if (sharedMatchState == null
+                || sharedMatchState.spojniceRounds == null
+                || roundIndex < 0
+                || roundIndex >= sharedMatchState.spojniceRounds.size()) {
+            return null;
+        }
+
+        return sharedMatchState.spojniceRounds.get(roundIndex);
+    }
+
+    public SharedSkockoRound getSharedSkockoRound(int roundIndex) {
+        if (sharedMatchState == null
+                || sharedMatchState.skockoRounds == null
+                || roundIndex < 0
+                || roundIndex >= sharedMatchState.skockoRounds.size()) {
+            return null;
+        }
+
+        return sharedMatchState.skockoRounds.get(roundIndex);
+    }
+
+    public SharedAsocijacijeRound getSharedAsocijacijeRound(int roundIndex) {
+        if (sharedMatchState == null
+                || sharedMatchState.asocijacijeRounds == null
+                || roundIndex < 0
+                || roundIndex >= sharedMatchState.asocijacijeRounds.size()) {
+            return null;
+        }
+
+        return sharedMatchState.asocijacijeRounds.get(roundIndex);
+    }
+
     public SharedMojBrojRound getSharedMojBrojRound(int turnIndex) {
         if (sharedMatchState == null
                 || sharedMatchState.myNumberRounds == null
@@ -344,6 +392,10 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         }
 
         return sharedMatchState.myNumberRounds.get(turnIndex);
+    }
+
+    public String getRemoteMatchId() {
+        return remoteMatchId;
     }
 
     public void updateSharedMatch(Map<String, Object> updates) {
@@ -402,7 +454,7 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
 
         GameRound nextRound = parseRemoteRound(state.currentRound);
         if (nextRound == null) {
-            nextRound = GameRound.KORAK_PO_KORAK;
+            nextRound = GameRound.KO_ZNA_ZNA;
         }
 
         goToRound(nextRound, null);
@@ -449,6 +501,55 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
 
         Map<String, Object> updates = new HashMap<>();
 
+        if (currentRound == GameRound.KO_ZNA_ZNA) {
+            updates.put("currentRound", GameRound.SPOJNICE.name());
+            updates.put("phase", SharedMatchState.PHASE_SPOJNICE_PLAY);
+            updates.put("currentTurnIndex", 0);
+            updates.put("activePlayer", 1);
+            updates.put("phaseStartedAt", System.currentTimeMillis());
+            updates.put("phaseDurationSeconds", 30);
+            updates.put("phaseMessage", getString(R.string.shared_match_spojnice_round_one_phase));
+            updateSharedMatch(updates);
+            return;
+        }
+
+        if (currentRound == GameRound.SPOJNICE) {
+            updates.put("currentRound", GameRound.SKOCKO.name());
+            updates.put("phase", SharedMatchState.PHASE_SKOCKO_PLAY);
+            updates.put("currentTurnIndex", 0);
+            updates.put("activePlayer", 1);
+            updates.put("phaseStartedAt", System.currentTimeMillis());
+            updates.put("phaseDurationSeconds", 30);
+            updates.put("phaseMessage", getString(R.string.shared_match_skocko_round_one_phase));
+            updateSharedMatch(updates);
+            return;
+        }
+
+        if (currentRound == GameRound.SKOCKO) {
+            updates.put("currentRound", GameRound.ASOCIJACIJE.name());
+            updates.put("phase", SharedMatchState.PHASE_ASOC_PLAY);
+            updates.put("currentTurnIndex", 0);
+            updates.put("activePlayer", 1);
+            updates.put("phaseStartedAt", System.currentTimeMillis());
+            updates.put("phaseDurationSeconds", 120);
+            updates.put("phaseMessage", getString(R.string.shared_match_asoc_round_one_phase));
+            updateSharedMatch(updates);
+            return;
+        }
+
+        if (currentRound == GameRound.ASOCIJACIJE) {
+            updates.put("currentRound", GameRound.KORAK_PO_KORAK.name());
+            updates.put("phase", SharedMatchState.PHASE_KPP_STARTER);
+            updates.put("currentTurnIndex", 0);
+            updates.put("activePlayer", 1);
+            updates.put("phaseStartedAt", System.currentTimeMillis());
+            updates.put("phaseDurationSeconds", 70);
+            updates.put("phaseMessage", getString(R.string.shared_match_kpp_round_one_phase));
+            updates.put("revealedAnswer", "");
+            updateSharedMatch(updates);
+            return;
+        }
+
         if (currentRound == GameRound.KORAK_PO_KORAK) {
             updates.put("currentRound", GameRound.MOJ_BROJ.name());
             updates.put("phase", SharedMatchState.PHASE_MB_TARGET);
@@ -480,22 +581,8 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     }
 
     private void restartRemoteMatch() {
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("status", SharedMatchState.STATUS_ACTIVE);
-        updates.put("currentRound", GameRound.KORAK_PO_KORAK.name());
-        updates.put("phase", SharedMatchState.PHASE_KPP_STARTER);
-        updates.put("currentTurnIndex", 0);
-        updates.put("activePlayer", 1);
-        updates.put("phaseStartedAt", System.currentTimeMillis());
-        updates.put("phaseDurationSeconds", 70);
-        updates.put("phaseMessage", getString(R.string.shared_match_kpp_round_one_phase));
-        updates.put("revealedAnswer", "");
-        updates.put("playerOneExpression", "");
-        updates.put("playerTwoExpression", "");
-        updates.put("playerOneScore", 0);
-        updates.put("playerTwoScore", 0);
         matchResultRecorded = false;
-        updateSharedMatch(updates);
+        sharedMatchRepository.resetStudentOneMatch(remoteMatchId, sharedMatchState);
     }
 
     private void surrenderRemoteMatch() {

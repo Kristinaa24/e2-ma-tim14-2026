@@ -12,8 +12,11 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.tim14.slagalica.GameHostActivity;
 import com.tim14.slagalica.R;
 import com.tim14.slagalica.game.BaseGameFragment;
+import com.tim14.slagalica.model.SharedMatchState;
+import com.tim14.slagalica.model.SharedSpojniceRound;
 import com.tim14.slagalica.model.SpojniceRound;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
@@ -48,7 +51,12 @@ public class SpojniceFragment extends BaseGameFragment {
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     private int round = 1;
-    private boolean gameFinished = false;
+    private boolean gameFinished;
+    private boolean remoteMode;
+    private boolean remoteStatisticsPersisted;
+    private int lastScheduledRemoteRound = -1;
+    private String remoteSelectedLeft = "";
+    private String remoteSelectedRight = "";
 
     private CountDownTimer roundTimer;
 
@@ -63,6 +71,7 @@ public class SpojniceFragment extends BaseGameFragment {
     public void onViewCreated(View view, Bundle savedInstanceState) {
         firestoreRepository = new FirestoreRepository();
         spojniceService = new SpojniceService();
+        remoteMode = ((GameHostActivity) requireActivity()).isRemoteMatchMode();
 
         roundText = view.findViewById(R.id.roundText);
         currentPlayerText = view.findViewById(R.id.currentPlayerText);
@@ -82,23 +91,28 @@ public class SpojniceFragment extends BaseGameFragment {
         right5Button = view.findViewById(R.id.right5Button);
 
         confirmConnectionButton = view.findViewById(R.id.confirmConnectionButton);
-
-        spojniceService.startGame(host().getPlayerOneScore(), host().getPlayerTwoScore());
+        confirmConnectionButton.setOnClickListener(v -> {
+            if (remoteMode) {
+                confirmRemoteConnection();
+            } else {
+                confirmConnection();
+            }
+        });
 
         host().setPhaseText(getString(R.string.phase_spojnice));
-        host().setTimerValue(30);
-        host().setScores(
-                spojniceService.getPlayerOneScore(),
-                spojniceService.getPlayerTwoScore()
-        );
 
-        confirmConnectionButton.setOnClickListener(v -> confirmConnection());
+        if (remoteMode) {
+            renderRemoteRound();
+            return;
+        }
+
+        spojniceService.startGame(host().getPlayerOneScore(), host().getPlayerTwoScore());
+        updateScores();
+        host().setTimerValue(30);
 
         disableAllPairButtons();
         confirmConnectionButton.setEnabled(false);
         secondChanceInfoText.setText(getString(R.string.loading_spojnice));
-        updateScores();
-
         loadRoundsFromFirestore();
     }
 
@@ -119,9 +133,7 @@ public class SpojniceFragment extends BaseGameFragment {
                 }
 
                 rounds = result;
-
                 Log.d(TAG, "Spojnice rounds loaded from Firestore: " + rounds.size());
-
                 startRound();
             }
 
@@ -145,7 +157,6 @@ public class SpojniceFragment extends BaseGameFragment {
 
         setRoundItems();
         enableAllPairButtons();
-
         confirmConnectionButton.setEnabled(true);
         secondChanceInfoText.setText(getString(R.string.spojnice_start_info));
 
@@ -190,8 +201,7 @@ public class SpojniceFragment extends BaseGameFragment {
         roundTimer = new CountDownTimer(31000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
-                long seconds = millisUntilFinished / 1000;
-                host().setTimerValue((int) seconds);
+                host().setTimerValue((int) (millisUntilFinished / 1000));
             }
 
             @Override
@@ -320,14 +330,10 @@ public class SpojniceFragment extends BaseGameFragment {
     private void prepareNextRoundOrEnd() {
         cancelRoundTimer();
         spojniceService.finishRound();
-
         confirmConnectionButton.setEnabled(false);
 
         if (round == 1) {
-            Toast.makeText(requireContext(),
-                    R.string.round_one_finished,
-                    Toast.LENGTH_LONG).show();
-
+            Toast.makeText(requireContext(), R.string.round_one_finished, Toast.LENGTH_LONG).show();
             handler.postDelayed(() -> {
                 if (isAdded()) {
                     round = 2;
@@ -366,43 +372,25 @@ public class SpojniceFragment extends BaseGameFragment {
     }
 
     private void enableAllPairButtons() {
-        left1Button.setEnabled(true);
-        left2Button.setEnabled(true);
-        left3Button.setEnabled(true);
-        left4Button.setEnabled(true);
-        left5Button.setEnabled(true);
+        for (Button button : getLeftButtons()) {
+            button.setEnabled(true);
+            button.setAlpha(1f);
+        }
 
-        right1Button.setEnabled(true);
-        right2Button.setEnabled(true);
-        right3Button.setEnabled(true);
-        right4Button.setEnabled(true);
-        right5Button.setEnabled(true);
-
-        left1Button.setAlpha(1f);
-        left2Button.setAlpha(1f);
-        left3Button.setAlpha(1f);
-        left4Button.setAlpha(1f);
-        left5Button.setAlpha(1f);
-
-        right1Button.setAlpha(1f);
-        right2Button.setAlpha(1f);
-        right3Button.setAlpha(1f);
-        right4Button.setAlpha(1f);
-        right5Button.setAlpha(1f);
+        for (Button button : getRightButtons()) {
+            button.setEnabled(true);
+            button.setAlpha(1f);
+        }
     }
 
     private void disableAllPairButtons() {
-        left1Button.setEnabled(false);
-        left2Button.setEnabled(false);
-        left3Button.setEnabled(false);
-        left4Button.setEnabled(false);
-        left5Button.setEnabled(false);
+        for (Button button : getLeftButtons()) {
+            button.setEnabled(false);
+        }
 
-        right1Button.setEnabled(false);
-        right2Button.setEnabled(false);
-        right3Button.setEnabled(false);
-        right4Button.setEnabled(false);
-        right5Button.setEnabled(false);
+        for (Button button : getRightButtons()) {
+            button.setEnabled(false);
+        }
     }
 
     private void endGame() {
@@ -412,9 +400,7 @@ public class SpojniceFragment extends BaseGameFragment {
 
         gameFinished = true;
         spojniceService.finishGame();
-
         cancelRoundTimer();
-
         disableAllPairButtons();
         confirmConnectionButton.setEnabled(false);
 
@@ -477,6 +463,381 @@ public class SpojniceFragment extends BaseGameFragment {
             roundTimer.cancel();
             roundTimer = null;
         }
+    }
+
+    private Button[] getLeftButtons() {
+        return new Button[]{left1Button, left2Button, left3Button, left4Button, left5Button};
+    }
+
+    private Button[] getRightButtons() {
+        return new Button[]{right1Button, right2Button, right3Button, right4Button, right5Button};
+    }
+
+    private void renderRemoteRound() {
+        stopRoundTimer();
+        cancelRoundTimer();
+
+        GameHostActivity activity = (GameHostActivity) requireActivity();
+        SharedMatchState state = activity.getSharedMatchState();
+        SharedSpojniceRound roundState =
+                state == null ? null : activity.getSharedSpojniceRound(state.currentTurnIndex);
+
+        if (state == null || roundState == null) {
+            return;
+        }
+
+        bindRemoteRoundItems(roundState);
+        applyRemoteSolvedPairs(roundState);
+
+        roundText.setText(getString(R.string.round_counter_format, state.currentTurnIndex + 1));
+        currentPlayerText.setText(getString(R.string.current_player_format, state.activePlayer));
+        secondChanceInfoText.setText(state.phaseMessage);
+        selectedPairText.setText(
+                remoteSelectedLeft.isEmpty() && remoteSelectedRight.isEmpty()
+                        ? getString(R.string.selected_pair_none)
+                        : getString(R.string.selected_pair_format, remoteSelectedLeft, remoteSelectedRight)
+        );
+        host().setTimerValue(getRemoteRemainingSeconds(state));
+
+        if (SharedMatchState.PHASE_SPOJNICE_DONE.equals(state.phase)) {
+            configureRemoteButtons(roundState, false);
+            confirmConnectionButton.setEnabled(false);
+            maybePersistRemoteStatistics(state);
+            scheduleRemoteAdvanceIfCoordinator(state);
+            return;
+        }
+
+        boolean localTurn = activity.getLocalPlayerNumber() == state.activePlayer;
+        configureRemoteButtons(roundState, localTurn);
+        confirmConnectionButton.setEnabled(localTurn);
+
+        if (getRemoteRemainingSeconds(state) > 0) {
+            startRoundTimer(getRemoteRemainingSeconds(state), this::handleRemoteTimeout);
+        }
+    }
+
+    private void bindRemoteRoundItems(SharedSpojniceRound roundState) {
+        bindButtonTexts(getLeftButtons(), roundState.leftItems);
+        bindButtonTexts(getRightButtons(), roundState.displayedRightItems);
+    }
+
+    private void bindButtonTexts(Button[] buttons, List<String> values) {
+        for (int index = 0; index < buttons.length; index++) {
+            buttons[index].setText(values.get(index));
+        }
+    }
+
+    private void configureRemoteButtons(SharedSpojniceRound roundState, boolean localTurn) {
+        for (Button button : getLeftButtons()) {
+            String value = button.getText().toString();
+            boolean solved = roundState.solvedLeftItems.contains(value);
+            button.setEnabled(localTurn && !solved);
+            button.setOnClickListener(localTurn && !solved ? v -> {
+                remoteSelectedLeft = value;
+                updateRemoteSelectedText();
+            } : null);
+            button.setAlpha(solved ? 0.45f : 1f);
+        }
+
+        for (Button button : getRightButtons()) {
+            String value = button.getText().toString();
+            boolean solved = roundState.solvedRightItems.contains(value);
+            button.setEnabled(localTurn && !solved);
+            button.setOnClickListener(localTurn && !solved ? v -> {
+                remoteSelectedRight = value;
+                updateRemoteSelectedText();
+            } : null);
+            button.setAlpha(solved ? 0.45f : 1f);
+        }
+    }
+
+    private void applyRemoteSolvedPairs(SharedSpojniceRound roundState) {
+        for (Button button : getLeftButtons()) {
+            boolean solved = roundState.solvedLeftItems.contains(button.getText().toString());
+            button.setAlpha(solved ? 0.45f : 1f);
+        }
+
+        for (Button button : getRightButtons()) {
+            boolean solved = roundState.solvedRightItems.contains(button.getText().toString());
+            button.setAlpha(solved ? 0.45f : 1f);
+        }
+    }
+
+    private void updateRemoteSelectedText() {
+        selectedPairText.setText(
+                remoteSelectedLeft.isEmpty() && remoteSelectedRight.isEmpty()
+                        ? getString(R.string.selected_pair_none)
+                        : getString(R.string.selected_pair_format, remoteSelectedLeft, remoteSelectedRight)
+        );
+    }
+
+    private void confirmRemoteConnection() {
+        GameHostActivity activity = (GameHostActivity) requireActivity();
+        SharedMatchState state = activity.getSharedMatchState();
+        SharedSpojniceRound currentRound =
+                state == null ? null : activity.getSharedSpojniceRound(state.currentTurnIndex);
+
+        if (state == null
+                || currentRound == null
+                || !SharedMatchState.PHASE_SPOJNICE_PLAY.equals(state.phase)
+                || activity.getLocalPlayerNumber() != state.activePlayer) {
+            return;
+        }
+
+        if (remoteSelectedLeft.isEmpty() || remoteSelectedRight.isEmpty()) {
+            Toast.makeText(requireContext(), R.string.select_both_columns, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        SharedSpojniceRound updatedRound = copyRound(currentRound);
+        updatedRound.attemptsInTurn += 1;
+        boolean correct = isCorrectPair(updatedRound, remoteSelectedLeft, remoteSelectedRight);
+
+        int playerOneScore = state.playerOneScore;
+        int playerTwoScore = state.playerTwoScore;
+
+        if (correct && !updatedRound.solvedLeftItems.contains(remoteSelectedLeft)) {
+            updatedRound.solvedLeftItems.add(remoteSelectedLeft);
+            updatedRound.solvedRightItems.add(remoteSelectedRight);
+            updatedRound.solvedByPlayers.add(state.activePlayer);
+
+            if (state.activePlayer == 1) {
+                playerOneScore += 2;
+            } else {
+                playerTwoScore += 2;
+            }
+        }
+
+        remoteSelectedLeft = "";
+        remoteSelectedRight = "";
+        updateRemoteSelectedText();
+
+        List<SharedSpojniceRound> allRounds = new ArrayList<>(state.spojniceRounds);
+        allRounds.set(state.currentTurnIndex, updatedRound);
+
+        if (updatedRound.solvedLeftItems.size() == 5) {
+            updatedRound.finished = true;
+            java.util.Map<String, Object> updates = new java.util.HashMap<>();
+            updates.put("spojniceRounds", allRounds);
+            updates.put("playerOneScore", playerOneScore);
+            updates.put("playerTwoScore", playerTwoScore);
+            updates.put("phase", SharedMatchState.PHASE_SPOJNICE_DONE);
+            updates.put("activePlayer", 0);
+            updates.put("phaseStartedAt", System.currentTimeMillis());
+            updates.put("phaseDurationSeconds", 1);
+            updates.put(
+                    "phaseMessage",
+                    getString(R.string.shared_match_spojnice_done_phase_format, state.currentTurnIndex + 1)
+            );
+            activity.updateSharedMatch(updates);
+            return;
+        }
+
+        if (!updatedRound.secondChance && updatedRound.attemptsInTurn >= 5) {
+            switchToRemoteSecondChance(activity, state, updatedRound, allRounds, playerOneScore, playerTwoScore);
+            return;
+        }
+
+        if (updatedRound.secondChance && updatedRound.attemptsInTurn >= updatedRound.secondChancePairsCount) {
+            updatedRound.finished = true;
+            java.util.Map<String, Object> updates = new java.util.HashMap<>();
+            updates.put("spojniceRounds", allRounds);
+            updates.put("playerOneScore", playerOneScore);
+            updates.put("playerTwoScore", playerTwoScore);
+            updates.put("phase", SharedMatchState.PHASE_SPOJNICE_DONE);
+            updates.put("activePlayer", 0);
+            updates.put("phaseStartedAt", System.currentTimeMillis());
+            updates.put("phaseDurationSeconds", 1);
+            updates.put(
+                    "phaseMessage",
+                    getString(R.string.shared_match_spojnice_done_phase_format, state.currentTurnIndex + 1)
+            );
+            activity.updateSharedMatch(updates);
+            return;
+        }
+
+        java.util.Map<String, Object> updates = new java.util.HashMap<>();
+        updates.put("spojniceRounds", allRounds);
+        updates.put("playerOneScore", playerOneScore);
+        updates.put("playerTwoScore", playerTwoScore);
+        updates.put(
+                "phaseMessage",
+                correct
+                        ? getString(R.string.correct_connection_points)
+                        : getString(R.string.wrong_connection)
+        );
+        activity.updateSharedMatch(updates);
+    }
+
+    private void switchToRemoteSecondChance(
+            GameHostActivity activity,
+            SharedMatchState state,
+            SharedSpojniceRound updatedRound,
+            List<SharedSpojniceRound> allRounds,
+            int playerOneScore,
+            int playerTwoScore
+    ) {
+        updatedRound.secondChance = true;
+        updatedRound.currentPlayer = state.activePlayer == 1 ? 2 : 1;
+        updatedRound.secondChancePairsCount = 5 - updatedRound.solvedLeftItems.size();
+        updatedRound.attemptsInTurn = 0;
+
+        activity.updateSharedMatch(new java.util.HashMap<String, Object>() {{
+            put("spojniceRounds", allRounds);
+            put("playerOneScore", playerOneScore);
+            put("playerTwoScore", playerTwoScore);
+            put("activePlayer", updatedRound.currentPlayer);
+            put("phase", SharedMatchState.PHASE_SPOJNICE_PLAY);
+            put("phaseStartedAt", System.currentTimeMillis());
+            put("phaseDurationSeconds", 30);
+            put(
+                    "phaseMessage",
+                    getString(
+                            R.string.shared_match_spojnice_second_chance_phase_format,
+                            updatedRound.currentPlayer,
+                            updatedRound.secondChancePairsCount
+                    )
+            );
+        }});
+    }
+
+    private void handleRemoteTimeout() {
+        GameHostActivity activity = (GameHostActivity) requireActivity();
+        SharedMatchState state = activity.getSharedMatchState();
+        SharedSpojniceRound currentRound =
+                state == null ? null : activity.getSharedSpojniceRound(state.currentTurnIndex);
+
+        if (state == null
+                || currentRound == null
+                || activity.getLocalPlayerNumber() != state.activePlayer
+                || !SharedMatchState.PHASE_SPOJNICE_PLAY.equals(state.phase)) {
+            return;
+        }
+
+        SharedSpojniceRound updatedRound = copyRound(currentRound);
+        List<SharedSpojniceRound> allRounds = new ArrayList<>(state.spojniceRounds);
+        allRounds.set(state.currentTurnIndex, updatedRound);
+
+        if (!updatedRound.secondChance && updatedRound.solvedLeftItems.size() < 5) {
+            switchToRemoteSecondChance(
+                    activity,
+                    state,
+                    updatedRound,
+                    allRounds,
+                    state.playerOneScore,
+                    state.playerTwoScore
+            );
+            return;
+        }
+
+        updatedRound.finished = true;
+        activity.updateSharedMatch(new java.util.HashMap<String, Object>() {{
+            put("spojniceRounds", allRounds);
+            put("phase", SharedMatchState.PHASE_SPOJNICE_DONE);
+            put("activePlayer", 0);
+            put("phaseStartedAt", System.currentTimeMillis());
+            put("phaseDurationSeconds", 1);
+            put("phaseMessage", getString(R.string.shared_match_spojnice_done_phase_format, state.currentTurnIndex + 1));
+        }});
+    }
+
+    private void scheduleRemoteAdvanceIfCoordinator(SharedMatchState state) {
+        GameHostActivity activity = (GameHostActivity) requireActivity();
+
+        if (activity.getLocalPlayerNumber() != 1 || lastScheduledRemoteRound == state.currentTurnIndex) {
+            return;
+        }
+
+        lastScheduledRemoteRound = state.currentTurnIndex;
+
+        handler.postDelayed(() -> {
+            if (!isAdded()) {
+                return;
+            }
+
+            SharedMatchState currentState = activity.getSharedMatchState();
+            if (currentState == null
+                    || currentState.currentTurnIndex != state.currentTurnIndex
+                    || !SharedMatchState.PHASE_SPOJNICE_DONE.equals(currentState.phase)) {
+                return;
+            }
+
+            if (currentState.currentTurnIndex == 0) {
+                activity.updateSharedMatch(new java.util.HashMap<String, Object>() {{
+                    put("currentTurnIndex", 1);
+                    put("activePlayer", 2);
+                    put("phase", SharedMatchState.PHASE_SPOJNICE_PLAY);
+                    put("phaseStartedAt", System.currentTimeMillis());
+                    put("phaseDurationSeconds", 30);
+                    put("phaseMessage", getString(R.string.shared_match_spojnice_round_two_phase));
+                }});
+            } else {
+                host().goToNextRound();
+            }
+        }, 1200L);
+    }
+
+    private void maybePersistRemoteStatistics(SharedMatchState state) {
+        if (remoteStatisticsPersisted || state.currentTurnIndex != 1) {
+            return;
+        }
+
+        int localPlayer = ((GameHostActivity) requireActivity()).getLocalPlayerNumber();
+        int correctPairs = 0;
+
+        for (SharedSpojniceRound roundState : state.spojniceRounds) {
+            for (Integer solver : roundState.solvedByPlayers) {
+                if (solver != null && solver == localPlayer) {
+                    correctPairs++;
+                }
+            }
+        }
+
+        firestoreRepository.updateSpojniceStatistics(correctPairs, 10, correctPairs * 2);
+        remoteStatisticsPersisted = true;
+    }
+
+    private boolean isCorrectPair(
+            SharedSpojniceRound roundState,
+            String selectedLeft,
+            String selectedRight
+    ) {
+        for (int index = 0; index < roundState.leftItems.size(); index++) {
+            if (selectedLeft.equals(roundState.leftItems.get(index))
+                    && selectedRight.equals(roundState.correctRightItems.get(index))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private SharedSpojniceRound copyRound(SharedSpojniceRound source) {
+        SharedSpojniceRound copy = new SharedSpojniceRound();
+        copy.title = source.title;
+        copy.leftItems = new ArrayList<>(source.leftItems);
+        copy.correctRightItems = new ArrayList<>(source.correctRightItems);
+        copy.displayedRightItems = new ArrayList<>(source.displayedRightItems);
+        copy.solvedLeftItems = new ArrayList<>(source.solvedLeftItems);
+        copy.solvedRightItems = new ArrayList<>(source.solvedRightItems);
+        copy.solvedByPlayers = new ArrayList<>(source.solvedByPlayers);
+        copy.starterPlayer = source.starterPlayer;
+        copy.currentPlayer = source.currentPlayer;
+        copy.secondChance = source.secondChance;
+        copy.attemptsInTurn = source.attemptsInTurn;
+        copy.secondChancePairsCount = source.secondChancePairsCount;
+        copy.finished = source.finished;
+        return copy;
+    }
+
+    private int getRemoteRemainingSeconds(SharedMatchState state) {
+        if (state == null || state.phaseDurationSeconds <= 0) {
+            return 0;
+        }
+
+        long elapsedMs = System.currentTimeMillis() - state.phaseStartedAt;
+        int remaining = state.phaseDurationSeconds - (int) Math.floor(elapsedMs / 1000d);
+        return Math.max(0, remaining);
     }
 
     @Override

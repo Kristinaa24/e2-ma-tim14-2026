@@ -10,6 +10,15 @@ public class SharedMatchState {
     public static final String STATUS_FINISHED = "FINISHED";
 
     public static final String PHASE_WAITING = "WAITING";
+    public static final String PHASE_KZZ_QUESTION = "KZZ_QUESTION";
+    public static final String PHASE_KZZ_REVEAL = "KZZ_REVEAL";
+    public static final String PHASE_SPOJNICE_PLAY = "SPOJNICE_PLAY";
+    public static final String PHASE_SPOJNICE_DONE = "SPOJNICE_DONE";
+    public static final String PHASE_SKOCKO_PLAY = "SKOCKO_PLAY";
+    public static final String PHASE_SKOCKO_BONUS = "SKOCKO_BONUS";
+    public static final String PHASE_SKOCKO_DONE = "SKOCKO_DONE";
+    public static final String PHASE_ASOC_PLAY = "ASOC_PLAY";
+    public static final String PHASE_ASOC_DONE = "ASOC_DONE";
     public static final String PHASE_KPP_STARTER = "KPP_STARTER";
     public static final String PHASE_KPP_BONUS = "KPP_BONUS";
     public static final String PHASE_KPP_DONE = "KPP_DONE";
@@ -31,6 +40,8 @@ public class SharedMatchState {
     public int currentTurnIndex;
     public int playerOneScore;
     public int playerTwoScore;
+    public int answeredByPlayer;
+    public int selectedAnswerIndex;
     public long phaseStartedAt;
     public int phaseDurationSeconds;
     public String phaseMessage;
@@ -38,10 +49,18 @@ public class SharedMatchState {
     public String playerOneExpression;
     public String playerTwoExpression;
     public long updatedAt;
+    public List<KoZnaZnaQuestion> quizQuestions;
+    public List<SharedSpojniceRound> spojniceRounds;
+    public List<SharedSkockoRound> skockoRounds;
+    public List<SharedAsocijacijeRound> asocijacijeRounds;
     public List<SharedKorakPoKorakRound> korakRounds;
     public List<SharedMojBrojRound> myNumberRounds;
 
     public SharedMatchState() {
+        quizQuestions = new ArrayList<>();
+        spojniceRounds = new ArrayList<>();
+        skockoRounds = new ArrayList<>();
+        asocijacijeRounds = new ArrayList<>();
         korakRounds = new ArrayList<>();
         myNumberRounds = new ArrayList<>();
     }
