@@ -184,6 +184,13 @@ public class MojBrojService {
         return getOfferedNumbers();
     }
 
+    public void setPreparedRoundData(int targetNumber, int[] offeredNumbers) {
+        this.targetNumber = targetNumber;
+        this.offeredNumbers = Arrays.copyOf(offeredNumbers, offeredNumbers.length);
+        this.targetLocked = true;
+        this.numbersLocked = true;
+    }
+
     public boolean isInputReady() {
         return !roundFinished && targetLocked && numbersLocked;
     }

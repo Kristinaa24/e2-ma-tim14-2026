@@ -2,6 +2,9 @@ package com.tim14.slagalica.repository;
 
 import com.tim14.slagalica.model.AsocijacijeRound;
 import com.tim14.slagalica.model.KorakPoKorakRound;
+import com.tim14.slagalica.model.KoZnaZnaQuestion;
+import com.tim14.slagalica.model.SpojniceRound;
+import com.tim14.slagalica.service.SkockoService;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -12,6 +15,62 @@ import java.util.Random;
 public class LocalGameRepository {
 
     private final Random random = new Random();
+
+    private final List<KoZnaZnaQuestion> koZnaZnaQuestions = Arrays.asList(
+            new KoZnaZnaQuestion(
+                    "q1",
+                    "Which river flows through Belgrade?",
+                    Arrays.asList("Danube", "Tisa", "Morava", "Drina"),
+                    0
+            ),
+            new KoZnaZnaQuestion(
+                    "q2",
+                    "Who invented alternating current systems?",
+                    Arrays.asList("Thomas Edison", "Nikola Tesla", "Albert Einstein", "Isaac Newton"),
+                    1
+            ),
+            new KoZnaZnaQuestion(
+                    "q3",
+                    "What is the capital of France?",
+                    Arrays.asList("Rome", "Madrid", "Paris", "Berlin"),
+                    2
+            ),
+            new KoZnaZnaQuestion(
+                    "q4",
+                    "Which planet is known as the Red Planet?",
+                    Arrays.asList("Mars", "Venus", "Jupiter", "Mercury"),
+                    0
+            ),
+            new KoZnaZnaQuestion(
+                    "q5",
+                    "Which sea borders Greece?",
+                    Arrays.asList("Baltic Sea", "North Sea", "Aegean Sea", "Black Sea"),
+                    2
+            ),
+            new KoZnaZnaQuestion(
+                    "q6",
+                    "How many continents are there?",
+                    Arrays.asList("Five", "Six", "Seven", "Eight"),
+                    2
+            )
+    );
+
+    private final List<SpojniceRound> spojniceRounds = Arrays.asList(
+            new SpojniceRound(
+                    "sp1",
+                    "Countries and capitals",
+                    Arrays.asList("Serbia", "France", "Italy", "Spain", "Germany"),
+                    Arrays.asList("Belgrade", "Paris", "Rome", "Madrid", "Berlin"),
+                    Arrays.asList("Rome", "Berlin", "Belgrade", "Madrid", "Paris")
+            ),
+            new SpojniceRound(
+                    "sp2",
+                    "Authors and works",
+                    Arrays.asList("Njegos", "Ivo Andric", "Shakespeare", "Tolstoy", "Servantes"),
+                    Arrays.asList("Gorski vijenac", "The Bridge on the Drina", "Hamlet", "War and Peace", "Don Quixote"),
+                    Arrays.asList("Hamlet", "Don Quixote", "War and Peace", "Gorski vijenac", "The Bridge on the Drina")
+            )
+    );
 
     private final List<AsocijacijeRound> asocijacijeRounds = Arrays.asList(
             new AsocijacijeRound("VODA",
@@ -31,6 +90,18 @@ public class LocalGameRepository {
     public List<AsocijacijeRound> getAsocijacijeRounds() {
         List<AsocijacijeRound> shuffled = new ArrayList<>(asocijacijeRounds);
         Collections.shuffle(shuffled);
+        return shuffled.subList(0, Math.min(2, shuffled.size()));
+    }
+
+    public List<KoZnaZnaQuestion> getKoZnaZnaMatchQuestions() {
+        List<KoZnaZnaQuestion> shuffled = new ArrayList<>(koZnaZnaQuestions);
+        Collections.shuffle(shuffled, random);
+        return shuffled.subList(0, Math.min(5, shuffled.size()));
+    }
+
+    public List<SpojniceRound> getSpojniceMatchRounds() {
+        List<SpojniceRound> shuffled = new ArrayList<>(spojniceRounds);
+        Collections.shuffle(shuffled, random);
         return shuffled.subList(0, Math.min(2, shuffled.size()));
     }
 
@@ -93,5 +164,16 @@ public class LocalGameRepository {
                 middleNumbers[random.nextInt(middleNumbers.length)],
                 bigNumbers[random.nextInt(bigNumbers.length)]
         };
+    }
+
+    public List<String> generateSkockoSecretCombination() {
+        List<String> combination = new ArrayList<>();
+        SkockoService.Symbol[] symbols = SkockoService.Symbol.values();
+
+        for (int index = 0; index < 4; index++) {
+            combination.add(symbols[random.nextInt(symbols.length)].name());
+        }
+
+        return combination;
     }
 }

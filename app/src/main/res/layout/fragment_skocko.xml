@@ -1,95 +1,100 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="4dp">
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:background="@drawable/bg_round_title_bar"
-        android:paddingStart="14dp"
-        android:paddingTop="8dp"
-        android:paddingEnd="14dp"
-        android:paddingBottom="8dp"
-        android:text="@string/skocko"
-        android:textColor="@color/white"
-        android:textStyle="bold" />
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="@drawable/bg_round_board"
-        android:gravity="center"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="2dp">
-
-        <!-- 6 Attempts -->
-        <include layout="@layout/skocko_row_compact" android:id="@+id/row1" />
-        <include layout="@layout/skocko_row_compact" android:id="@+id/row2" />
-        <include layout="@layout/skocko_row_compact" android:id="@+id/row3" />
-        <include layout="@layout/skocko_row_compact" android:id="@+id/row4" />
-        <include layout="@layout/skocko_row_compact" android:id="@+id/row5" />
-        <include layout="@layout/skocko_row_compact" android:id="@+id/row6" />
-
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:layout_marginVertical="2dp"
-            android:background="@color/slagalica_light_blue" />
-
-        <!-- Opponent Attempt -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="@string/skocko_opponent_attempt"
-            android:textColor="@color/slagalica_yellow"
-            android:textSize="10sp"
-            android:textStyle="bold" />
-
-        <include layout="@layout/skocko_row_compact" android:id="@+id/rowOpponent" />
-
-        <!-- Correct Solution -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="2dp"
-            android:text="@string/skocko_correct_solution"
-            android:textColor="@color/slagalica_yellow"
-            android:textSize="10sp"
-            android:textStyle="bold" />
-
-        <include layout="@layout/skocko_row_compact" android:id="@+id/rowSolution" />
-    </LinearLayout>
-
-    <!-- Symbol Selection Palette -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:background="@drawable/bg_round_input_shell"
-        android:gravity="center"
-        android:orientation="horizontal"
         android:padding="4dp">
 
-        <Button android:id="@+id/btnSymbolSkocko" style="@style/SlagalicaAnswerButton" android:layout_width="48dp" android:layout_height="48dp" android:layout_margin="1dp" android:text="@string/skocko_symbol" android:padding="0dp" android:textSize="22sp"/>
-        <Button android:id="@+id/btnSymbolClub" style="@style/SlagalicaAnswerButton" android:layout_width="48dp" android:layout_height="48dp" android:layout_margin="1dp" android:text="@string/club_symbol" android:padding="0dp" android:textSize="22sp"/>
-        <Button android:id="@+id/btnSymbolSpade" style="@style/SlagalicaAnswerButton" android:layout_width="48dp" android:layout_height="48dp" android:layout_margin="1dp" android:text="@string/spade_symbol" android:padding="0dp" android:textSize="22sp"/>
-        <Button android:id="@+id/btnSymbolHeart" style="@style/SlagalicaAnswerButton" android:layout_width="48dp" android:layout_height="48dp" android:layout_margin="1dp" android:text="@string/heart_symbol" android:padding="0dp" android:textSize="22sp"/>
-        <Button android:id="@+id/btnSymbolDiamond" style="@style/SlagalicaAnswerButton" android:layout_width="48dp" android:layout_height="48dp" android:layout_margin="1dp" android:text="@string/diamond_symbol" android:padding="0dp" android:textSize="22sp"/>
-        <Button android:id="@+id/btnSymbolStar" style="@style/SlagalicaAnswerButton" android:layout_width="48dp" android:layout_height="48dp" android:layout_margin="1dp" android:text="@string/star_symbol" android:padding="0dp" android:textSize="22sp"/>
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_round_title_bar"
+            android:paddingStart="14dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="8dp"
+            android:text="@string/skocko"
+            android:textColor="@color/white"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_round_board"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="2dp">
+
+            <!-- 6 Attempts -->
+            <include layout="@layout/skocko_row_compact" android:id="@+id/row1" />
+            <include layout="@layout/skocko_row_compact" android:id="@+id/row2" />
+            <include layout="@layout/skocko_row_compact" android:id="@+id/row3" />
+            <include layout="@layout/skocko_row_compact" android:id="@+id/row4" />
+            <include layout="@layout/skocko_row_compact" android:id="@+id/row5" />
+            <include layout="@layout/skocko_row_compact" android:id="@+id/row6" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="2dp"
+                android:background="@color/slagalica_light_blue" />
+
+            <!-- Opponent Attempt -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="@string/skocko_opponent_attempt"
+                android:textColor="@color/slagalica_yellow"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <include layout="@layout/skocko_row_compact" android:id="@+id/rowOpponent" />
+
+            <!-- Correct Solution -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:layout_marginTop="2dp"
+                android:text="@string/skocko_correct_solution"
+                android:textColor="@color/slagalica_yellow"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <include layout="@layout/skocko_row_compact" android:id="@+id/rowSolution" />
+        </LinearLayout>
+
+        <!-- Symbol Selection Palette -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:background="@drawable/bg_round_input_shell"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="4dp">
+
+            <Button android:id="@+id/btnSymbolSkocko" style="@style/SlagalicaAnswerButton" android:layout_width="48dp" android:layout_height="48dp" android:layout_margin="1dp" android:text="@string/skocko_symbol" android:padding="0dp" android:textSize="22sp"/>
+            <Button android:id="@+id/btnSymbolClub" style="@style/SlagalicaAnswerButton" android:layout_width="48dp" android:layout_height="48dp" android:layout_margin="1dp" android:text="@string/club_symbol" android:padding="0dp" android:textSize="22sp"/>
+            <Button android:id="@+id/btnSymbolSpade" style="@style/SlagalicaAnswerButton" android:layout_width="48dp" android:layout_height="48dp" android:layout_margin="1dp" android:text="@string/spade_symbol" android:padding="0dp" android:textSize="22sp"/>
+            <Button android:id="@+id/btnSymbolHeart" style="@style/SlagalicaAnswerButton" android:layout_width="48dp" android:layout_height="48dp" android:layout_margin="1dp" android:text="@string/heart_symbol" android:padding="0dp" android:textSize="22sp"/>
+            <Button android:id="@+id/btnSymbolDiamond" style="@style/SlagalicaAnswerButton" android:layout_width="48dp" android:layout_height="48dp" android:layout_margin="1dp" android:text="@string/diamond_symbol" android:padding="0dp" android:textSize="22sp"/>
+            <Button android:id="@+id/btnSymbolStar" style="@style/SlagalicaAnswerButton" android:layout_width="48dp" android:layout_height="48dp" android:layout_margin="1dp" android:text="@string/star_symbol" android:padding="0dp" android:textSize="22sp"/>
+        </LinearLayout>
+
+        <Button
+            android:id="@+id/btnSubmitSkocko"
+            style="@style/SlagalicaConfirmButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="4dp"
+            android:text="@string/submit_combination" />
+
     </LinearLayout>
-
-    <Button
-        android:id="@+id/btnSubmitSkocko"
-        style="@style/SlagalicaConfirmButton"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:layout_marginTop="4dp"
-        android:text="@string/submit_combination" />
-
-</LinearLayout>
+</ScrollView>
