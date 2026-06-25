@@ -212,6 +212,21 @@ public class RegionMapActivity extends AppCompatActivity {
         firestoreRepository.resetMonthlyRegionRanking(new FirebaseCallback<Void>() {
             @Override
             public void onSuccess(Void result) {
+                resetMonthlyPlayerRankingForTest();
+            }
+
+            @Override
+            public void onError(String error) {
+                resetMonthlyCycleButton.setEnabled(true);
+                Toast.makeText(RegionMapActivity.this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void resetMonthlyPlayerRankingForTest() {
+        firestoreRepository.resetMonthlyPlayerRanking(new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
                 Toast.makeText(RegionMapActivity.this, R.string.regions_reset_success, Toast.LENGTH_SHORT).show();
                 resetMonthlyCycleButton.setEnabled(true);
                 loadRegionData();

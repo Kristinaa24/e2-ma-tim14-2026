@@ -10,6 +10,7 @@ import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.WriteBatch;
+import com.tim14.slagalica.LeagueUtils;
 import com.tim14.slagalica.R;
 import com.tim14.slagalica.model.AsocijacijeRound;
 import com.tim14.slagalica.model.KoZnaZnaQuestion;
@@ -18,6 +19,7 @@ import com.tim14.slagalica.model.PlayerStatistics;
 import com.tim14.slagalica.model.Region;
 import com.tim14.slagalica.model.SpojniceRound;
 import com.tim14.slagalica.model.User;
+import com.tim14.slagalica.service.NotificationHelper;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -39,6 +41,7 @@ public class FirestoreRepository {
     private static final String NOTIFICATIONS_COLLECTION = "notifications";
     private static final String REGIONS_COLLECTION = "regions";
     private static final long ACTIVE_PLAYER_WINDOW_MS = 10 * 60 * 1000;
+    private static final int MONTHLY_PLAYER_RANKING_PLACES = 3;
 
     private static final Region[] DEFAULT_REGIONS = new Region[]{
             new Region("VO", "Vojvodina", "\uD83C\uDF3E"),
@@ -50,6 +53,20 @@ public class FirestoreRepository {
 
     private final FirebaseFirestore db;
     private final Context context;
+
+    public static final class MatchRewardResult {
+        public final int earnedRegionStars;
+        public final int previousLeague;
+        public final int currentLeague;
+        public final boolean leagueChanged;
+
+        private MatchRewardResult(int earnedRegionStars, int previousLeague, int currentLeague) {
+            this.earnedRegionStars = earnedRegionStars;
+            this.previousLeague = previousLeague;
+            this.currentLeague = currentLeague;
+            this.leagueChanged = previousLeague != currentLeague;
+        }
+    }
 
     public FirestoreRepository() {
         this(null);
@@ -76,8 +93,19 @@ public class FirestoreRepository {
             String region,
             FirebaseCallback<Void> callback
     ) {
-        User user = new User(uid, username, email, canonicalRegionName(region), 200, 0, 0, "None", uid);
+        User user = new User(
+                uid,
+                username,
+                email,
+                canonicalRegionName(region),
+                LeagueUtils.INITIAL_REGISTRATION_TOKENS,
+                0,
+                0,
+                "None",
+                uid
+        );
         user.avatar = "avatar_1";
+        user.lastDailyTokenRewardDate = currentDailyRewardDate();
 
         PlayerStatistics statistics = new PlayerStatistics(uid);
 
@@ -120,10 +148,18 @@ public class FirestoreRepository {
                     }
 
                     ensureUserDefaults(user, userId);
+                    boolean dailyTokensApplied = applyDailyTokenGrant(user);
 
                     db.collection(USERS_COLLECTION)
                             .document(userId)
-                            .set(user, SetOptions.merge());
+                            .set(user, SetOptions.merge())
+                            .addOnFailureListener(e -> Log.w(TAG, "Error saving user defaults.", e));
+
+                    if (dailyTokensApplied) {
+                        Log.i(TAG, "Daily token grant applied for user=" + userId
+                                + ", league=" + user.league
+                                + ", tokens=" + user.tokens);
+                    }
 
                     callback.onSuccess(user);
                 })
@@ -135,6 +171,7 @@ public class FirestoreRepository {
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
                     List<User> users = new ArrayList<>();
+                    WriteBatch batch = db.batch();
 
                     for (DocumentSnapshot document : querySnapshot.getDocuments()) {
                         User user = document.toObject(User.class);
@@ -144,9 +181,21 @@ public class FirestoreRepository {
 
                         ensureUserDefaults(user, document.getId());
                         users.add(user);
+                        batch.set(
+                                db.collection(USERS_COLLECTION).document(document.getId()),
+                                user,
+                                SetOptions.merge()
+                        );
                     }
 
-                    callback.onSuccess(users);
+                    if (users.isEmpty()) {
+                        callback.onSuccess(users);
+                        return;
+                    }
+
+                    batch.commit()
+                            .addOnSuccessListener(unused -> callback.onSuccess(users))
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
                 })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
@@ -226,7 +275,7 @@ public class FirestoreRepository {
             int playerScore,
             boolean won,
             boolean lost,
-            FirebaseCallback<Integer> callback
+            FirebaseCallback<MatchRewardResult> callback
     ) {
         String userId;
 
@@ -252,9 +301,10 @@ public class FirestoreRepository {
 
                     ensureUserDefaults(user, userId);
 
+                    int previousLeague = user.league;
                     int starDelta = calculateMatchStarDelta(playerScore, won, lost);
                     user.stars = Math.max(0, user.stars + starDelta);
-                    user.league = calculateLeague(user.stars);
+                    user.league = LeagueUtils.calculateLeague(user.stars);
                     Log.i(TAG, "Applying match rewards for user=" + userId
                             + ", region=" + user.region
                             + ", regionCode=" + regionCodeForName(user.region)
@@ -267,6 +317,7 @@ public class FirestoreRepository {
 
                     String regionCode = regionCodeForName(user.region);
                     int earnedRegionStars = Math.max(0, starDelta);
+                    user.monthlyStars += earnedRegionStars;
                     WriteBatch batch = db.batch();
                     batch.set(
                             db.collection(REGIONS_COLLECTION).document(regionCode),
@@ -276,11 +327,23 @@ public class FirestoreRepository {
 
                     Map<String, Object> userUpdates = new HashMap<>();
                     userUpdates.put("stars", user.stars);
+                    userUpdates.put("monthlyStars", user.monthlyStars);
                     userUpdates.put("league", user.league);
                     batch.update(db.collection(USERS_COLLECTION).document(userId), userUpdates);
 
+                    if (previousLeague != user.league) {
+                        addLeagueChangeNotification(
+                                batch,
+                                userId,
+                                previousLeague,
+                                user.league
+                        );
+                    }
+
                     batch.commit()
-                            .addOnSuccessListener(unused -> callback.onSuccess(earnedRegionStars))
+                            .addOnSuccessListener(unused -> callback.onSuccess(
+                                    new MatchRewardResult(earnedRegionStars, previousLeague, user.league)
+                            ))
                             .addOnFailureListener(e -> callback.onError(e.getMessage()));
                 })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
@@ -293,7 +356,7 @@ public class FirestoreRepository {
                 regions.sort((left, right) -> Integer.compare(right.monthlyStars, left.monthlyStars));
 
                 if (regions.isEmpty() || regions.get(0).monthlyStars <= 0) {
-                    callback.onError("Monthly cycle cannot be reset because no region has monthly stars.");
+                    callback.onSuccess(null);
                     return;
                 }
 
@@ -330,6 +393,28 @@ public class FirestoreRepository {
                 callback.onError(error);
             }
         });
+    }
+
+    public void resetMonthlyPlayerRanking(FirebaseCallback<Void> callback) {
+        db.collection(USERS_COLLECTION)
+                .get()
+                .addOnSuccessListener(usersSnapshot -> {
+                    List<DocumentSnapshot> rankedUsers = new ArrayList<>(usersSnapshot.getDocuments());
+                    rankedUsers.sort((left, right) -> {
+                        User leftUser = left.toObject(User.class);
+                        User rightUser = right.toObject(User.class);
+                        int leftMonthlyStars = leftUser != null ? Math.max(0, leftUser.monthlyStars) : 0;
+                        int rightMonthlyStars = rightUser != null ? Math.max(0, rightUser.monthlyStars) : 0;
+                        return Integer.compare(rightMonthlyStars, leftMonthlyStars);
+                    });
+
+                    WriteBatch batch = db.batch();
+                    applyMonthlyPlayerRankingReset(batch, rankedUsers);
+                    batch.commit()
+                            .addOnSuccessListener(unused -> callback.onSuccess(null))
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
     public void updateRegionPlayerCounts(
@@ -547,6 +632,83 @@ public class FirestoreRepository {
                 || user.qrCode.equals("Available for friend invite")) {
             user.qrCode = user.id;
         }
+
+        user.stars = Math.max(0, user.stars);
+        user.monthlyStars = Math.max(0, user.monthlyStars);
+        user.league = LeagueUtils.calculateLeague(user.stars);
+        migrateLegacyInitialTokens(user);
+        if (TextUtils.isEmpty(user.lastDailyTokenRewardDate)) {
+            user.lastDailyTokenRewardDate = "";
+        }
+    }
+
+    private void migrateLegacyInitialTokens(User user) {
+        if (user.tokens >= 200 && user.stars < LeagueUtils.getRequiredStars(1)) {
+            user.tokens = LeagueUtils.INITIAL_REGISTRATION_TOKENS;
+            user.lastDailyTokenRewardDate = currentDailyRewardDate();
+        }
+    }
+
+    private boolean applyDailyTokenGrant(User user) {
+        String today = currentDailyRewardDate();
+        if (today.equals(user.lastDailyTokenRewardDate)) {
+            return false;
+        }
+
+        user.tokens += LeagueUtils.getDailyTokenGrant(user.league);
+        user.lastDailyTokenRewardDate = today;
+        return true;
+    }
+
+    private String currentDailyRewardDate() {
+        return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+    }
+
+    private void applyMonthlyPlayerRankingReset(WriteBatch batch, List<DocumentSnapshot> rankedUsers) {
+        boolean hasMonthlyPlayerResults = false;
+        for (DocumentSnapshot document : rankedUsers) {
+            User user = document.toObject(User.class);
+            if (user != null && user.monthlyStars > 0) {
+                hasMonthlyPlayerResults = true;
+                break;
+            }
+        }
+
+        for (int index = 0; index < rankedUsers.size(); index++) {
+            DocumentSnapshot document = rankedUsers.get(index);
+            User user = document.toObject(User.class);
+            if (user == null) {
+                continue;
+            }
+
+            ensureUserDefaults(user, document.getId());
+            boolean placed = index < MONTHLY_PLAYER_RANKING_PLACES && user.monthlyStars > 0;
+            Map<String, Object> userUpdates = new HashMap<>();
+            userUpdates.put("monthlyStars", 0);
+
+            if (hasMonthlyPlayerResults && !placed) {
+                int previousStars = Math.max(0, user.stars);
+                int previousLeague = user.league;
+                int newStars = (int) Math.floor(previousStars * 0.7);
+                int newLeague = LeagueUtils.calculateLeague(newStars);
+
+                userUpdates.put("stars", newStars);
+                userUpdates.put("league", newLeague);
+
+                if (previousStars != newStars || previousLeague != newLeague) {
+                    addMonthlyRankingPenaltyNotification(
+                            batch,
+                            document.getId(),
+                            previousStars,
+                            newStars,
+                            previousLeague,
+                            newLeague
+                    );
+                }
+            }
+
+            batch.update(db.collection(USERS_COLLECTION).document(document.getId()), userUpdates);
+        }
     }
 
     private void ensureDefaultRegions(FirebaseCallback<Void> callback) {
@@ -648,25 +810,6 @@ public class FirestoreRepository {
         }
 
         return scoreBonus;
-    }
-
-    private int calculateLeague(int stars) {
-        if (stars >= 1600) {
-            return 5;
-        }
-        if (stars >= 800) {
-            return 4;
-        }
-        if (stars >= 400) {
-            return 3;
-        }
-        if (stars >= 200) {
-            return 2;
-        }
-        if (stars >= 100) {
-            return 1;
-        }
-        return 0;
     }
 
     private String frameForPreviousRank(int previousMonthlyRank) {
@@ -1151,6 +1294,70 @@ public class FirestoreRepository {
         db.collection(NOTIFICATIONS_COLLECTION)
                 .add(data)
                 .addOnFailureListener(e -> Log.w(TAG, "Error saving notification", e));
+    }
+
+    private void addLeagueChangeNotification(
+            WriteBatch batch,
+            String userId,
+            int previousLeague,
+            int currentLeague
+    ) {
+        boolean promoted = currentLeague > previousLeague;
+        String title = promoted ? "League promotion" : "League demotion";
+        String message = promoted
+                ? "You advanced to " + LeagueUtils.getLeagueName(currentLeague) + " League."
+                : "You dropped to " + LeagueUtils.getLeagueName(currentLeague) + " League.";
+
+        batch.set(
+                db.collection(NOTIFICATIONS_COLLECTION).document(),
+                notificationData(userId, title, message, "REWARD")
+        );
+        showLeagueSystemNotification(title, message, "REWARD");
+    }
+
+    private void addMonthlyRankingPenaltyNotification(
+            WriteBatch batch,
+            String userId,
+            int previousStars,
+            int newStars,
+            int previousLeague,
+            int newLeague
+    ) {
+        String message = "You did not place in the monthly player ranking. Stars reduced from "
+                + previousStars + " to " + newStars + ".";
+        if (previousLeague != newLeague) {
+            message += " Current league: " + LeagueUtils.getLeagueName(newLeague) + " League.";
+        }
+
+        batch.set(
+                db.collection(NOTIFICATIONS_COLLECTION).document(),
+                notificationData(userId, "Monthly ranking update", message, "RANKING")
+        );
+
+        if (previousLeague != newLeague) {
+            showLeagueSystemNotification("Monthly ranking update", message, "RANKING");
+        }
+    }
+
+    private void showLeagueSystemNotification(String title, String message, String type) {
+        if (context == null) {
+            return;
+        }
+
+        NotificationHelper.createNotificationChannels(context);
+        NotificationHelper.showSystemNotification(context, title, message, type, false);
+    }
+
+    private Map<String, Object> notificationData(String userId, String title, String message, String type) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("userId", userId);
+        data.put("title", title);
+        data.put("message", message);
+        data.put("typeString", type != null ? type.toUpperCase() : "OTHER");
+        data.put("timestamp", new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(new Date()));
+        data.put("read", false);
+        data.put("createdAt", System.currentTimeMillis());
+        return data;
     }
 
     public void getNotifications(FirebaseCallback<List<Notification>> callback) {
