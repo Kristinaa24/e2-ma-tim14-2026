@@ -150,7 +150,10 @@ public class ProfileService {
 
         if (normalized.equalsIgnoreCase("Bronze")
                 || normalized.equalsIgnoreCase("Silver")
-                || normalized.equalsIgnoreCase("Gold")) {
+                || normalized.equalsIgnoreCase("Gold")
+                || normalized.equalsIgnoreCase("Platinum")
+                || normalized.equalsIgnoreCase("Diamond")
+                || normalized.equalsIgnoreCase("Master")) {
             return normalized.substring(0, 1).toUpperCase(Locale.US)
                     + normalized.substring(1).toLowerCase(Locale.US);
         }
@@ -166,6 +169,12 @@ public class ProfileService {
                 return Color.rgb(192, 192, 192);
             case "gold":
                 return Color.rgb(255, 196, 32);
+            case "platinum":
+                return Color.rgb(210, 232, 238);
+            case "diamond":
+                return Color.rgb(95, 210, 255);
+            case "master":
+                return Color.rgb(145, 92, 255);
             case "none":
             default:
                 return Color.TRANSPARENT;

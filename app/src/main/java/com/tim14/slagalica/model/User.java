@@ -11,6 +11,8 @@ public class User {
     public String avatar;
     public String avatarFrame;
     public String qrCode;
+    public long lastActiveAt;
+    public boolean loggedIn;
 
     public User() {
         // Empty constructor required for Firebase
@@ -26,6 +28,8 @@ public class User {
         this.avatar = "avatar_1";
         this.avatarFrame = "None";
         this.qrCode = "Available for friend invite";
+        this.lastActiveAt = 0;
+        this.loggedIn = false;
     }
 
     public User(String id, String username, String email, String region,
@@ -40,5 +44,7 @@ public class User {
         this.avatar = "avatar_1";
         this.avatarFrame = avatarFrame;
         this.qrCode = qrCode;
+        this.lastActiveAt = 0;
+        this.loggedIn = false;
     }
 }

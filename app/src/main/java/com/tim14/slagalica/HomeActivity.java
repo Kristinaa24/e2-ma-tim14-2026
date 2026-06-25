@@ -59,6 +59,7 @@ public class HomeActivity extends AppCompatActivity {
     private TextView tvProfile;
     private TextView tvStatistics;
     private TextView tvFriends;
+    private TextView tvRegions;
 
     private LinearLayout memberActionsGroup;
     private LinearLayout guestActionsGroup;
@@ -114,6 +115,7 @@ public class HomeActivity extends AppCompatActivity {
         tvProfile = findViewById(R.id.tvProfile);
         tvStatistics = findViewById(R.id.tvStatistics);
         tvFriends = findViewById(R.id.tvFriends);
+        tvRegions = findViewById(R.id.tvRegions);
         guestRankingHint = findViewById(R.id.guestRankingHint);
         guestFriendsHint = findViewById(R.id.guestFriendsHint);
         rankingListView = findViewById(R.id.rankingListView);
@@ -122,6 +124,7 @@ public class HomeActivity extends AppCompatActivity {
         memberActionsGroup = findViewById(R.id.memberActionsGroup);
         guestActionsGroup = findViewById(R.id.guestActionsGroup);
         firestoreRepository = new FirestoreRepository(this);
+        initializeRegions();
 
         isGuest = getIntent().getBooleanExtra("IS_GUEST", false);
         configureGuestMode();
@@ -167,8 +170,23 @@ public class HomeActivity extends AppCompatActivity {
 
         tvStatistics.setOnClickListener(v -> openStatistics());
         tvFriends.setOnClickListener(v -> scrollToSection(friendsSection));
+        tvRegions.setOnClickListener(v -> openRegions());
 
         notificationsMenuButton.setOnClickListener(v -> openNotifications());
+    }
+
+    private void initializeRegions() {
+        firestoreRepository.initializeRegions(new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                // Region documents are ready for ranking and reward updates.
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.w(TAG, "Region initialization failed: " + error);
+            }
+        });
     }
 
     private void openProfile() {
@@ -189,6 +207,15 @@ public class HomeActivity extends AppCompatActivity {
         Intent intent = new Intent(HomeActivity.this, ProfileActivity.class);
         intent.putExtra(ProfileActivity.EXTRA_OPEN_STATISTICS, true);
         startActivity(intent);
+    }
+
+    private void openRegions() {
+        if (isGuest) {
+            redirectGuestToLogin();
+            return;
+        }
+
+        startActivity(new Intent(HomeActivity.this, RegionMapActivity.class));
     }
 
     private void openMatch() {
@@ -220,6 +247,7 @@ public class HomeActivity extends AppCompatActivity {
     private void startLocalMatch() {
         Intent intent = new Intent(HomeActivity.this, GameHostActivity.class);
         intent.putExtra("IS_GUEST", isGuest);
+        intent.putExtra(GameHostActivity.EXTRA_FRIENDLY_MATCH, false);
         intent.putExtra(GameHostActivity.EXTRA_START_ROUND, GameRound.MOJ_BROJ);
         startActivity(intent);
     }
@@ -282,6 +310,7 @@ public class HomeActivity extends AppCompatActivity {
         Intent intent = new Intent(HomeActivity.this, GameHostActivity.class);
         intent.putExtra("IS_GUEST", false);
         intent.putExtra(GameHostActivity.EXTRA_REMOTE_MATCH, true);
+        intent.putExtra(GameHostActivity.EXTRA_FRIENDLY_MATCH, false);
         intent.putExtra(GameHostActivity.EXTRA_REMOTE_MATCH_ID, matchId);
         intent.putExtra(GameHostActivity.EXTRA_LOCAL_PLAYER_NUMBER, localPlayerNumber);
         intent.putExtra(GameHostActivity.EXTRA_START_ROUND, GameRound.MOJ_BROJ);
@@ -527,7 +556,25 @@ public class HomeActivity extends AppCompatActivity {
 
     @Override protected void onStart() { super.onStart(); Log.d(TAG, "onStart"); }
     @Override protected void onRestart() { super.onRestart(); Log.d(TAG, "onRestart"); }
-    @Override protected void onResume() { super.onResume(); Log.d(TAG, "onResume"); }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "onResume");
+
+        if (!isGuest && firestoreRepository != null) {
+            firestoreRepository.markCurrentUserActive(new FirebaseCallback<Void>() {
+                @Override
+                public void onSuccess(Void result) {
+                    // Activity timestamp is used for regional active player counts.
+                }
+
+                @Override
+                public void onError(String error) {
+                    Log.w(TAG, "Active user update failed: " + error);
+                }
+            });
+        }
+    }
     @Override protected void onPause() { super.onPause(); Log.d(TAG, "onPause"); }
     @Override protected void onStop() { super.onStop(); Log.d(TAG, "onStop"); }
     @Override protected void onDestroy() { super.onDestroy(); Log.d(TAG, "onDestroy"); }
