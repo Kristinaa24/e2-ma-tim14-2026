@@ -10,6 +10,7 @@ constraintlayout = "2.2.1"
 firebaseBom = "34.4.0"
 googleServices = "4.4.4"
 zxing = "3.5.3"
+osmdroid = "6.1.20"
 
 [libraries]
 junit = { group = "junit", name = "junit", version.ref = "junit" }
@@ -23,6 +24,7 @@ firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.r
 firebase-firestore = { group = "com.google.firebase", name = "firebase-firestore" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
+osmdroid-android = { group = "org.osmdroid", name = "osmdroid-android", version.ref = "osmdroid" }
 
 
 [plugins]

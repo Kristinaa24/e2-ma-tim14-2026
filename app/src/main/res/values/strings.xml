@@ -340,6 +340,7 @@
     <string name="home_profile_action">Profile</string>
     <string name="home_statistics_action">Statistics</string>
     <string name="home_friends_action">Friends</string>
+    <string name="home_regions_action">Regions</string>
     <string name="home_rankings_action">Rankings</string>
     <string name="home_notifications_action">Alerts</string>
     <string name="guest_access_message">Guest mode shows the full lobby as preview. Log in or register to unlock profile, statistics, friends and saved progress.</string>
@@ -566,4 +567,21 @@
     <string name="shared_match_surrender_phase_format">Player %1$d wins because the other player quit the match.</string>
     <string name="join">Join</string>
     <string name="cancel">Cancel</string>
+    <string name="regions_title">Regions of Serbia</string>
+    <string name="regions_loading">Loading region map...</string>
+    <string name="regions_load_failed">Region map could not be loaded.</string>
+    <string name="regions_loaded_format">Players shown on map: %1$d</string>
+    <string name="regions_selected_empty">Select a region on the map.</string>
+    <string name="regions_selected_format">%1$s%2$s\nRegistered players in region: %3$d</string>
+    <string name="regions_your_region_suffix"> - your region</string>
+    <string name="regions_summary_title">Registered players by region</string>
+    <string name="regions_monthly_ranking_title">Monthly regional ranking</string>
+    <string name="regions_ranking_row_format">%1$s %2$s %3$s - %4$d stars%5$s</string>
+    <string name="regions_detail_format">%1$s %2$s%3$s\n\nMonthly stars: %4$d\n\nFirst places: %5$d\nSecond places: %6$d\nThird places: %7$d\n\nActive players: %8$d\nRegistered players: %9$d</string>
+    <string name="regions_back_to_ranking">Back to ranking</string>
+    <string name="regions_reset_cycle_test">Reset monthly cycle (test)</string>
+    <string name="regions_reset_confirm_title">Reset monthly cycle?</string>
+    <string name="regions_reset_confirm_message">This will save the current top 3 regions, reset monthly stars to zero and award region frames on profile reload.</string>
+    <string name="regions_reset_confirm_action">Reset cycle</string>
+    <string name="regions_reset_success">Monthly region cycle reset.</string>
 </resources>
