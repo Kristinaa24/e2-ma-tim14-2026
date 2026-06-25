@@ -39,11 +39,16 @@
     <string name="profile_default_region">Serbia</string>
     <string name="player_id_label">Player ID</string>
     <string name="scan_code_to_add_friend">Scan this code to add friend</string>
+    <string name="no_league">No League</string>
     <string name="bronze_league">Bronze League</string>
     <string name="gold_league">Gold League</string>
     <string name="platinum_league">Platinum League</string>
     <string name="diamond_league">Diamond League</string>
     <string name="master_league">Master League</string>
+    <string name="league_promoted_title">New league</string>
+    <string name="league_demoted_title">League changed</string>
+    <string name="league_promoted_message">You advanced to %1$s League.</string>
+    <string name="league_demoted_message">You dropped to %1$s League.</string>
 
     <string name="ko_zna_zna">Ko zna zna</string>
     <string name="time_25">Game time: 25s</string>
@@ -314,9 +319,9 @@
     <string name="loading">Loading...</string>
 
 
-    <string name="status_tokens">200</string>
+    <string name="status_tokens">5</string>
     <string name="status_stars">120</string>
-    <string name="status_league">Silver</string>
+    <string name="status_league">No League</string>
     <string name="nav_header_icon">★</string>
     <string name="nav_header_title">Slagalica</string>
     <string name="nav_header_subtitle">Play. Win. Climb the league.</string>

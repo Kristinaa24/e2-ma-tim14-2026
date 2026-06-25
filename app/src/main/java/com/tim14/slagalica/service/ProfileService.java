@@ -3,6 +3,7 @@ package com.tim14.slagalica.service;
 import android.graphics.Color;
 
 import com.tim14.slagalica.R;
+import com.tim14.slagalica.LeagueUtils;
 import com.tim14.slagalica.model.User;
 import java.util.Locale;
 
@@ -195,18 +196,18 @@ public class ProfileService {
     private LeagueUi getLeagueUi(int league) {
         switch (league) {
             case 1:
-                return new LeagueUi(R.string.silver_league, "S");
+                return new LeagueUi(R.string.bronze_league, LeagueUtils.getLeagueIcon(league));
             case 2:
-                return new LeagueUi(R.string.gold_league, "G");
+                return new LeagueUi(R.string.silver_league, LeagueUtils.getLeagueIcon(league));
             case 3:
-                return new LeagueUi(R.string.platinum_league, "P");
+                return new LeagueUi(R.string.gold_league, LeagueUtils.getLeagueIcon(league));
             case 4:
-                return new LeagueUi(R.string.diamond_league, "D");
+                return new LeagueUi(R.string.diamond_league, LeagueUtils.getLeagueIcon(league));
             case 5:
-                return new LeagueUi(R.string.master_league, "M");
+                return new LeagueUi(R.string.master_league, LeagueUtils.getLeagueIcon(league));
             case 0:
             default:
-                return new LeagueUi(R.string.bronze_league, "B");
+                return new LeagueUi(R.string.no_league, LeagueUtils.getLeagueIcon(league));
         }
     }
 
