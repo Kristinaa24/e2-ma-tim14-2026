@@ -130,10 +130,6 @@ public class HomeActivity extends AppCompatActivity {
         configureGuestMode();
         setupHomeLists();
 
-        if (!isGuest) {
-            loadUserStatus();
-        }
-
         checkTargetSection(getIntent());
 
         playTabButton.setOnClickListener(v -> scrollToSection(startSection));
@@ -562,6 +558,8 @@ public class HomeActivity extends AppCompatActivity {
         Log.d(TAG, "onResume");
 
         if (!isGuest && firestoreRepository != null) {
+            loadUserStatus();
+
             firestoreRepository.markCurrentUserActive(new FirebaseCallback<Void>() {
                 @Override
                 public void onSuccess(Void result) {
