@@ -40,6 +40,9 @@
         <activity
             android:name=".NotificationsActivity"
             android:exported="false" />
+        <activity
+            android:name=".RegionMapActivity"
+            android:exported="false" />
 
         <receiver
             android:name=".service.SlagalicaReceiver"

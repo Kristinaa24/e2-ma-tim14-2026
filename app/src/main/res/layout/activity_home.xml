@@ -227,6 +227,22 @@
                     android:textStyle="bold" />
 
                 <TextView
+                    android:id="@+id/tvRegions"
+                    android:layout_width="0dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="6dp"
+                    android:layout_weight="1"
+                    android:background="@drawable/bg_home_shortcut_tile"
+                    android:gravity="center"
+                    android:maxLines="1"
+                    android:paddingStart="4dp"
+                    android:paddingEnd="4dp"
+                    android:text="@string/home_regions_action"
+                    android:textColor="@color/white"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <TextView
                     android:id="@+id/notificationsMenuButton"
                     android:layout_width="0dp"
                     android:layout_height="44dp"

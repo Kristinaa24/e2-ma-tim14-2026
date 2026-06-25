@@ -89,6 +89,7 @@ public class NotificationHelper {
         }
 
         if (saveToHistory) {
+            // Save to Firebase so the user can see it in the in-app notification history.
             new FirestoreRepository().saveNotification(title, message, type);
         }
     }
