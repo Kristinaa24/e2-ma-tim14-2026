@@ -18,56 +18,88 @@
         android:paddingEnd="@dimen/space_medium"
         android:paddingBottom="@dimen/space_small">
 
-        <LinearLayout
+        <FrameLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@drawable/bg_match_player_card"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:padding="10dp">
-
-            <FrameLayout
-                android:layout_width="52dp"
-                android:layout_height="52dp"
-                android:background="@drawable/bg_match_avatar_frame"
-                android:padding="10dp">
-
-                <ImageView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:contentDescription="@string/player_avatar"
-                    android:src="@drawable/baseline_person_24"
-                    app:tint="@color/slagalica_dark_blue" />
-            </FrameLayout>
+            android:layout_weight="1">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:background="@drawable/bg_match_player_card"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="10dp">
 
-                <TextView
-                    android:id="@+id/tvPlayerOneName"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/player_one_name"
-                    android:textColor="@color/white"
-                    android:textSize="13sp"
-                    android:textStyle="bold" />
+                <FrameLayout
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:background="@drawable/bg_match_avatar_frame"
+                    android:padding="10dp">
 
-                <TextView
-                    android:id="@+id/tvPlayerOneScore"
-                    android:layout_width="wrap_content"
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:contentDescription="@string/player_avatar"
+                        android:src="@drawable/baseline_person_24"
+                        app:tint="@color/slagalica_dark_blue" />
+                </FrameLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:text="0"
-                    android:textColor="@color/white"
-                    android:textSize="30sp"
-                    android:textStyle="bold" />
+                    android:layout_marginStart="10dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:id="@+id/tvPlayerOneName"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/player_one_name"
+                        android:textColor="@color/white"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvPlayerOneScore"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="0"
+                        android:textColor="@color/white"
+                        android:textSize="30sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
             </LinearLayout>
-        </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvPlayerOneChatBubble"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:layout_gravity="top|start"
+                android:background="@drawable/bg_match_chat_bubble"
+                android:gravity="center"
+                android:text="@string/chat_bubble_text"
+                android:textColor="@color/slagalica_dark_blue"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvPlayerOneChatBadge"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_gravity="top|start"
+                android:layout_marginStart="24dp"
+                android:background="@drawable/bg_chat_unread_badge"
+                android:gravity="center"
+                android:text="0"
+                android:textColor="@color/white"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </FrameLayout>
 
         <FrameLayout
             android:layout_width="92dp"
@@ -152,7 +184,7 @@
             </LinearLayout>
 
             <TextView
-                android:id="@+id/tvChatBubble"
+                android:id="@+id/tvPlayerTwoChatBubble"
                 android:layout_width="34dp"
                 android:layout_height="34dp"
                 android:layout_gravity="top|end"
@@ -161,7 +193,22 @@
                 android:text="@string/chat_bubble_text"
                 android:textColor="@color/slagalica_dark_blue"
                 android:textSize="16sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/tvPlayerTwoChatBadge"
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:layout_gravity="top|end"
+                android:layout_marginEnd="24dp"
+                android:background="@drawable/bg_chat_unread_badge"
+                android:gravity="center"
+                android:text="0"
+                android:textColor="@color/white"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
         </FrameLayout>
     </LinearLayout>
 
