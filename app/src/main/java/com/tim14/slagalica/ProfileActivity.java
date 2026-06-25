@@ -107,9 +107,21 @@ public class ProfileActivity extends AppCompatActivity {
         }
 
         logoutButton.setOnClickListener(v -> {
-            authRepository.logout();
-            sessionManager.logout();
-            openWelcomeScreen();
+            firestoreRepository.markCurrentUserLoggedOut(new FirebaseCallback<Void>() {
+                @Override
+                public void onSuccess(Void result) {
+                    authRepository.logout();
+                    sessionManager.logout();
+                    openWelcomeScreen();
+                }
+
+                @Override
+                public void onError(String error) {
+                    authRepository.logout();
+                    sessionManager.logout();
+                    openWelcomeScreen();
+                }
+            });
         });
       
         changePasswordButton.setOnClickListener(v ->

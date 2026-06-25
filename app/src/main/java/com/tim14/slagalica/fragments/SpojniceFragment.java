@@ -406,11 +406,13 @@ public class SpojniceFragment extends BaseGameFragment {
 
         secondChanceInfoText.setText(getString(R.string.end_of_spojnice));
 
-        firestoreRepository.updateSpojniceStatistics(
-                spojniceService.getCorrectPairs(),
-                spojniceService.getTotalPairs(),
-                spojniceService.getTotalScore()
-        );
+        if (host().shouldPersistStatistics()) {
+            firestoreRepository.updateSpojniceStatistics(
+                    spojniceService.getCorrectPairs(),
+                    spojniceService.getTotalPairs(),
+                    spojniceService.getTotalScore()
+            );
+        }
 
         host().setScores(
                 spojniceService.getPlayerOneScore(),
@@ -486,6 +488,10 @@ public class SpojniceFragment extends BaseGameFragment {
             return;
         }
 
+        if (maybeContinueAfterForfeit(activity, state, roundState)) {
+            return;
+        }
+
         bindRemoteRoundItems(roundState);
         applyRemoteSolvedPairs(roundState);
 
@@ -514,6 +520,58 @@ public class SpojniceFragment extends BaseGameFragment {
         if (getRemoteRemainingSeconds(state) > 0) {
             startRoundTimer(getRemoteRemainingSeconds(state), this::handleRemoteTimeout);
         }
+    }
+
+    private boolean maybeContinueAfterForfeit(
+            GameHostActivity activity,
+            SharedMatchState state,
+            SharedSpojniceRound roundState
+    ) {
+        if (!activity.hasOpponentForfeited()
+                || !SharedMatchState.PHASE_SPOJNICE_PLAY.equals(state.phase)
+                || state.activePlayer != state.forfeitedPlayer) {
+            return false;
+        }
+
+        SharedSpojniceRound updatedRound = copyRound(roundState);
+        List<SharedSpojniceRound> allRounds = new ArrayList<>(state.spojniceRounds);
+        allRounds.set(state.currentTurnIndex, updatedRound);
+        int continuingPlayer = activity.getRemainingRemotePlayerNumber();
+
+        if (!updatedRound.secondChance && updatedRound.solvedLeftItems.size() < 5) {
+            updatedRound.secondChance = true;
+            updatedRound.currentPlayer = continuingPlayer;
+            updatedRound.secondChancePairsCount = 5 - updatedRound.solvedLeftItems.size();
+            updatedRound.attemptsInTurn = 0;
+
+            activity.updateSharedMatch(new java.util.HashMap<String, Object>() {{
+                put("spojniceRounds", allRounds);
+                put("activePlayer", continuingPlayer);
+                put("phase", SharedMatchState.PHASE_SPOJNICE_PLAY);
+                put("phaseStartedAt", System.currentTimeMillis());
+                put("phaseDurationSeconds", 30);
+                put(
+                        "phaseMessage",
+                        getString(
+                                R.string.shared_match_spojnice_second_chance_phase_format,
+                                continuingPlayer,
+                                updatedRound.secondChancePairsCount
+                        )
+                );
+            }});
+            return true;
+        }
+
+        updatedRound.finished = true;
+        activity.updateSharedMatch(new java.util.HashMap<String, Object>() {{
+            put("spojniceRounds", allRounds);
+            put("phase", SharedMatchState.PHASE_SPOJNICE_DONE);
+            put("activePlayer", 0);
+            put("phaseStartedAt", System.currentTimeMillis());
+            put("phaseDurationSeconds", 1);
+            put("phaseMessage", getString(R.string.shared_match_spojnice_done_phase_format, state.currentTurnIndex + 1));
+        }});
+        return true;
     }
 
     private void bindRemoteRoundItems(SharedSpojniceRound roundState) {
@@ -744,7 +802,7 @@ public class SpojniceFragment extends BaseGameFragment {
     private void scheduleRemoteAdvanceIfCoordinator(SharedMatchState state) {
         GameHostActivity activity = (GameHostActivity) requireActivity();
 
-        if (activity.getLocalPlayerNumber() != 1 || lastScheduledRemoteRound == state.currentTurnIndex) {
+        if (!activity.isRemoteProgressCoordinator() || lastScheduledRemoteRound == state.currentTurnIndex) {
             return;
         }
 
@@ -793,7 +851,9 @@ public class SpojniceFragment extends BaseGameFragment {
             }
         }
 
-        firestoreRepository.updateSpojniceStatistics(correctPairs, 10, correctPairs * 2);
+        if (host().shouldPersistStatistics()) {
+            firestoreRepository.updateSpojniceStatistics(correctPairs, 10, correctPairs * 2);
+        }
         remoteStatisticsPersisted = true;
     }
 

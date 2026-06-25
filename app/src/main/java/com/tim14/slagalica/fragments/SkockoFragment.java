@@ -207,7 +207,9 @@ public class SkockoFragment extends BaseGameFragment {
         stopRoundTimer();
         int points = skockoService.getScore();
         awardPoints(currentRound == 1 ? 1 : 2, points);
-        firestoreRepository.updateSkockoStatistics(skockoService.getCurrentAttempt(), points, true);
+        if (host().shouldPersistStatistics()) {
+            firestoreRepository.updateSkockoStatistics(skockoService.getCurrentAttempt(), points, true);
+        }
         revealSolution(skockoService.getSecretCombination());
         Toast.makeText(requireContext(), getString(R.string.msg_correct, points), Toast.LENGTH_SHORT).show();
         finishRoundAfterDelay();
@@ -374,6 +376,10 @@ public class SkockoFragment extends BaseGameFragment {
             return;
         }
 
+        if (maybeContinueAfterForfeit(activity, state, roundState)) {
+            return;
+        }
+
         clearBoard();
         renderRemoteStarterAttempts(roundState);
         renderRemoteBonusAttempt(roundState);
@@ -400,6 +406,50 @@ public class SkockoFragment extends BaseGameFragment {
         if (getRemoteRemainingSeconds(state) > 0) {
             startRoundTimer(getRemoteRemainingSeconds(state), this::handleRemoteTimeout);
         }
+    }
+
+    private boolean maybeContinueAfterForfeit(
+            GameHostActivity activity,
+            SharedMatchState state,
+            SharedSkockoRound roundState
+    ) {
+        if (!activity.hasOpponentForfeited()
+                || state.activePlayer != state.forfeitedPlayer
+                || (!SharedMatchState.PHASE_SKOCKO_PLAY.equals(state.phase)
+                && !SharedMatchState.PHASE_SKOCKO_BONUS.equals(state.phase))) {
+            return false;
+        }
+
+        SharedSkockoRound updatedRound = copyRound(roundState);
+        List<SharedSkockoRound> allRounds = new ArrayList<>(state.skockoRounds);
+        allRounds.set(state.currentTurnIndex, updatedRound);
+        int continuingPlayer = activity.getRemainingRemotePlayerNumber();
+
+        if (SharedMatchState.PHASE_SKOCKO_PLAY.equals(state.phase)) {
+            activity.updateSharedMatch(new java.util.HashMap<String, Object>() {{
+                put("skockoRounds", allRounds);
+                put("phase", SharedMatchState.PHASE_SKOCKO_BONUS);
+                put("activePlayer", continuingPlayer);
+                put("phaseStartedAt", System.currentTimeMillis());
+                put("phaseDurationSeconds", 10);
+                put(
+                        "phaseMessage",
+                        getString(R.string.shared_match_skocko_bonus_phase_format, continuingPlayer)
+                );
+            }});
+            return true;
+        }
+
+        updatedRound.finished = true;
+        activity.updateSharedMatch(new java.util.HashMap<String, Object>() {{
+            put("skockoRounds", allRounds);
+            put("phase", SharedMatchState.PHASE_SKOCKO_DONE);
+            put("activePlayer", 0);
+            put("phaseStartedAt", System.currentTimeMillis());
+            put("phaseDurationSeconds", 1);
+            put("phaseMessage", getString(R.string.shared_match_skocko_unsolved_phase));
+        }});
+        return true;
     }
 
     private void renderRemoteStarterAttempts(SharedSkockoRound roundState) {
@@ -681,7 +731,7 @@ public class SkockoFragment extends BaseGameFragment {
 
     private void scheduleRemoteAdvanceIfCoordinator(SharedMatchState state) {
         GameHostActivity activity = (GameHostActivity) requireActivity();
-        if (activity.getLocalPlayerNumber() != 1 || lastScheduledRemoteRound == state.currentTurnIndex) {
+        if (!activity.isRemoteProgressCoordinator() || lastScheduledRemoteRound == state.currentTurnIndex) {
             return;
         }
 
@@ -726,11 +776,13 @@ public class SkockoFragment extends BaseGameFragment {
         boolean localSolved = roundState.solved && roundState.solvedByPlayer == localPlayer;
 
         if (localRoundScore > 0 || localSolved) {
-            firestoreRepository.updateSkockoStatistics(
-                    roundState.solvedAttemptIndex < 0 ? 5 : roundState.solvedAttemptIndex,
-                    localRoundScore,
-                    localSolved
-            );
+            if (host().shouldPersistStatistics()) {
+                firestoreRepository.updateSkockoStatistics(
+                        roundState.solvedAttemptIndex < 0 ? 5 : roundState.solvedAttemptIndex,
+                        localRoundScore,
+                        localSolved
+                );
+            }
         }
 
         lastRemoteStatsRound = state.currentTurnIndex;

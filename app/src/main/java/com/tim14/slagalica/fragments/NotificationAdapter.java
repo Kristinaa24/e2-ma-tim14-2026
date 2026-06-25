@@ -64,10 +64,13 @@ public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapte
         holder.typeStripe.setBackgroundColor(stripeColor);
 
         // Handle Actions for INVITE and REWARD types
-        if (n.type == Notification.Type.INVITE || n.type == Notification.Type.REWARD) {
+        boolean actionableInvite = n.type == Notification.Type.INVITE && n.isPendingInvite() && !n.read;
+        boolean actionableReward = n.type == Notification.Type.REWARD && !n.read;
+
+        if (actionableInvite || actionableReward) {
             holder.actionsContainer.setVisibility(View.VISIBLE);
             
-            if (n.type == Notification.Type.INVITE) {
+            if (actionableInvite) {
                 holder.btnPositive.setText(R.string.notification_accept);
                 holder.btnNegative.setVisibility(View.VISIBLE);
                 holder.btnNegative.setText(R.string.notification_decline);

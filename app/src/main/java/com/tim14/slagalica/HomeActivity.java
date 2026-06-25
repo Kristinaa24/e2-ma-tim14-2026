@@ -1,7 +1,11 @@
 package com.tim14.slagalica;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.content.Intent;
+import android.os.Build;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -16,8 +20,10 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.google.firebase.firestore.ListenerRegistration;
 import com.tim14.slagalica.game.GameRound;
 import com.tim14.slagalica.model.HomeFriendItem;
 import com.tim14.slagalica.model.HomeRankingItem;
@@ -28,6 +34,7 @@ import com.tim14.slagalica.repository.SharedMatchRepository;
 import com.tim14.slagalica.service.NotificationHelper;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class HomeActivity extends AppCompatActivity {
@@ -72,6 +79,7 @@ public class HomeActivity extends AppCompatActivity {
     private boolean isGuest;
     private boolean onlineFilterEnabled;
     private FirestoreRepository firestoreRepository;
+    private ListenerRegistration playableUsersListener;
     private HomeRankingAdapter rankingAdapter;
     private HomeFriendAdapter friendAdapter;
     private final List<HomeRankingItem> rankingItems = new ArrayList<>();
@@ -83,6 +91,7 @@ public class HomeActivity extends AppCompatActivity {
         setContentView(R.layout.activity_home);
 
         NotificationHelper.createNotificationChannels(this);
+        requestNotificationPermissionIfNeeded();
 
         Log.d(TAG, "onCreate");
 
@@ -129,6 +138,7 @@ public class HomeActivity extends AppCompatActivity {
 
         if (!isGuest) {
             loadUserStatus();
+            startPlayableUsersListener();
         }
 
         checkTargetSection(getIntent());
@@ -171,6 +181,23 @@ public class HomeActivity extends AppCompatActivity {
         notificationsMenuButton.setOnClickListener(v -> openNotifications());
     }
 
+    private void requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return;
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+
+        ActivityCompat.requestPermissions(
+                this,
+                new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                201
+        );
+    }
+
     private void openProfile() {
         if (isGuest) {
             redirectGuestToLogin();
@@ -197,24 +224,7 @@ public class HomeActivity extends AppCompatActivity {
             return;
         }
 
-        String[] options = {
-                getString(R.string.match_option_local),
-                getString(R.string.match_option_create_room),
-                getString(R.string.match_option_join_room)
-        };
-
-        new AlertDialog.Builder(this)
-                .setTitle(R.string.match_mode_dialog_title)
-                .setItems(options, (dialog, which) -> {
-                    if (which == 0) {
-                        startLocalMatch();
-                    } else if (which == 1) {
-                        createSharedMatch();
-                    } else {
-                        promptJoinSharedMatch();
-                    }
-                })
-                .show();
+        startCompetitiveMatchmaking();
     }
 
     private void startLocalMatch() {
@@ -361,36 +371,54 @@ public class HomeActivity extends AppCompatActivity {
         rankingListView.post(() -> setListViewHeightBasedOnChildren(rankingListView));
 
         allFriendItems.clear();
-        allFriendItems.add(new HomeFriendItem(
-                1,
-                getString(R.string.friend_initial_1),
-                getString(R.string.friend_name_1),
-                Integer.parseInt(getString(R.string.friend_score_1)),
-                true
-        ));
-        allFriendItems.add(new HomeFriendItem(
-                2,
-                getString(R.string.friend_initial_2),
-                getString(R.string.friend_name_2),
-                Integer.parseInt(getString(R.string.friend_score_2)),
-                true
-        ));
-        allFriendItems.add(new HomeFriendItem(
-                3,
-                getString(R.string.friend_initial_3),
-                getString(R.string.friend_name_3),
-                Integer.parseInt(getString(R.string.friend_score_3)),
-                false
-        ));
-        allFriendItems.add(new HomeFriendItem(
-                4,
-                getString(R.string.friend_initial_4),
-                getString(R.string.friend_name_4),
-                Integer.parseInt(getString(R.string.friend_score_4)),
-                false
-        ));
 
-        friendAdapter = new HomeFriendAdapter(this, new ArrayList<>());
+        if (isGuest) {
+            allFriendItems.add(new HomeFriendItem(
+                    1,
+                    getString(R.string.friend_initial_1),
+                    getString(R.string.friend_name_1),
+                    "",
+                    Integer.parseInt(getString(R.string.friend_score_1)),
+                    true,
+                    false
+            ));
+            allFriendItems.add(new HomeFriendItem(
+                    2,
+                    getString(R.string.friend_initial_2),
+                    getString(R.string.friend_name_2),
+                    "",
+                    Integer.parseInt(getString(R.string.friend_score_2)),
+                    true,
+                    false
+            ));
+            allFriendItems.add(new HomeFriendItem(
+                    3,
+                    getString(R.string.friend_initial_3),
+                    getString(R.string.friend_name_3),
+                    "",
+                    Integer.parseInt(getString(R.string.friend_score_3)),
+                    false,
+                    false
+            ));
+            allFriendItems.add(new HomeFriendItem(
+                    4,
+                    getString(R.string.friend_initial_4),
+                    getString(R.string.friend_name_4),
+                    "",
+                    Integer.parseInt(getString(R.string.friend_score_4)),
+                    false,
+                    false
+            ));
+        }
+
+        friendAdapter = new HomeFriendAdapter(this, new ArrayList<>(), item -> {
+            if (isGuest) {
+                redirectGuestToLogin();
+                return;
+            }
+
+            sendFriendlyInvite(item);
+        });
         friendsListView.setAdapter(friendAdapter);
         applyFriendFilter(false);
     }
@@ -450,6 +478,168 @@ public class HomeActivity extends AppCompatActivity {
             @Override
             public void onError(String error) {
                 Toast.makeText(HomeActivity.this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void loadPlayableUsers() {
+        firestoreRepository.getOtherUsers(new FirebaseCallback<List<User>>() {
+            @Override
+            public void onSuccess(List<User> users) {
+                allFriendItems.clear();
+
+                List<User> sortedUsers = new ArrayList<>(users);
+                Collections.sort(sortedUsers, (left, right) -> {
+                    boolean leftAvailable = left.loggedIn && TextUtils.isEmpty(left.currentMatchId);
+                    boolean rightAvailable = right.loggedIn && TextUtils.isEmpty(right.currentMatchId);
+
+                    if (leftAvailable != rightAvailable) {
+                        return leftAvailable ? -1 : 1;
+                    }
+
+                    return Integer.compare(right.stars, left.stars);
+                });
+
+                int rank = 1;
+                for (User user : sortedUsers) {
+                    String username = user.username == null ? "Player" : user.username.trim();
+                    String initial = username.isEmpty()
+                            ? "?"
+                            : username.substring(0, 1).toUpperCase();
+
+                    allFriendItems.add(new HomeFriendItem(
+                            rank++,
+                            initial,
+                            username,
+                            user.id,
+                            user.stars,
+                            user.loggedIn,
+                            user.currentMatchId != null && !user.currentMatchId.trim().isEmpty()
+                    ));
+                }
+
+                applyFriendFilter(onlineFilterEnabled);
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(HomeActivity.this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void startPlayableUsersListener() {
+        if (isGuest || playableUsersListener != null) {
+            return;
+        }
+
+        playableUsersListener = firestoreRepository.listenToOtherUsers(new FirebaseCallback<List<User>>() {
+            @Override
+            public void onSuccess(List<User> users) {
+                allFriendItems.clear();
+
+                List<User> sortedUsers = new ArrayList<>(users);
+                Collections.sort(sortedUsers, (left, right) -> {
+                    boolean leftAvailable = left.loggedIn && TextUtils.isEmpty(left.currentMatchId);
+                    boolean rightAvailable = right.loggedIn && TextUtils.isEmpty(right.currentMatchId);
+
+                    if (leftAvailable != rightAvailable) {
+                        return leftAvailable ? -1 : 1;
+                    }
+
+                    return Integer.compare(right.stars, left.stars);
+                });
+
+                int rank = 1;
+                for (User user : sortedUsers) {
+                    String username = user.username == null ? "Player" : user.username.trim();
+                    String initial = username.isEmpty()
+                            ? "?"
+                            : username.substring(0, 1).toUpperCase();
+
+                    allFriendItems.add(new HomeFriendItem(
+                            rank++,
+                            initial,
+                            username,
+                            user.id,
+                            user.stars,
+                            user.loggedIn,
+                            user.currentMatchId != null && !user.currentMatchId.trim().isEmpty()
+                    ));
+                }
+
+                applyFriendFilter(onlineFilterEnabled);
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(HomeActivity.this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void stopPlayableUsersListener() {
+        if (playableUsersListener == null) {
+            return;
+        }
+
+        playableUsersListener.remove();
+        playableUsersListener = null;
+    }
+
+    private void startCompetitiveMatchmaking() {
+        SharedMatchRepository repository = new SharedMatchRepository();
+        repository.startCompetitiveMatchmaking(new FirebaseCallback<SharedMatchRepository.MatchJoinResult>() {
+            @Override
+            public void onSuccess(SharedMatchRepository.MatchJoinResult result) {
+                if (result.waitingForOpponent) {
+                    Toast.makeText(
+                            HomeActivity.this,
+                            R.string.matchmaking_waiting_message,
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
+
+                openSharedMatch(result.matchId, result.localPlayerNumber);
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(HomeActivity.this, error, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void sendFriendlyInvite(HomeFriendItem item) {
+        if (item == null || item.isInviteTile()) {
+            return;
+        }
+
+        if (item.isInMatch()) {
+            Toast.makeText(this, R.string.friend_busy_in_match_message, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (!item.isOnline()) {
+            Toast.makeText(this, R.string.friend_offline_invite_message, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        SharedMatchRepository repository = new SharedMatchRepository();
+        repository.createFriendlyInvite(item.getUserId(), new FirebaseCallback<SharedMatchRepository.MatchJoinResult>() {
+            @Override
+            public void onSuccess(SharedMatchRepository.MatchJoinResult result) {
+                Toast.makeText(
+                        HomeActivity.this,
+                        R.string.friendly_invite_sent_message,
+                        Toast.LENGTH_SHORT
+                ).show();
+                openSharedMatch(result.matchId, result.localPlayerNumber);
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(HomeActivity.this, error, Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -527,8 +717,33 @@ public class HomeActivity extends AppCompatActivity {
 
     @Override protected void onStart() { super.onStart(); Log.d(TAG, "onStart"); }
     @Override protected void onRestart() { super.onRestart(); Log.d(TAG, "onRestart"); }
-    @Override protected void onResume() { super.onResume(); Log.d(TAG, "onResume"); }
-    @Override protected void onPause() { super.onPause(); Log.d(TAG, "onPause"); }
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "onResume");
+        requestNotificationPermissionIfNeeded();
+        if (!isGuest) {
+            firestoreRepository.markCurrentUserLoggedIn();
+            firestoreRepository.markCurrentUserInApp(true);
+            firestoreRepository.clearCurrentUserMatch();
+            loadUserStatus();
+            startPlayableUsersListener();
+        }
+    }
+    @Override
+    protected void onPause() {
+        if (!isGuest) {
+            firestoreRepository.markCurrentUserInApp(false);
+            stopPlayableUsersListener();
+        }
+        super.onPause();
+        Log.d(TAG, "onPause");
+    }
     @Override protected void onStop() { super.onStop(); Log.d(TAG, "onStop"); }
-    @Override protected void onDestroy() { super.onDestroy(); Log.d(TAG, "onDestroy"); }
+    @Override
+    protected void onDestroy() {
+        stopPlayableUsersListener();
+        super.onDestroy();
+        Log.d(TAG, "onDestroy");
+    }
 }

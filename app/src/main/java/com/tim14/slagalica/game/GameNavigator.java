@@ -13,4 +13,6 @@ public interface GameNavigator {
     void recordMatchResult();
     void restartMatch();
     void finishMatch();
+    boolean shouldPersistStatistics();
+    boolean isFriendlyMatch();
 }

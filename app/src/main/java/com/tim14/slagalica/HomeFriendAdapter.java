@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -17,8 +18,19 @@ import java.util.List;
 
 public class HomeFriendAdapter extends ArrayAdapter<HomeFriendItem> {
 
-    public HomeFriendAdapter(@NonNull Context context, @NonNull List<HomeFriendItem> items) {
+    public interface OnInviteClickListener {
+        void onInviteClick(HomeFriendItem item);
+    }
+
+    private final OnInviteClickListener onInviteClickListener;
+
+    public HomeFriendAdapter(
+            @NonNull Context context,
+            @NonNull List<HomeFriendItem> items,
+            @Nullable OnInviteClickListener onInviteClickListener
+    ) {
         super(context, 0, items);
+        this.onInviteClickListener = onInviteClickListener;
     }
 
     @NonNull
@@ -54,15 +66,28 @@ public class HomeFriendAdapter extends ArrayAdapter<HomeFriendItem> {
         TextView nameText = view.findViewById(R.id.friendNameText);
         TextView statusText = view.findViewById(R.id.friendStatusText);
         TextView starsText = view.findViewById(R.id.friendStarsText);
+        Button inviteButton = view.findViewById(R.id.friendInviteButton);
 
         rankText.setText(String.valueOf(item.getRank()));
         initialText.setText(item.getInitial());
         nameText.setText(item.getName());
-        statusText.setText(item.isOnline()
-                ? getContext().getString(R.string.friend_status_online)
-                : getContext().getString(R.string.friend_status_offline)
-        );
+        if (item.isInMatch()) {
+            statusText.setText(R.string.friend_status_in_match);
+        } else {
+            statusText.setText(item.isOnline()
+                    ? getContext().getString(R.string.friend_status_online)
+                    : getContext().getString(R.string.friend_status_offline)
+            );
+        }
         starsText.setText(String.valueOf(item.getStars()));
+
+        inviteButton.setEnabled(item.canInvite());
+        inviteButton.setAlpha(item.canInvite() ? 1f : 0.6f);
+        inviteButton.setOnClickListener(v -> {
+            if (onInviteClickListener != null) {
+                onInviteClickListener.onInviteClick(item);
+            }
+        });
 
         return view;
     }
