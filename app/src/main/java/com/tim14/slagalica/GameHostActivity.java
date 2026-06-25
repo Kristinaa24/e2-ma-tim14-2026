@@ -42,6 +42,7 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     public static final String EXTRA_REMOTE_MATCH = "remote_match";
     public static final String EXTRA_REMOTE_MATCH_ID = "remote_match_id";
     public static final String EXTRA_LOCAL_PLAYER_NUMBER = "local_player_number";
+    public static final String EXTRA_FRIENDLY_MATCH = "friendly_match";
 
     private TextView tvRoundTimer;
     private TextView tvPhaseText;
@@ -60,6 +61,7 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     private int playerTwoScore;
     private GameRound currentRound;
     private boolean isGuest;
+    private boolean friendlyMatch;
     private boolean matchResultRecorded;
     private FirestoreRepository firestoreRepository;
     private SharedMatchRepository sharedMatchRepository;
@@ -90,6 +92,7 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         firestoreRepository = new FirestoreRepository();
         sharedMatchRepository = new SharedMatchRepository();
         isGuest = getIntent().getBooleanExtra("IS_GUEST", false);
+        friendlyMatch = getIntent().getBooleanExtra(EXTRA_FRIENDLY_MATCH, false);
         remoteMatchMode = getIntent().getBooleanExtra(EXTRA_REMOTE_MATCH, false);
         remoteMatchId = getIntent().getStringExtra(EXTRA_REMOTE_MATCH_ID);
         localPlayerNumber = getIntent().getIntExtra(EXTRA_LOCAL_PLAYER_NUMBER, 1);
@@ -162,7 +165,12 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
 
     @Override
     public void goToRound(GameRound round, Bundle args) {
+        markCurrentUserActive();
         currentRound = round;
+
+        if (round == GameRound.RESULT) {
+            recordMatchResult();
+        }
 
         Fragment fragment;
 
@@ -243,13 +251,14 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
                 lost = playerTwoScore < playerOneScore;
             }
 
-            recordMatchStatistics(won, lost);
+            recordMatchStatistics(won, lost, !friendlyMatch);
             return;
         }
 
         recordMatchStatistics(
                 playerOneScore > playerTwoScore,
-                playerOneScore < playerTwoScore
+                playerOneScore < playerTwoScore,
+                !friendlyMatch
         );
     }
 
@@ -299,7 +308,7 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
                         surrenderRemoteMatch();
                         return;
                     }
-                    recordMatchStatistics(false, true);
+                    recordMatchStatistics(false, true, false);
                     Toast.makeText(this, R.string.match_surrendered_message, Toast.LENGTH_SHORT).show();
                     finishMatch();
                 })
@@ -307,13 +316,56 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
                 .show();
     }
 
-    private void recordMatchStatistics(boolean won, boolean lost) {
+    private void recordMatchStatistics(boolean won, boolean lost, boolean awardStars) {
         if (matchResultRecorded || isGuest) {
             return;
         }
 
         matchResultRecorded = true;
         firestoreRepository.updateMatchStatistics(won, lost);
+
+        if (!awardStars) {
+            return;
+        }
+
+        int localScore = getLocalPlayerScore();
+        firestoreRepository.updateCurrentUserAfterRegularMatch(localScore, won, lost, new FirebaseCallback<Integer>() {
+            @Override
+            public void onSuccess(Integer addedRegionStars) {
+                loadUserStatus();
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(GameHostActivity.this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void markCurrentUserActive() {
+        if (isGuest || firestoreRepository == null) {
+            return;
+        }
+
+        firestoreRepository.markCurrentUserActive(new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                // Keeps players active while they are in a match.
+            }
+
+            @Override
+            public void onError(String error) {
+                // Activity tracking should not interrupt gameplay.
+            }
+        });
+    }
+
+    private int getLocalPlayerScore() {
+        if (remoteMatchMode && localPlayerNumber == 2) {
+            return playerTwoScore;
+        }
+
+        return playerOneScore;
     }
 
     public boolean isRemoteMatchMode() {
@@ -604,8 +656,14 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         updates.put("phaseMessage", getString(R.string.shared_match_surrender_phase_format, winnerPlayer));
         updateSharedMatch(updates);
 
-        recordMatchStatistics(localPlayerNumber != surrenderedPlayer, true);
+        recordMatchStatistics(false, true, false);
         Toast.makeText(this, R.string.match_surrendered_message, Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        markCurrentUserActive();
     }
 
     @Override

@@ -106,11 +106,7 @@ public class ProfileActivity extends AppCompatActivity {
             viewStatisticsButton.post(this::showStatisticsFragment);
         }
 
-        logoutButton.setOnClickListener(v -> {
-            authRepository.logout();
-            sessionManager.logout();
-            openWelcomeScreen();
-        });
+        logoutButton.setOnClickListener(v -> logoutCurrentUser());
       
         changePasswordButton.setOnClickListener(v ->
                 startActivity(new Intent(ProfileActivity.this, ResetPasswordActivity.class))
@@ -137,12 +133,7 @@ public class ProfileActivity extends AppCompatActivity {
         firestoreRepository.getCurrentUser(new FirebaseCallback<User>() {
             @Override
             public void onSuccess(User user) {
-                currentUser = user;
-                bindUser(user);
-                sessionManager.saveUser(user);
-
-
-                Log.d(TAG, "Profile loaded from Firestore: " + user.username);
+                applyRegionRewardFrame(user);
             }
 
             @Override
@@ -150,6 +141,27 @@ public class ProfileActivity extends AppCompatActivity {
 
                 Toast.makeText(ProfileActivity.this, error, Toast.LENGTH_LONG).show();
                 Log.e(TAG, "Error loading profile: " + error);
+            }
+        });
+    }
+
+    private void applyRegionRewardFrame(User user) {
+        firestoreRepository.applyPreviousCycleRegionFrame(user, new FirebaseCallback<User>() {
+            @Override
+            public void onSuccess(User rewardedUser) {
+                currentUser = rewardedUser;
+                bindUser(rewardedUser);
+                sessionManager.saveUser(rewardedUser);
+
+                Log.d(TAG, "Profile loaded from Firestore: " + rewardedUser.username);
+            }
+
+            @Override
+            public void onError(String error) {
+                currentUser = user;
+                bindUser(user);
+                sessionManager.saveUser(user);
+                Toast.makeText(ProfileActivity.this, error, Toast.LENGTH_SHORT).show();
             }
         });
     }
@@ -239,6 +251,42 @@ public class ProfileActivity extends AppCompatActivity {
                 Toast.makeText(ProfileActivity.this, error, Toast.LENGTH_LONG).show();
             }
         });
+    }
+
+    private void logoutCurrentUser() {
+        firestoreRepository.markCurrentUserInactive(new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                refreshRegionCountsBeforeLogout();
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.w(TAG, "Inactive user update failed before logout: " + error);
+                finishLogout();
+            }
+        });
+    }
+
+    private void refreshRegionCountsBeforeLogout() {
+        firestoreRepository.refreshRegionPlayerCounts(new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                finishLogout();
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.w(TAG, "Region player count refresh failed before logout: " + error);
+                finishLogout();
+            }
+        });
+    }
+
+    private void finishLogout() {
+        authRepository.logout();
+        sessionManager.logout();
+        openWelcomeScreen();
     }
 
     private GradientDrawable createAvatarBackground(int avatarFrameColor) {
