@@ -39,6 +39,16 @@ public class NotificationHelper {
     }
 
     public static void showSystemNotification(Context context, String title, String message, String type) {
+        showSystemNotification(context, title, message, type, true);
+    }
+
+    public static void showSystemNotification(
+            Context context,
+            String title,
+            String message,
+            String type,
+            boolean saveToHistory
+    ) {
         String channelId = getChannelIdByType(type);
 
         // Intent to open HomeActivity when clicked
@@ -68,8 +78,10 @@ public class NotificationHelper {
             // Handle notification permission missing for Android 13+
         }
 
-        // Save to Firebase so the user can see it in the in-app notification history
-        new FirestoreRepository().saveNotification(title, message, type);
+        if (saveToHistory) {
+            // Save to Firebase so the user can see it in the in-app notification history
+            new FirestoreRepository().saveNotification(title, message, type);
+        }
     }
 
     private static String getChannelIdByType(String type) {

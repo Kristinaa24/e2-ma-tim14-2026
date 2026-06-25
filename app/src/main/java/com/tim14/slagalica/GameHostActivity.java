@@ -329,10 +329,13 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         }
 
         int localScore = getLocalPlayerScore();
-        firestoreRepository.updateCurrentUserAfterRegularMatch(localScore, won, lost, new FirebaseCallback<Integer>() {
+        firestoreRepository.updateCurrentUserAfterRegularMatch(localScore, won, lost, new FirebaseCallback<FirestoreRepository.MatchRewardResult>() {
             @Override
-            public void onSuccess(Integer addedRegionStars) {
+            public void onSuccess(FirestoreRepository.MatchRewardResult rewardResult) {
                 loadUserStatus();
+                if (rewardResult.leagueChanged) {
+                    showLeagueChangeDialog(rewardResult.previousLeague, rewardResult.currentLeague);
+                }
             }
 
             @Override
@@ -340,6 +343,19 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
                 Toast.makeText(GameHostActivity.this, error, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void showLeagueChangeDialog(int previousLeague, int currentLeague) {
+        boolean promoted = currentLeague > previousLeague;
+        String message = promoted
+                ? getString(R.string.league_promoted_message, LeagueUtils.getLeagueName(currentLeague))
+                : getString(R.string.league_demoted_message, LeagueUtils.getLeagueName(currentLeague));
+
+        new AlertDialog.Builder(this)
+                .setTitle(promoted ? R.string.league_promoted_title : R.string.league_demoted_title)
+                .setMessage(message)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
     }
 
     private void markCurrentUserActive() {
