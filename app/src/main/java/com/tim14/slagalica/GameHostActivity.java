@@ -1,6 +1,7 @@
 package com.tim14.slagalica;
 
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
@@ -52,7 +53,10 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     private TextView tvPlayerTwoScore;
     private TextView tvPlayerOneName;
     private TextView tvPlayerTwoName;
-    private TextView tvChatBubble;
+    private TextView tvPlayerOneChatBubble;
+    private TextView tvPlayerTwoChatBubble;
+    private TextView tvPlayerOneChatBadge;
+    private TextView tvPlayerTwoChatBadge;
     private TextView tvStatusTokens;
     private TextView tvStatusStars;
     private TextView tvStatusLeague;
@@ -74,6 +78,10 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     private long lastAppliedRemoteUpdatedAt;
     private long lastObservedRemoteMatchStartedAt;
     private int lastObservedForfeitedPlayer;
+    private String currentUserRegion = "";
+    private String opponentRegion = "";
+    private int unreadChatCount;
+    private ListenerRegistration unreadChatListener;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,7 +95,10 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         tvPlayerTwoScore = findViewById(R.id.tvPlayerTwoScore);
         tvPlayerOneName = findViewById(R.id.tvPlayerOneName);
         tvPlayerTwoName = findViewById(R.id.tvPlayerTwoName);
-        tvChatBubble = findViewById(R.id.tvChatBubble);
+        tvPlayerOneChatBubble = findViewById(R.id.tvPlayerOneChatBubble);
+        tvPlayerTwoChatBubble = findViewById(R.id.tvPlayerTwoChatBubble);
+        tvPlayerOneChatBadge = findViewById(R.id.tvPlayerOneChatBadge);
+        tvPlayerTwoChatBadge = findViewById(R.id.tvPlayerTwoChatBadge);
         tvStatusTokens = findViewById(R.id.tvStatusTokens);
         tvStatusStars = findViewById(R.id.tvStatusStars);
         tvStatusLeague = findViewById(R.id.tvStatusLeague);
@@ -101,9 +112,9 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         localPlayerNumber = getIntent().getIntExtra(EXTRA_LOCAL_PLAYER_NUMBER, 1);
 
         btnQuitMatch.setOnClickListener(v -> surrenderMatch());
-        tvChatBubble.setOnClickListener(v ->
-                Toast.makeText(this, R.string.chat_placeholder_message, Toast.LENGTH_SHORT).show()
-        );
+        tvPlayerOneChatBubble.setOnClickListener(v -> openRegionalChat());
+        tvPlayerTwoChatBubble.setOnClickListener(v -> openRegionalChat());
+        bindLocalPlayerChatBubble();
 
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
@@ -212,7 +223,7 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         getSupportFragmentManager()
                 .beginTransaction()
                 .replace(R.id.gameContentContainer, fragment)
-                .commit();
+                .commitAllowingStateLoss();
     }
 
     @Override
@@ -322,6 +333,8 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
                 tvStatusTokens.setText(String.valueOf(user.tokens));
                 tvStatusStars.setText(String.valueOf(user.stars));
                 tvStatusLeague.setText(LeagueUtils.getLeagueName(user.league));
+                currentUserRegion = FirestoreRepository.canonicalRegionName(user.region);
+                resolveOpponentRegion();
             }
 
             @Override
@@ -329,6 +342,134 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
                 Toast.makeText(GameHostActivity.this, error, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void openRegionalChat() {
+        if (isGuest) {
+            Toast.makeText(this, R.string.guest_login_required_message, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (remoteMatchMode && !canPlayersUseMatchChat()) {
+            Toast.makeText(this, R.string.chat_match_region_restricted_message, Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        if (getSupportFragmentManager().findFragmentByTag("regional_chat_dialog") != null) {
+            return;
+        }
+
+        RegionalChatDialogFragment.newInstance().show(
+                getSupportFragmentManager(),
+                "regional_chat_dialog"
+        );
+    }
+
+    private void bindLocalPlayerChatBubble() {
+        boolean showPlayerTwoBubble = remoteMatchMode && localPlayerNumber == 2;
+        tvPlayerOneChatBubble.setVisibility(showPlayerTwoBubble ? View.GONE : View.VISIBLE);
+        tvPlayerTwoChatBubble.setVisibility(showPlayerTwoBubble ? View.VISIBLE : View.GONE);
+        tvPlayerOneChatBadge.setVisibility(View.GONE);
+        tvPlayerTwoChatBadge.setVisibility(View.GONE);
+        startUnreadChatBadgeListener();
+        updateChatBubbleEnabledState();
+    }
+
+    private void startUnreadChatBadgeListener() {
+        if (isGuest || firestoreRepository == null) {
+            return;
+        }
+
+        if (unreadChatListener != null) {
+            return;
+        }
+
+        unreadChatListener = firestoreRepository.listenToUnreadChatNotificationCount(new FirebaseCallback<Integer>() {
+            @Override
+            public void onSuccess(Integer unreadCount) {
+                unreadChatCount = unreadCount == null ? 0 : unreadCount;
+                updateUnreadChatBadge(unreadChatCount);
+            }
+
+            @Override
+            public void onError(String error) {
+                unreadChatCount = 0;
+                updateUnreadChatBadge(0);
+            }
+        });
+    }
+
+    private void updateUnreadChatBadge(int unreadCount) {
+        boolean usePlayerTwo = remoteMatchMode && localPlayerNumber == 2;
+        TextView activeBadge = usePlayerTwo ? tvPlayerTwoChatBadge : tvPlayerOneChatBadge;
+        TextView hiddenBadge = usePlayerTwo ? tvPlayerOneChatBadge : tvPlayerTwoChatBadge;
+
+        hiddenBadge.setVisibility(View.GONE);
+
+        if (unreadCount <= 0 || (remoteMatchMode && !canPlayersUseMatchChat())) {
+            activeBadge.setVisibility(View.GONE);
+            return;
+        }
+
+        activeBadge.setText(String.valueOf(Math.min(unreadCount, 99)));
+        activeBadge.setVisibility(View.VISIBLE);
+    }
+
+    private void resolveOpponentRegion() {
+        if (!remoteMatchMode || sharedMatchState == null) {
+            opponentRegion = "";
+            updateChatBubbleEnabledState();
+            return;
+        }
+
+        String opponentId = localPlayerNumber == 1
+                ? sharedMatchState.playerTwoId
+                : sharedMatchState.playerOneId;
+        if (TextUtils.isEmpty(opponentId)) {
+            opponentRegion = "";
+            updateChatBubbleEnabledState();
+            return;
+        }
+
+        firestoreRepository.getUserById(opponentId, new FirebaseCallback<User>() {
+            @Override
+            public void onSuccess(User user) {
+                opponentRegion = FirestoreRepository.canonicalRegionName(user.region);
+                updateChatBubbleEnabledState();
+                updateUnreadChatBadge(unreadChatCount);
+            }
+
+            @Override
+            public void onError(String error) {
+                opponentRegion = "";
+                updateChatBubbleEnabledState();
+            }
+        });
+    }
+
+    private boolean canPlayersUseMatchChat() {
+        if (!remoteMatchMode) {
+            return true;
+        }
+
+        if (sharedMatchState == null
+                || TextUtils.isEmpty(sharedMatchState.playerOneId)
+                || TextUtils.isEmpty(sharedMatchState.playerTwoId)) {
+            return true;
+        }
+
+        if (TextUtils.isEmpty(currentUserRegion) || TextUtils.isEmpty(opponentRegion)) {
+            return false;
+        }
+
+        return currentUserRegion.equals(opponentRegion);
+    }
+
+    private void updateChatBubbleEnabledState() {
+        boolean enabled = !remoteMatchMode || canPlayersUseMatchChat();
+        boolean showPlayerTwoBubble = remoteMatchMode && localPlayerNumber == 2;
+        TextView activeBubble = showPlayerTwoBubble ? tvPlayerTwoChatBubble : tvPlayerOneChatBubble;
+        activeBubble.setAlpha(enabled ? 1f : 0.55f);
     }
 
     private void surrenderMatch() {
@@ -607,6 +748,7 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         }
 
         applyForfeitUi(state);
+        resolveOpponentRegion();
 
         setScores(state.playerOneScore, state.playerTwoScore);
         setTimerValue(getRemainingSeconds(state));
@@ -883,6 +1025,9 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
             }
         }
         markCurrentUserActive();
+        if (remoteMatchMode && sharedMatchState != null) {
+            applyRemoteMatchState(sharedMatchState);
+        }
     }
 
     @Override
@@ -895,6 +1040,10 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
 
     @Override
     protected void onDestroy() {
+        if (unreadChatListener != null) {
+            unreadChatListener.remove();
+            unreadChatListener = null;
+        }
         if (sharedMatchListener != null) {
             sharedMatchListener.remove();
             sharedMatchListener = null;
