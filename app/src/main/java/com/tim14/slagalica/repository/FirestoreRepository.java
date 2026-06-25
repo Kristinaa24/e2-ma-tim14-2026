@@ -6,13 +6,16 @@ import android.util.Log;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.tim14.slagalica.R;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.WriteBatch;
+import com.tim14.slagalica.R;
 import com.tim14.slagalica.model.AsocijacijeRound;
 import com.tim14.slagalica.model.KoZnaZnaQuestion;
 import com.tim14.slagalica.model.Notification;
 import com.tim14.slagalica.model.PlayerStatistics;
+import com.tim14.slagalica.model.Region;
 import com.tim14.slagalica.model.SpojniceRound;
 import com.tim14.slagalica.model.User;
 
@@ -27,7 +30,6 @@ import java.util.Map;
 public class FirestoreRepository {
 
     private static final String TAG = "REZ_DB";
-    public static final String TEST_USER_ID = "test_user_1";
 
     private static final String USERS_COLLECTION = "users";
     private static final String STATISTICS_COLLECTION = "statistics";
@@ -35,6 +37,16 @@ public class FirestoreRepository {
     private static final String SPOJNICE_COLLECTION = "spojniceRounds";
     private static final String ASOCIJACIJE_COLLECTION = "asocijacijeRounds";
     private static final String NOTIFICATIONS_COLLECTION = "notifications";
+    private static final String REGIONS_COLLECTION = "regions";
+    private static final long ACTIVE_PLAYER_WINDOW_MS = 10 * 60 * 1000;
+
+    private static final Region[] DEFAULT_REGIONS = new Region[]{
+            new Region("VO", "Vojvodina", "\uD83C\uDF3E"),
+            new Region("BG", "Belgrade", "\uD83C\uDFD9"),
+            new Region("SW", "Sumadija and Western Serbia", "\uD83C\uDF32"),
+            new Region("SE", "Southern and Eastern Serbia", "\u26F0"),
+            new Region("KM", "Kosovo i Metohija", "\uD83C\uDFFB")
+    };
 
     private final FirebaseFirestore db;
     private final Context context;
@@ -64,7 +76,7 @@ public class FirestoreRepository {
             String region,
             FirebaseCallback<Void> callback
     ) {
-        User user = new User(uid, username, email, region, 200, 0, 0, "None", uid);
+        User user = new User(uid, username, email, canonicalRegionName(region), 200, 0, 0, "None", uid);
         user.avatar = "avatar_1";
 
         PlayerStatistics statistics = new PlayerStatistics(uid);
@@ -76,7 +88,8 @@ public class FirestoreRepository {
                         db.collection(STATISTICS_COLLECTION)
                                 .document(uid)
                                 .set(statistics)
-                                .addOnSuccessListener(result -> callback.onSuccess(null))
+                                .addOnSuccessListener(result ->
+                                        incrementRegionRegisteredPlayers(user.region, callback))
                                 .addOnFailureListener(e -> callback.onError(e.getMessage()))
                 )
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
@@ -117,6 +130,391 @@ public class FirestoreRepository {
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
+    public void getAllUsers(FirebaseCallback<List<User>> callback) {
+        db.collection(USERS_COLLECTION)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<User> users = new ArrayList<>();
+
+                    for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                        User user = document.toObject(User.class);
+                        if (user == null) {
+                            continue;
+                        }
+
+                        ensureUserDefaults(user, document.getId());
+                        users.add(user);
+                    }
+
+                    callback.onSuccess(users);
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void getRegions(FirebaseCallback<List<Region>> callback) {
+        ensureDefaultRegions(new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                db.collection(REGIONS_COLLECTION)
+                        .get()
+                        .addOnSuccessListener(querySnapshot -> {
+                            List<Region> regions = new ArrayList<>();
+
+                            for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                                Region region = document.toObject(Region.class);
+                                if (region == null) {
+                                    continue;
+                                }
+
+                                ensureRegionDefaults(region, document.getId());
+                                regions.add(region);
+                            }
+
+                            callback.onSuccess(regions);
+                        })
+                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void markCurrentUserActive(FirebaseCallback<Void> callback) {
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .update(
+                        "lastActiveAt", System.currentTimeMillis(),
+                        "loggedIn", true
+                )
+                .addOnSuccessListener(unused -> callback.onSuccess(null))
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void markCurrentUserInactive(FirebaseCallback<Void> callback) {
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .update(
+                        "lastActiveAt", 0,
+                        "loggedIn", false
+                )
+                .addOnSuccessListener(unused -> callback.onSuccess(null))
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void updateCurrentUserAfterRegularMatch(
+            int playerScore,
+            boolean won,
+            boolean lost,
+            FirebaseCallback<Integer> callback
+    ) {
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    User user = documentSnapshot.toObject(User.class);
+                    if (user == null) {
+                        callback.onError(text(
+                                R.string.firestore_error_profile_not_found,
+                                "User profile was not found."
+                        ));
+                        return;
+                    }
+
+                    ensureUserDefaults(user, userId);
+
+                    int starDelta = calculateMatchStarDelta(playerScore, won, lost);
+                    user.stars = Math.max(0, user.stars + starDelta);
+                    user.league = calculateLeague(user.stars);
+                    Log.i(TAG, "Applying match rewards for user=" + userId
+                            + ", region=" + user.region
+                            + ", regionCode=" + regionCodeForName(user.region)
+                            + ", score=" + playerScore
+                            + ", won=" + won
+                            + ", lost=" + lost
+                            + ", starDelta=" + starDelta
+                            + ", newStars=" + user.stars
+                            + ", newLeague=" + user.league);
+
+                    String regionCode = regionCodeForName(user.region);
+                    int earnedRegionStars = Math.max(0, starDelta);
+                    WriteBatch batch = db.batch();
+                    batch.set(
+                            db.collection(REGIONS_COLLECTION).document(regionCode),
+                            createDefaultRegionData(regionCode, earnedRegionStars),
+                            SetOptions.merge()
+                    );
+
+                    Map<String, Object> userUpdates = new HashMap<>();
+                    userUpdates.put("stars", user.stars);
+                    userUpdates.put("league", user.league);
+                    batch.update(db.collection(USERS_COLLECTION).document(userId), userUpdates);
+
+                    batch.commit()
+                            .addOnSuccessListener(unused -> callback.onSuccess(earnedRegionStars))
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void resetMonthlyRegionRanking(FirebaseCallback<Void> callback) {
+        getRegions(new FirebaseCallback<List<Region>>() {
+            @Override
+            public void onSuccess(List<Region> regions) {
+                regions.sort((left, right) -> Integer.compare(right.monthlyStars, left.monthlyStars));
+
+                if (regions.isEmpty() || regions.get(0).monthlyStars <= 0) {
+                    callback.onError("Monthly cycle cannot be reset because no region has monthly stars.");
+                    return;
+                }
+
+                WriteBatch batch = db.batch();
+                for (int index = 0; index < regions.size(); index++) {
+                    Region region = regions.get(index);
+                    int rank = index < 3 ? index + 1 : 0;
+                    Map<String, Object> updates = new HashMap<>();
+                    updates.put("previousMonthlyRank", rank);
+                    updates.put("monthlyStars", 0);
+
+                    if (rank == 1) {
+                        updates.put("firstPlaces", region.firstPlaces + 1);
+                    } else if (rank == 2) {
+                        updates.put("secondPlaces", region.secondPlaces + 1);
+                    } else if (rank == 3) {
+                        updates.put("thirdPlaces", region.thirdPlaces + 1);
+                    }
+
+                    batch.set(
+                            db.collection(REGIONS_COLLECTION).document(region.code),
+                            updates,
+                            SetOptions.merge()
+                    );
+                }
+
+                batch.commit()
+                        .addOnSuccessListener(unused -> callback.onSuccess(null))
+                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void updateRegionPlayerCounts(
+            Map<String, Integer> registeredCountsByRegionName,
+            Map<String, Integer> activeCountsByRegionName,
+            FirebaseCallback<Void> callback
+    ) {
+        ensureDefaultRegions(new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                WriteBatch batch = db.batch();
+
+                for (Region region : DEFAULT_REGIONS) {
+                    Map<String, Object> data = createDefaultRegionData(region.code, 0);
+                    data.put("registeredPlayers", registeredCountsByRegionName.getOrDefault(region.name, 0));
+                    data.put("activePlayers", activeCountsByRegionName.getOrDefault(region.name, 0));
+                    batch.set(
+                            db.collection(REGIONS_COLLECTION).document(region.code),
+                            data,
+                            SetOptions.merge()
+                    );
+                }
+
+                batch.commit()
+                        .addOnSuccessListener(unused -> callback.onSuccess(null))
+                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void refreshRegionPlayerCounts(FirebaseCallback<Void> callback) {
+        getAllUsers(new FirebaseCallback<List<User>>() {
+            @Override
+            public void onSuccess(List<User> users) {
+                Map<String, Integer> registeredCounts = new HashMap<>();
+                Map<String, Integer> activeCounts = new HashMap<>();
+
+                for (User user : users) {
+                    String canonicalRegion = canonicalRegionName(user.region);
+                    if (TextUtils.isEmpty(canonicalRegion)) {
+                        continue;
+                    }
+
+                    registeredCounts.put(
+                            canonicalRegion,
+                            registeredCounts.getOrDefault(canonicalRegion, 0) + 1
+                    );
+
+                    if (isRecentlyActive(user)) {
+                        activeCounts.put(
+                                canonicalRegion,
+                                activeCounts.getOrDefault(canonicalRegion, 0) + 1
+                        );
+                    }
+                }
+
+                updateRegionPlayerCounts(registeredCounts, activeCounts, callback);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public static boolean isRecentlyActive(User user) {
+        return user != null
+                && user.loggedIn
+                && user.lastActiveAt > 0
+                && System.currentTimeMillis() - user.lastActiveAt <= ACTIVE_PLAYER_WINDOW_MS;
+    }
+
+    public void initializeRegions(FirebaseCallback<Void> callback) {
+        ensureDefaultRegions(callback);
+    }
+
+    public void applyPreviousCycleRegionFrame(User user, FirebaseCallback<User> callback) {
+        if (user == null || TextUtils.isEmpty(user.region)) {
+            callback.onSuccess(user);
+            return;
+        }
+
+        ensureDefaultRegions(new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                String code = regionCodeForName(user.region);
+                db.collection(REGIONS_COLLECTION)
+                        .document(code)
+                        .get()
+                        .addOnSuccessListener(documentSnapshot -> {
+                            Region region = documentSnapshot.toObject(Region.class);
+                            if (region == null) {
+                                callback.onSuccess(user);
+                                return;
+                            }
+
+                            ensureRegionDefaults(region, documentSnapshot.getId());
+                            String frame = frameForPreviousRank(region.previousMonthlyRank);
+                            if (frame == null
+                                    || frame.equals(user.avatarFrame)
+                                    || framePriority(user.avatarFrame) >= framePriority(frame)) {
+                                callback.onSuccess(user);
+                                return;
+                            }
+
+                            user.avatarFrame = frame;
+                            db.collection(USERS_COLLECTION)
+                                    .document(user.id)
+                                    .update("avatarFrame", frame)
+                                    .addOnSuccessListener(unused -> callback.onSuccess(user))
+                                    .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                        })
+                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public static String canonicalRegionName(String regionValue) {
+        if (TextUtils.isEmpty(regionValue)) {
+            return "";
+        }
+
+        String value = regionValue.trim();
+        if ("VO".equalsIgnoreCase(value) || "Vojvodina".equalsIgnoreCase(value)) {
+            return "Vojvodina";
+        }
+        if ("BG".equalsIgnoreCase(value)
+                || "Belgrade".equalsIgnoreCase(value)
+                || "Beograd".equalsIgnoreCase(value)) {
+            return "Belgrade";
+        }
+        if ("SW".equalsIgnoreCase(value)
+                || "Sumadija and Western Serbia".equalsIgnoreCase(value)
+                || "Šumadija and Western Serbia".equalsIgnoreCase(value)
+                || "Sumadija i Zapadna Srbija".equalsIgnoreCase(value)
+                || "Šumadija i Zapadna Srbija".equalsIgnoreCase(value)) {
+            return "Sumadija and Western Serbia";
+        }
+        if ("SE".equalsIgnoreCase(value)
+                || "Southern and Eastern Serbia".equalsIgnoreCase(value)
+                || "Juzna and Eastern Serbia".equalsIgnoreCase(value)
+                || "Južna and Eastern Serbia".equalsIgnoreCase(value)
+                || "Juzna i Istocna Srbija".equalsIgnoreCase(value)
+                || "Južna i Istočna Srbija".equalsIgnoreCase(value)) {
+            return "Southern and Eastern Serbia";
+        }
+        if ("KM".equalsIgnoreCase(value)
+                || "Kosovo i Metohija".equalsIgnoreCase(value)
+                || "Kosovo and Metohija".equalsIgnoreCase(value)) {
+            return "Kosovo i Metohija";
+        }
+        return value;
+    }
+
+    public static String regionCodeForName(String regionName) {
+        String canonicalRegionName = canonicalRegionName(regionName);
+        if ("Vojvodina".equals(canonicalRegionName)) {
+            return "VO";
+        }
+        if ("Belgrade".equals(canonicalRegionName)) {
+            return "BG";
+        }
+        if ("Sumadija and Western Serbia".equals(canonicalRegionName)) {
+            return "SW";
+        }
+        if ("Southern and Eastern Serbia".equals(canonicalRegionName)) {
+            return "SE";
+        }
+        if ("Kosovo i Metohija".equals(canonicalRegionName)) {
+            return "KM";
+        }
+        return "RS";
+    }
+
     private void ensureUserDefaults(User user, String userId) {
         if (TextUtils.isEmpty(user.id)) {
             user.id = userId;
@@ -132,16 +530,15 @@ public class FirestoreRepository {
 
         if (TextUtils.isEmpty(user.region)) {
             user.region = "Serbia";
+        } else {
+            user.region = canonicalRegionName(user.region);
         }
 
         if (TextUtils.isEmpty(user.avatar)) {
             user.avatar = "avatar_1";
         }
 
-        if (TextUtils.isEmpty(user.avatarFrame)
-                || user.avatarFrame.equalsIgnoreCase("Diamond")
-                || user.avatarFrame.equalsIgnoreCase("Platinum")
-                || user.avatarFrame.equalsIgnoreCase("Master")) {
+        if (TextUtils.isEmpty(user.avatarFrame)) {
             user.avatarFrame = "None";
         }
 
@@ -149,6 +546,162 @@ public class FirestoreRepository {
                 || user.qrCode.equals("QR pending")
                 || user.qrCode.equals("Available for friend invite")) {
             user.qrCode = user.id;
+        }
+    }
+
+    private void ensureDefaultRegions(FirebaseCallback<Void> callback) {
+        WriteBatch batch = db.batch();
+
+        for (Region region : DEFAULT_REGIONS) {
+            batch.set(
+                    db.collection(REGIONS_COLLECTION).document(region.code),
+                    createDefaultRegionData(region.code, 0),
+                    SetOptions.merge()
+            );
+        }
+
+        batch.commit()
+                .addOnSuccessListener(unused -> callback.onSuccess(null))
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    private Map<String, Object> createDefaultRegionData(String regionCode, int monthlyStarsIncrement) {
+        Region defaultRegion = defaultRegionForCode(regionCode);
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", defaultRegion.code);
+        data.put("code", defaultRegion.code);
+        data.put("name", defaultRegion.name);
+        data.put("icon", defaultRegion.icon);
+        data.put("monthlyStars", FieldValue.increment(monthlyStarsIncrement));
+        data.put("firstPlaces", FieldValue.increment(0));
+        data.put("secondPlaces", FieldValue.increment(0));
+        data.put("thirdPlaces", FieldValue.increment(0));
+        data.put("activePlayers", FieldValue.increment(0));
+        data.put("registeredPlayers", FieldValue.increment(0));
+        data.put("previousMonthlyRank", FieldValue.increment(0));
+        return data;
+    }
+
+    private Region defaultRegionForCode(String code) {
+        for (Region region : DEFAULT_REGIONS) {
+            if (region.code.equals(code)) {
+                return region;
+            }
+        }
+        return new Region("RS", "Serbia", "RS");
+    }
+
+    private void ensureRegionDefaults(Region region, String documentId) {
+        if (TextUtils.isEmpty(region.id)) {
+            region.id = documentId;
+        }
+
+        if (TextUtils.isEmpty(region.code)) {
+            region.code = documentId;
+        }
+
+        if (TextUtils.isEmpty(region.name)) {
+            region.name = regionNameForCode(region.code);
+        }
+
+        if (TextUtils.isEmpty(region.icon)) {
+            region.icon = region.code;
+        }
+    }
+
+    private String regionNameForCode(String code) {
+        for (Region region : DEFAULT_REGIONS) {
+            if (region.code.equals(code)) {
+                return region.name;
+            }
+        }
+        return "Serbia";
+    }
+
+    private void incrementRegionRegisteredPlayers(String regionName, FirebaseCallback<Void> callback) {
+        ensureDefaultRegions(new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                db.collection(REGIONS_COLLECTION)
+                        .document(regionCodeForName(regionName))
+                        .update("registeredPlayers", FieldValue.increment(1))
+                        .addOnSuccessListener(unused -> callback.onSuccess(null))
+                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    private int calculateMatchStarDelta(int playerScore, boolean won, boolean lost) {
+        int scoreBonus = Math.max(0, playerScore) / 40;
+
+        if (won) {
+            return 10 + scoreBonus;
+        }
+
+        if (lost) {
+            return scoreBonus - 10;
+        }
+
+        return scoreBonus;
+    }
+
+    private int calculateLeague(int stars) {
+        if (stars >= 1600) {
+            return 5;
+        }
+        if (stars >= 800) {
+            return 4;
+        }
+        if (stars >= 400) {
+            return 3;
+        }
+        if (stars >= 200) {
+            return 2;
+        }
+        if (stars >= 100) {
+            return 1;
+        }
+        return 0;
+    }
+
+    private String frameForPreviousRank(int previousMonthlyRank) {
+        if (previousMonthlyRank == 1) {
+            return "Gold";
+        }
+        if (previousMonthlyRank == 2) {
+            return "Silver";
+        }
+        if (previousMonthlyRank == 3) {
+            return "Bronze";
+        }
+        return null;
+    }
+
+    private int framePriority(String avatarFrame) {
+        if (avatarFrame == null) {
+            return 0;
+        }
+
+        switch (avatarFrame.toLowerCase(Locale.US)) {
+            case "bronze":
+                return 1;
+            case "silver":
+                return 2;
+            case "gold":
+                return 3;
+            case "platinum":
+                return 4;
+            case "diamond":
+                return 5;
+            case "master":
+                return 6;
+            default:
+                return 0;
         }
     }
 
