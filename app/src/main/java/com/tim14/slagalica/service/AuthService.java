@@ -185,11 +185,13 @@ public class AuthService {
                 firestoreRepository.getCurrentUser(new FirebaseCallback<User>() {
                     @Override
                     public void onSuccess(User user) {
+                        firestoreRepository.markCurrentUserLoggedIn();
                         callback.onSuccess(new LoginResult(firebaseUser, user, trimmedLogin));
                     }
 
                     @Override
                     public void onError(String error) {
+                        firestoreRepository.markCurrentUserLoggedIn();
                         callback.onSuccess(new LoginResult(firebaseUser, null, trimmedLogin));
                     }
                 });

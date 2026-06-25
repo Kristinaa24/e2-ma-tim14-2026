@@ -12,9 +12,14 @@ public class User {
     public String avatar;
     public String avatarFrame;
     public String qrCode;
+    public String lastTokenGrantDate;
+    public int earnedStarsSinceLastToken;
     public String lastDailyTokenRewardDate;
-    public long lastActiveAt;
     public boolean loggedIn;
+    public boolean inApp;
+    public String currentMatchId;
+    public long lastSeenAt;
+    public long lastActiveAt;
 
     public User() {
         // Empty constructor required for Firebase
@@ -31,9 +36,14 @@ public class User {
         this.avatar = "avatar_1";
         this.avatarFrame = "None";
         this.qrCode = "Available for friend invite";
+        this.lastTokenGrantDate = "";
+        this.earnedStarsSinceLastToken = 0;
         this.lastDailyTokenRewardDate = "";
-        this.lastActiveAt = 0;
         this.loggedIn = false;
+        this.inApp = false;
+        this.currentMatchId = "";
+        this.lastSeenAt = 0L;
+        this.lastActiveAt = 0L;
     }
 
     public User(String id, String username, String email, String region,
@@ -49,8 +59,13 @@ public class User {
         this.avatar = "avatar_1";
         this.avatarFrame = avatarFrame;
         this.qrCode = qrCode;
+        this.lastTokenGrantDate = "";
+        this.earnedStarsSinceLastToken = 0;
         this.lastDailyTokenRewardDate = "";
-        this.lastActiveAt = 0;
         this.loggedIn = false;
+        this.inApp = false;
+        this.currentMatchId = "";
+        this.lastSeenAt = 0L;
+        this.lastActiveAt = 0L;
     }
 }

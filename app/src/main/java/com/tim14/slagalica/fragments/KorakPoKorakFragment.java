@@ -222,11 +222,13 @@ public class KorakPoKorakFragment extends BaseGameFragment {
             return;
         }
 
-        firestoreRepository.updateKorakPoKorakStatistics(
-                statisticsUpdate.getOpenedClues(),
-                statisticsUpdate.getScore(),
-                statisticsUpdate.isSolved()
-        );
+        if (host().shouldPersistStatistics()) {
+            firestoreRepository.updateKorakPoKorakStatistics(
+                    statisticsUpdate.getOpenedClues(),
+                    statisticsUpdate.getScore(),
+                    statisticsUpdate.isSolved()
+            );
+        }
     }
 
     private void renderRemoteRound() {
@@ -256,6 +258,10 @@ public class KorakPoKorakFragment extends BaseGameFragment {
         SharedKorakPoKorakRound round = activity.getSharedKorakRound(state.currentTurnIndex);
         if (round == null) {
             disableRemoteInteraction();
+            return;
+        }
+
+        if (maybeContinueAfterForfeit(activity, state, round)) {
             return;
         }
 
@@ -296,6 +302,45 @@ public class KorakPoKorakFragment extends BaseGameFragment {
                 );
             }, () -> handleRemoteTimeout(state, round));
         }
+    }
+
+    private boolean maybeContinueAfterForfeit(
+            GameHostActivity activity,
+            SharedMatchState state,
+            SharedKorakPoKorakRound round
+    ) {
+        if (!activity.hasOpponentForfeited() || state.activePlayer != state.forfeitedPlayer) {
+            return false;
+        }
+
+        if (SharedMatchState.PHASE_KPP_STARTER.equals(state.phase)) {
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("phase", SharedMatchState.PHASE_KPP_BONUS);
+            updates.put("activePlayer", activity.getRemainingRemotePlayerNumber());
+            updates.put("phaseStartedAt", System.currentTimeMillis());
+            updates.put("phaseDurationSeconds", 10);
+            updates.put("phaseMessage", getString(
+                    R.string.shared_match_kpp_bonus_phase_format,
+                    state.forfeitedPlayer,
+                    activity.getRemainingRemotePlayerNumber()
+            ));
+            activity.updateSharedMatch(updates);
+            return true;
+        }
+
+        if (SharedMatchState.PHASE_KPP_BONUS.equals(state.phase)) {
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("phase", SharedMatchState.PHASE_KPP_DONE);
+            updates.put("activePlayer", 0);
+            updates.put("phaseStartedAt", System.currentTimeMillis());
+            updates.put("phaseDurationSeconds", 2);
+            updates.put("revealedAnswer", round.answer);
+            updates.put("phaseMessage", getString(R.string.step_by_step_no_bonus_points));
+            activity.updateSharedMatch(updates);
+            return true;
+        }
+
+        return false;
     }
 
     private void submitRemoteAnswer() {
@@ -344,9 +389,13 @@ public class KorakPoKorakFragment extends BaseGameFragment {
         activity.updateSharedMatch(updates);
 
         if (SharedMatchState.PHASE_KPP_BONUS.equals(state.phase)) {
-            firestoreRepository.updateKorakPoKorakStatistics(0, 5, false);
+            if (host().shouldPersistStatistics()) {
+                firestoreRepository.updateKorakPoKorakStatistics(0, 5, false);
+            }
         } else {
-            firestoreRepository.updateKorakPoKorakStatistics(visibleClues, awardedPoints, true);
+            if (host().shouldPersistStatistics()) {
+                firestoreRepository.updateKorakPoKorakStatistics(visibleClues, awardedPoints, true);
+            }
         }
     }
 
@@ -359,7 +408,9 @@ public class KorakPoKorakFragment extends BaseGameFragment {
 
         if (SharedMatchState.PHASE_KPP_STARTER.equals(state.phase)) {
             if (activity.getLocalPlayerNumber() == 1) {
-                firestoreRepository.updateKorakPoKorakStatistics(round.clues.size(), 0, false);
+                if (host().shouldPersistStatistics()) {
+                    firestoreRepository.updateKorakPoKorakStatistics(round.clues.size(), 0, false);
+                }
             }
 
             Map<String, Object> updates = new HashMap<>();
@@ -391,7 +442,7 @@ public class KorakPoKorakFragment extends BaseGameFragment {
     private void scheduleRemoteAdvanceIfCoordinator(SharedMatchState state) {
         GameHostActivity activity = (GameHostActivity) requireActivity();
 
-        if (activity.getLocalPlayerNumber() != 1) {
+        if (!activity.isRemoteProgressCoordinator()) {
             return;
         }
 

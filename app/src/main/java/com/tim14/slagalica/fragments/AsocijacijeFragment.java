@@ -345,17 +345,21 @@ public class AsocijacijeFragment extends BaseGameFragment {
 
     private void handleRoundWin() {
         stopRoundTimer();
-        firestoreRepository.updateAsocijacijeStatistics(
-                true,
-                asocijacijeService.getScoreP1() + asocijacijeService.getScoreP2()
-        );
+        if (host().shouldPersistStatistics()) {
+            firestoreRepository.updateAsocijacijeStatistics(
+                    true,
+                    asocijacijeService.getScoreP1() + asocijacijeService.getScoreP2()
+            );
+        }
         finishRoundAfterDelay();
     }
 
     private void handleRoundTimeout() {
         stopRoundTimer();
         revealAll();
-        firestoreRepository.updateAsocijacijeStatistics(false, 0);
+        if (host().shouldPersistStatistics()) {
+            firestoreRepository.updateAsocijacijeStatistics(false, 0);
+        }
         Toast.makeText(requireContext(), getString(R.string.msg_times_up), Toast.LENGTH_SHORT).show();
         finishRoundAfterDelay();
     }
@@ -400,6 +404,10 @@ public class AsocijacijeFragment extends BaseGameFragment {
             return;
         }
 
+        if (maybeContinueAfterForfeit(activity, state, roundState)) {
+            return;
+        }
+
         applyRemoteBoard(roundState);
         host().setTimerValue(getRemoteRemainingSeconds(state));
         host().setPhaseText(state.phaseMessage);
@@ -417,6 +425,33 @@ public class AsocijacijeFragment extends BaseGameFragment {
         if (getRemoteRemainingSeconds(state) > 0) {
             startRoundTimer(getRemoteRemainingSeconds(state), this::handleRemoteTimeout);
         }
+    }
+
+    private boolean maybeContinueAfterForfeit(
+            GameHostActivity activity,
+            SharedMatchState state,
+            SharedAsocijacijeRound roundState
+    ) {
+        if (!activity.hasOpponentForfeited()
+                || !SharedMatchState.PHASE_ASOC_PLAY.equals(state.phase)
+                || state.activePlayer != state.forfeitedPlayer) {
+            return false;
+        }
+
+        SharedAsocijacijeRound updatedRound = copyRound(roundState);
+        updatedRound.currentPlayer = activity.getRemainingRemotePlayerNumber();
+        List<SharedAsocijacijeRound> allRounds = new ArrayList<>(state.asocijacijeRounds);
+        allRounds.set(state.currentTurnIndex, updatedRound);
+
+        activity.updateSharedMatch(new java.util.HashMap<String, Object>() {{
+            put("asocijacijeRounds", allRounds);
+            put("activePlayer", updatedRound.currentPlayer);
+            put(
+                    "phaseMessage",
+                    getString(R.string.shared_match_asoc_turn_phase_format, updatedRound.currentPlayer)
+            );
+        }});
+        return true;
     }
 
     private void applyRemoteBoard(SharedAsocijacijeRound roundState) {
@@ -692,7 +727,7 @@ public class AsocijacijeFragment extends BaseGameFragment {
 
         if (state == null
                 || roundState == null
-                || activity.getLocalPlayerNumber() != 1
+                || !activity.isRemoteProgressCoordinator()
                 || !SharedMatchState.PHASE_ASOC_PLAY.equals(state.phase)) {
             return;
         }
@@ -708,7 +743,7 @@ public class AsocijacijeFragment extends BaseGameFragment {
 
     private void scheduleRemoteAdvanceIfCoordinator(SharedMatchState state) {
         GameHostActivity activity = (GameHostActivity) requireActivity();
-        if (activity.getLocalPlayerNumber() != 1 || lastScheduledRemoteRound == state.currentTurnIndex) {
+        if (!activity.isRemoteProgressCoordinator() || lastScheduledRemoteRound == state.currentTurnIndex) {
             return;
         }
 
@@ -749,7 +784,9 @@ public class AsocijacijeFragment extends BaseGameFragment {
         int localPlayer = ((GameHostActivity) requireActivity()).getLocalPlayerNumber();
         int localScore = localPlayer == 1 ? roundState.playerOneRoundScore : roundState.playerTwoRoundScore;
         boolean solved = roundState.finalSolver == localPlayer;
-        firestoreRepository.updateAsocijacijeStatistics(solved, localScore);
+        if (host().shouldPersistStatistics()) {
+            firestoreRepository.updateAsocijacijeStatistics(solved, localScore);
+        }
         lastRemoteStatsRound = state.currentTurnIndex;
     }
 

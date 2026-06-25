@@ -14,10 +14,12 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.tabs.TabLayout;
+import com.tim14.slagalica.GameHostActivity;
 import com.tim14.slagalica.R;
 import com.tim14.slagalica.model.Notification;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
+import com.tim14.slagalica.repository.SharedMatchRepository;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,6 +32,7 @@ public class NotificationsFragment extends Fragment {
     private TabLayout tabLayout;
     private String currentFilter = "all";
     private FirestoreRepository firestoreRepository;
+    private SharedMatchRepository sharedMatchRepository;
 
     @Nullable
     @Override
@@ -41,6 +44,7 @@ public class NotificationsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         firestoreRepository = new FirestoreRepository(requireContext());
+        sharedMatchRepository = new SharedMatchRepository();
 
         RecyclerView recyclerView = view.findViewById(R.id.notificationsRecyclerView);
         tabLayout = view.findViewById(R.id.notificationsTabLayout);
@@ -57,6 +61,11 @@ public class NotificationsFragment extends Fragment {
 
             @Override
             public void onAction(Notification notification, boolean positive) {
+                if (notification.type == Notification.Type.INVITE) {
+                    handleInviteAction(notification, positive);
+                    return;
+                }
+
                 String actionText = positive ? "Accepted/Claimed" : "Declined";
                 Toast.makeText(getContext(), actionText + ": " + notification.title, Toast.LENGTH_SHORT).show();
                 notification.read = true;
@@ -184,5 +193,52 @@ public class NotificationsFragment extends Fragment {
             else if (filter.equals("unread") && !n.read) filteredNotifications.add(n);
         }
         adapter.notifyDataSetChanged();
+    }
+
+    private void handleInviteAction(Notification notification, boolean positive) {
+        if (notification == null) {
+            return;
+        }
+
+        if (!positive) {
+            sharedMatchRepository.declineFriendlyInvite(notification);
+            notification.read = true;
+            notification.invitationStatus = "DECLINED";
+            applyFilter(currentFilter);
+            Toast.makeText(getContext(), R.string.friendly_invite_declined_message, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        sharedMatchRepository.acceptFriendlyInvite(notification, new FirebaseCallback<SharedMatchRepository.MatchJoinResult>() {
+            @Override
+            public void onSuccess(SharedMatchRepository.MatchJoinResult result) {
+                if (!isAdded()) {
+                    return;
+                }
+
+                notification.read = true;
+                notification.invitationStatus = "ACCEPTED";
+                applyFilter(currentFilter);
+
+                android.content.Intent intent =
+                        new android.content.Intent(requireContext(), GameHostActivity.class);
+                intent.putExtra("IS_GUEST", false);
+                intent.putExtra(GameHostActivity.EXTRA_REMOTE_MATCH, true);
+                intent.putExtra(GameHostActivity.EXTRA_REMOTE_MATCH_ID, result.matchId);
+                intent.putExtra(GameHostActivity.EXTRA_LOCAL_PLAYER_NUMBER, result.localPlayerNumber);
+                startActivity(intent);
+
+                if (getActivity() != null) {
+                    getActivity().finish();
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                if (isAdded()) {
+                    Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
+                }
+            }
+        });
     }
 }

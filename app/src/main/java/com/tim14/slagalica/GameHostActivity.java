@@ -1,6 +1,7 @@
 package com.tim14.slagalica;
 
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -71,6 +72,8 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     private String remoteMatchId;
     private int localPlayerNumber;
     private long lastAppliedRemoteUpdatedAt;
+    private long lastObservedRemoteMatchStartedAt;
+    private int lastObservedForfeitedPlayer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -167,6 +170,7 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     public void goToRound(GameRound round, Bundle args) {
         markCurrentUserActive();
         currentRound = round;
+        btnQuitMatch.setVisibility(round == GameRound.RESULT ? View.GONE : View.VISIBLE);
 
         if (round == GameRound.RESULT) {
             recordMatchResult();
@@ -240,18 +244,26 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         }
 
         if (remoteMatchMode) {
-            boolean won;
-            boolean lost;
+            matchResultRecorded = true;
 
-            if (localPlayerNumber == 1) {
-                won = playerOneScore > playerTwoScore;
-                lost = playerOneScore < playerTwoScore;
-            } else {
-                won = playerTwoScore > playerOneScore;
-                lost = playerTwoScore < playerOneScore;
+            if (isFriendlyMatch()) {
+                firestoreRepository.clearCurrentUserMatch();
+                loadUserStatus();
+                return;
             }
 
-            recordMatchStatistics(won, lost, !friendlyMatch);
+            sharedMatchRepository.finalizeMatchIfNeeded(remoteMatchId, new FirebaseCallback<SharedMatchRepository.MatchFinalizationResult>() {
+                @Override
+                public void onSuccess(SharedMatchRepository.MatchFinalizationResult result) {
+                    loadUserStatus();
+                }
+
+                @Override
+                public void onError(String error) {
+                    matchResultRecorded = false;
+                    Toast.makeText(GameHostActivity.this, error, Toast.LENGTH_SHORT).show();
+                }
+            });
             return;
         }
 
@@ -276,6 +288,26 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
 
     @Override
     public void finishMatch() {
+        if (remoteMatchMode) {
+            if (sharedMatchState != null
+                    && SharedMatchState.STATUS_WAITING.equals(sharedMatchState.status)
+                    && localPlayerNumber == 1) {
+                cancelPendingRemoteMatch();
+            }
+
+            if (sharedMatchState != null
+                    && currentRound == GameRound.RESULT
+                    && SharedMatchState.STATUS_FINISHED.equals(sharedMatchState.status)) {
+                if (sharedMatchState.rematchRequestedBy == localPlayerNumber) {
+                    cancelPendingRemoteRematchRequest();
+                } else if (sharedMatchState.rematchRequestedBy != 0) {
+                    declinePendingRemoteRematchRequest();
+                }
+            }
+
+            firestoreRepository.clearCurrentUserMatch();
+        }
+
         if (sharedMatchListener != null) {
             sharedMatchListener.remove();
             sharedMatchListener = null;
@@ -305,6 +337,13 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
                 .setMessage(R.string.quit_confirmation_message)
                 .setPositiveButton(R.string.yes, (dialog, which) -> {
                     if (remoteMatchMode) {
+                        if (sharedMatchState != null
+                                && SharedMatchState.STATUS_WAITING.equals(sharedMatchState.status)) {
+                            cancelPendingRemoteMatch();
+                            finishMatch();
+                            return;
+                        }
+
                         surrenderRemoteMatch();
                         return;
                     }
@@ -386,6 +425,52 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
 
     public boolean isRemoteMatchMode() {
         return remoteMatchMode;
+    }
+
+    @Override
+    public boolean shouldPersistStatistics() {
+        return !isGuest && !isFriendlyMatch();
+    }
+
+    @Override
+    public boolean isFriendlyMatch() {
+        return friendlyMatch
+                || (sharedMatchState != null
+                && SharedMatchState.MATCH_TYPE_FRIENDLY.equals(sharedMatchState.matchType));
+    }
+
+    public boolean hasForfeitedPlayer() {
+        return sharedMatchState != null && sharedMatchState.forfeitedPlayer != 0;
+    }
+
+    public int getForfeitedPlayerNumber() {
+        return sharedMatchState == null ? 0 : sharedMatchState.forfeitedPlayer;
+    }
+
+    public boolean hasOpponentForfeited() {
+        return hasForfeitedPlayer() && sharedMatchState.forfeitedPlayer != localPlayerNumber;
+    }
+
+    public int getRemainingRemotePlayerNumber() {
+        if (!hasForfeitedPlayer()) {
+            return 0;
+        }
+
+        return sharedMatchState.forfeitedPlayer == 1 ? 2 : 1;
+    }
+
+    public boolean isRemoteProgressCoordinator() {
+        if (!remoteMatchMode) {
+            return false;
+        }
+
+        return hasForfeitedPlayer()
+                ? localPlayerNumber == getRemainingRemotePlayerNumber()
+                : localPlayerNumber == 1;
+    }
+
+    public boolean isRemotePlayerAvailable(int playerNumber) {
+        return !hasForfeitedPlayer() || sharedMatchState.forfeitedPlayer != playerNumber;
     }
 
     public int getLocalPlayerNumber() {
@@ -501,6 +586,18 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
             return;
         }
 
+        if (SharedMatchState.STATUS_DECLINED.equals(state.status)) {
+            Toast.makeText(this, state.phaseMessage, Toast.LENGTH_SHORT).show();
+            finishMatch();
+            return;
+        }
+
+        if (SharedMatchState.STATUS_CANCELED.equals(state.status)) {
+            Toast.makeText(this, state.phaseMessage, Toast.LENGTH_SHORT).show();
+            finishMatch();
+            return;
+        }
+
         if (state.playerOneName != null && !state.playerOneName.trim().isEmpty()) {
             tvPlayerOneName.setText(state.playerOneName);
         }
@@ -509,10 +606,13 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
             tvPlayerTwoName.setText(state.playerTwoName);
         }
 
+        applyForfeitUi(state);
+
         setScores(state.playerOneScore, state.playerTwoScore);
         setTimerValue(getRemainingSeconds(state));
         setPhaseText(buildRemotePhaseText(state));
-        tvMatchMeta.setText(getString(R.string.shared_match_meta_format, state.roomCode, localPlayerNumber));
+        tvMatchMeta.setText(getString(R.string.shared_match_you_are_player_format, localPlayerNumber));
+        maybeRefreshStatusAfterRemoteMatchStart(state);
 
         if (state.updatedAt == lastAppliedRemoteUpdatedAt && currentRound != null) {
             return;
@@ -526,6 +626,26 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         }
 
         goToRound(nextRound, null);
+    }
+
+    private void applyForfeitUi(SharedMatchState state) {
+        if (state == null || state.forfeitedPlayer == 0) {
+            lastObservedForfeitedPlayer = 0;
+            return;
+        }
+
+        if (state.forfeitedPlayer == 1) {
+            tvPlayerOneName.setText(R.string.shared_match_player_left_label);
+        } else if (state.forfeitedPlayer == 2) {
+            tvPlayerTwoName.setText(R.string.shared_match_player_left_label);
+        }
+
+        if (state.forfeitedPlayer != localPlayerNumber
+                && state.forfeitedPlayer != lastObservedForfeitedPlayer) {
+            Toast.makeText(this, R.string.shared_match_opponent_left_toast, Toast.LENGTH_SHORT).show();
+        }
+
+        lastObservedForfeitedPlayer = state.forfeitedPlayer;
     }
 
     private String buildRemotePhaseText(SharedMatchState state) {
@@ -649,6 +769,20 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     }
 
     private void restartRemoteMatch() {
+        if (sharedMatchState == null) {
+            return;
+        }
+
+        if (sharedMatchState.rematchRequestedBy == 0) {
+            requestRemoteRematch();
+            return;
+        }
+
+        if (sharedMatchState.rematchRequestedBy == localPlayerNumber) {
+            Toast.makeText(this, R.string.rematch_waiting_for_response, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         matchResultRecorded = false;
         sharedMatchRepository.resetStudentOneMatch(remoteMatchId, sharedMatchState);
     }
@@ -661,25 +795,102 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
 
         Map<String, Object> updates = new HashMap<>();
         int surrenderedPlayer = localPlayerNumber;
-        int winnerPlayer = surrenderedPlayer == 1 ? 2 : 1;
+        int continuingPlayer = surrenderedPlayer == 1 ? 2 : 1;
 
-        updates.put("currentRound", GameRound.RESULT.name());
-        updates.put("phase", SharedMatchState.PHASE_RESULT);
-        updates.put("status", SharedMatchState.STATUS_FINISHED);
-        updates.put("activePlayer", 0);
-        updates.put("phaseStartedAt", System.currentTimeMillis());
-        updates.put("phaseDurationSeconds", 0);
-        updates.put("phaseMessage", getString(R.string.shared_match_surrender_phase_format, winnerPlayer));
+        updates.put("forfeitedPlayer", surrenderedPlayer);
+        updates.put(
+                "phaseMessage",
+                getString(
+                        R.string.shared_match_opponent_left_continue_phase_format,
+                        surrenderedPlayer,
+                        continuingPlayer
+                )
+        );
         updateSharedMatch(updates);
 
-        recordMatchStatistics(false, true, false);
         Toast.makeText(this, R.string.match_surrendered_message, Toast.LENGTH_SHORT).show();
+        finishMatch();
+    }
+
+    private void cancelPendingRemoteMatch() {
+        if (remoteMatchId == null || sharedMatchState == null) {
+            return;
+        }
+
+        if (isFriendlyMatch()) {
+            sharedMatchRepository.cancelPendingFriendlyInvite(remoteMatchId);
+        } else {
+            sharedMatchRepository.cancelWaitingCompetitiveMatch(remoteMatchId);
+        }
+    }
+
+    private void requestRemoteRematch() {
+        if (remoteMatchId == null || sharedMatchState == null) {
+            return;
+        }
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("rematchRequestedBy", localPlayerNumber);
+        updates.put("rematchDeclinedBy", 0);
+        updates.put("phaseMessage", getString(R.string.rematch_requested_phase_format, localPlayerNumber));
+        updateSharedMatch(updates);
+    }
+
+    private void cancelPendingRemoteRematchRequest() {
+        if (remoteMatchId == null || sharedMatchState == null || sharedMatchState.rematchRequestedBy == 0) {
+            return;
+        }
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("rematchRequestedBy", 0);
+        updates.put("rematchDeclinedBy", 0);
+        updates.put("phaseMessage", getString(R.string.match_result_phase));
+        updateSharedMatch(updates);
+    }
+
+    private void declinePendingRemoteRematchRequest() {
+        if (remoteMatchId == null || sharedMatchState == null || sharedMatchState.rematchRequestedBy == 0) {
+            return;
+        }
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("rematchRequestedBy", 0);
+        updates.put("rematchDeclinedBy", localPlayerNumber);
+        updates.put("phaseMessage", getString(R.string.rematch_declined_phase_format, localPlayerNumber));
+        updateSharedMatch(updates);
+    }
+
+    private void maybeRefreshStatusAfterRemoteMatchStart(SharedMatchState state) {
+        if (state == null || state.matchStartedAt <= 0 || state.matchStartedAt == lastObservedRemoteMatchStartedAt) {
+            return;
+        }
+
+        lastObservedRemoteMatchStartedAt = state.matchStartedAt;
+
+        if (!isGuest) {
+            loadUserStatus();
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        if (!isGuest) {
+            firestoreRepository.markCurrentUserLoggedIn();
+            firestoreRepository.markCurrentUserInApp(true);
+            if (remoteMatchMode && remoteMatchId != null && !remoteMatchId.trim().isEmpty()) {
+                firestoreRepository.setCurrentUserMatch(remoteMatchId);
+            }
+        }
         markCurrentUserActive();
+    }
+
+    @Override
+    protected void onPause() {
+        if (!isGuest) {
+            firestoreRepository.markCurrentUserInApp(false);
+        }
+        super.onPause();
     }
 
     @Override

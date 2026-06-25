@@ -11,12 +11,14 @@ import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
 import com.tim14.slagalica.HomeActivity;
+import com.tim14.slagalica.NotificationsActivity;
 import com.tim14.slagalica.R;
 import com.tim14.slagalica.repository.FirestoreRepository;
 
 public class NotificationHelper {
 
     public static final String CHANNEL_CHAT = "chat_notifications";
+    public static final String CHANNEL_INVITES = "invite_notifications";
     public static final String CHANNEL_RANKING = "ranking_notifications";
     public static final String CHANNEL_REWARDS = "rewards_notifications";
     public static final String CHANNEL_OTHER = "other_notifications";
@@ -27,11 +29,13 @@ public class NotificationHelper {
             if (manager == null) return;
 
             NotificationChannel chatChannel = new NotificationChannel(CHANNEL_CHAT, "Chat Messages", NotificationManager.IMPORTANCE_DEFAULT);
+            NotificationChannel inviteChannel = new NotificationChannel(CHANNEL_INVITES, "Match Invites", NotificationManager.IMPORTANCE_HIGH);
             NotificationChannel rankingChannel = new NotificationChannel(CHANNEL_RANKING, "Ranking Updates", NotificationManager.IMPORTANCE_LOW);
             NotificationChannel rewardsChannel = new NotificationChannel(CHANNEL_REWARDS, "Rewards & Missions", NotificationManager.IMPORTANCE_HIGH);
             NotificationChannel otherChannel = new NotificationChannel(CHANNEL_OTHER, "Other Notifications", NotificationManager.IMPORTANCE_DEFAULT);
 
             manager.createNotificationChannel(chatChannel);
+            manager.createNotificationChannel(inviteChannel);
             manager.createNotificationChannel(rankingChannel);
             manager.createNotificationChannel(rewardsChannel);
             manager.createNotificationChannel(otherChannel);
@@ -51,10 +55,14 @@ public class NotificationHelper {
     ) {
         String channelId = getChannelIdByType(type);
 
-        // Intent to open HomeActivity when clicked
-        Intent intent = new Intent(context, HomeActivity.class);
-        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        intent.putExtra("TARGET_SECTION", getTargetSectionByType(type));
+        Intent intent;
+        if ("INVITE".equalsIgnoreCase(type)) {
+            intent = new Intent(context, NotificationsActivity.class);
+        } else {
+            intent = new Intent(context, HomeActivity.class);
+            intent.putExtra("TARGET_SECTION", getTargetSectionByType(type));
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
 
         PendingIntent pendingIntent = PendingIntent.getActivity(
                 context, 
@@ -67,7 +75,9 @@ public class NotificationHelper {
                 .setSmallIcon(R.drawable.baseline_person_24) // Replace with app icon later
                 .setContentTitle(title)
                 .setContentText(message)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+                .setPriority("INVITE".equalsIgnoreCase(type)
+                        ? NotificationCompat.PRIORITY_HIGH
+                        : NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)
                 .setAutoCancel(true);
 
@@ -79,7 +89,7 @@ public class NotificationHelper {
         }
 
         if (saveToHistory) {
-            // Save to Firebase so the user can see it in the in-app notification history
+            // Save to Firebase so the user can see it in the in-app notification history.
             new FirestoreRepository().saveNotification(title, message, type);
         }
     }
@@ -88,6 +98,7 @@ public class NotificationHelper {
         if (type == null) return CHANNEL_OTHER;
         switch (type.toUpperCase()) {
             case "CHAT": return CHANNEL_CHAT;
+            case "INVITE": return CHANNEL_INVITES;
             case "RANKING": return CHANNEL_RANKING;
             case "REWARD": return CHANNEL_REWARDS;
             default: return CHANNEL_OTHER;

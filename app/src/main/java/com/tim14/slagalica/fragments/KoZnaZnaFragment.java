@@ -288,11 +288,13 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         disableAnswerButtons();
         playerTwoAnswerButton.setEnabled(false);
 
-        firestoreRepository.updateKoZnaZnaStatistics(
-                koZnaZnaService.getCorrectAnswers(),
-                koZnaZnaService.getWrongAnswers(),
-                koZnaZnaService.getTotalScore()
-        );
+        if (host().shouldPersistStatistics()) {
+            firestoreRepository.updateKoZnaZnaStatistics(
+                    koZnaZnaService.getCorrectAnswers(),
+                    koZnaZnaService.getWrongAnswers(),
+                    koZnaZnaService.getTotalScore()
+            );
+        }
 
         host().setScores(
                 koZnaZnaService.getPlayerOneScore(),
@@ -348,9 +350,21 @@ public class KoZnaZnaFragment extends BaseGameFragment {
 
         GameHostActivity activity = (GameHostActivity) requireActivity();
         SharedMatchState state = activity.getSharedMatchState();
-        KoZnaZnaQuestion question = state == null ? null : activity.getSharedQuizQuestion(state.currentTurnIndex);
+        if (state == null) {
+            disableAnswerButtons();
+            questionText.setText(getString(R.string.loading_questions));
+            return;
+        }
 
-        if (state == null || question == null) {
+        if (SharedMatchState.STATUS_WAITING.equals(state.status)
+                || SharedMatchState.PHASE_WAITING.equals(state.phase)) {
+            renderWaitingForOpponentState();
+            return;
+        }
+
+        KoZnaZnaQuestion question = activity.getSharedQuizQuestion(state.currentTurnIndex);
+
+        if (question == null) {
             disableAnswerButtons();
             questionText.setText(getString(R.string.loading_questions));
             return;
@@ -379,6 +393,18 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         );
     }
 
+    private void renderWaitingForOpponentState() {
+        questionCounterText.setText("");
+        questionTimerText.setText(getString(R.string.question_time_format, 0));
+        questionText.setText(getString(R.string.shared_match_waiting_phase));
+        ruleInfoText.setText(getString(R.string.shared_match_wait_turn_hint));
+        answerAButton.setText("");
+        answerBButton.setText("");
+        answerCButton.setText("");
+        answerDButton.setText("");
+        disableAnswerButtons();
+    }
+
     private void submitRemoteAnswer(int selectedIndex) {
         GameHostActivity activity = (GameHostActivity) requireActivity();
         SharedMatchState state = activity.getSharedMatchState();
@@ -401,11 +427,13 @@ public class KoZnaZnaFragment extends BaseGameFragment {
                             return;
                         }
 
-                        firestoreRepository.updateKoZnaZnaStatistics(
-                                outcome.correct ? 1 : 0,
-                                outcome.correct ? 0 : 1,
-                                outcome.points
-                        );
+                        if (host().shouldPersistStatistics()) {
+                            firestoreRepository.updateKoZnaZnaStatistics(
+                                    outcome.correct ? 1 : 0,
+                                    outcome.correct ? 0 : 1,
+                                    outcome.points
+                            );
+                        }
                     }
 
                     @Override
@@ -423,7 +451,7 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         SharedMatchState state = activity.getSharedMatchState();
 
         if (state == null
-                || activity.getLocalPlayerNumber() != 1
+                || !activity.isRemoteProgressCoordinator()
                 || !SharedMatchState.PHASE_KZZ_QUESTION.equals(state.phase)
                 || activity.getRemoteMatchId() == null) {
             return;
@@ -451,7 +479,7 @@ public class KoZnaZnaFragment extends BaseGameFragment {
     private void scheduleRemoteAdvanceIfCoordinator(SharedMatchState state) {
         GameHostActivity activity = (GameHostActivity) requireActivity();
 
-        if (activity.getLocalPlayerNumber() != 1 || lastScheduledRevealIndex == state.currentTurnIndex) {
+        if (!activity.isRemoteProgressCoordinator() || lastScheduledRevealIndex == state.currentTurnIndex) {
             return;
         }
 

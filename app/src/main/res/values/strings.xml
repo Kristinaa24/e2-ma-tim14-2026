@@ -245,6 +245,7 @@
     <string name="my_number_player_one_expression_title">PLAYER 1 EXPRESSION</string>
     <string name="my_number_player_two_expression_title">PLAYER 2 EXPRESSION</string>
     <string name="my_number_preview_round">Submit round</string>
+    <string name="my_number_submitted">Submitted</string>
     <string name="my_number_clear_active">Delete</string>
     <string name="my_number_current_preview_title">Current preview</string>
     <string name="my_number_rules_extended">Stop the target first, then stop the offered numbers. If you do not press STOP within 5 seconds, values lock automatically. You can also lock them with a shake gesture.</string>
@@ -388,6 +389,7 @@
     <string name="friends_filter_online">Online</string>
     <string name="friend_status_online">Online</string>
     <string name="friend_status_offline">Offline</string>
+    <string name="friend_status_in_match">In match</string>
     <string name="friend_name_1">Ana</string>
     <string name="friend_name_2">Mina</string>
     <string name="friend_name_3">Teodora</string>
@@ -407,6 +409,12 @@
     <string name="friend_invite_initial">+</string>
     <string name="friend_invite_title">Invite a friend</string>
     <string name="friend_invite_subtitle">Send a new match invite</string>
+    <string name="friend_invite_action">Invite</string>
+    <string name="matchmaking_waiting_message">Searching for another player...</string>
+    <string name="friend_busy_in_match_message">This player is already in a match.</string>
+    <string name="friend_offline_invite_message">This player is offline right now.</string>
+    <string name="friendly_invite_sent_message">Friendly invite sent.</string>
+    <string name="friendly_invite_declined_message">Friendly invite declined.</string>
     <string name="phase_waiting_for_round">Next round starts soon</string>
     <string name="placeholder_round_title">ROUND</string>
     <string name="placeholder_round_default_title">Round</string>
@@ -494,6 +502,15 @@
     <string name="match_result_draw">Result: Draw</string>
     <string name="back_to_main_room">Back to main room</string>
     <string name="play_rematch">Rematch</string>
+    <string name="rematch_requested_button">Requested</string>
+    <string name="rematch_accept_button">Accept rematch</string>
+    <string name="rematch_cancel_request">Cancel request</string>
+    <string name="rematch_waiting_for_opponent_message">Rematch request sent. Waiting for the other player to answer.</string>
+    <string name="rematch_requested_by_player_format">Player %1$d requested a rematch.</string>
+    <string name="rematch_declined_by_player_format">Player %1$d declined the rematch request.</string>
+    <string name="rematch_requested_phase_format">Player %1$d requested a rematch.</string>
+    <string name="rematch_declined_phase_format">Player %1$d declined the rematch request.</string>
+    <string name="rematch_waiting_for_response">Waiting for the other player to answer the rematch request.</string>
     <string name="friend_invite_subtitle_home">Send a new match invite</string>
     <string name="notification_type_placeholder">Notification type</string>
     <string name="notification_date_placeholder">12/05/2024 14:30</string>
@@ -539,6 +556,7 @@
     <string name="shared_match_join_title">Join room</string>
     <string name="shared_match_room_code_hint">Enter room code</string>
     <string name="shared_match_missing_id">Shared match ID is missing.</string>
+    <string name="shared_match_you_are_player_format">You are Player %1$d</string>
     <string name="shared_match_meta_format">Code: %1$s  •  You are Player %2$d</string>
     <string name="shared_match_waiting_phase">Waiting for player 2</string>
     <string name="shared_match_wait_turn_hint">Wait for your turn on the other device.</string>
@@ -570,6 +588,9 @@
     <string name="shared_match_mb_entry_phase_format">Player %1$d enters the expression for round %2$d/2.</string>
     <string name="shared_match_mb_done_phase_format">Round finished. Points: Player 1 +%1$d, Player 2 +%2$d.</string>
     <string name="shared_match_surrender_phase_format">Player %1$d wins because the other player quit the match.</string>
+    <string name="shared_match_opponent_left_continue_phase_format">Player %1$d quit the match. Player %2$d continues.</string>
+    <string name="shared_match_player_left_label">Player left</string>
+    <string name="shared_match_opponent_left_toast">The other player left the match. You continue playing.</string>
     <string name="join">Join</string>
     <string name="cancel">Cancel</string>
     <string name="regions_title">Regions of Serbia</string>

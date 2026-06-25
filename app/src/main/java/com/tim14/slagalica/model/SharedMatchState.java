@@ -8,6 +8,8 @@ public class SharedMatchState {
     public static final String STATUS_WAITING = "WAITING";
     public static final String STATUS_ACTIVE = "ACTIVE";
     public static final String STATUS_FINISHED = "FINISHED";
+    public static final String STATUS_DECLINED = "DECLINED";
+    public static final String STATUS_CANCELED = "CANCELED";
 
     public static final String PHASE_WAITING = "WAITING";
     public static final String PHASE_KZZ_QUESTION = "KZZ_QUESTION";
@@ -27,9 +29,12 @@ public class SharedMatchState {
     public static final String PHASE_MB_ENTRY = "MB_ENTRY";
     public static final String PHASE_MB_DONE = "MB_DONE";
     public static final String PHASE_RESULT = "RESULT";
+    public static final String MATCH_TYPE_COMPETITIVE = "COMPETITIVE";
+    public static final String MATCH_TYPE_FRIENDLY = "FRIENDLY";
 
     public String roomCode;
     public String status;
+    public String matchType;
     public String currentRound;
     public String phase;
     public String playerOneId;
@@ -48,6 +53,11 @@ public class SharedMatchState {
     public String revealedAnswer;
     public String playerOneExpression;
     public String playerTwoExpression;
+    public boolean resultApplied;
+    public int forfeitedPlayer;
+    public int rematchRequestedBy;
+    public int rematchDeclinedBy;
+    public long matchStartedAt;
     public long updatedAt;
     public List<KoZnaZnaQuestion> quizQuestions;
     public List<SharedSpojniceRound> spojniceRounds;
@@ -57,11 +67,17 @@ public class SharedMatchState {
     public List<SharedMojBrojRound> myNumberRounds;
 
     public SharedMatchState() {
+        matchType = MATCH_TYPE_COMPETITIVE;
         quizQuestions = new ArrayList<>();
         spojniceRounds = new ArrayList<>();
         skockoRounds = new ArrayList<>();
         asocijacijeRounds = new ArrayList<>();
         korakRounds = new ArrayList<>();
         myNumberRounds = new ArrayList<>();
+        resultApplied = false;
+        forfeitedPlayer = 0;
+        rematchRequestedBy = 0;
+        rematchDeclinedBy = 0;
+        matchStartedAt = 0L;
     }
 }

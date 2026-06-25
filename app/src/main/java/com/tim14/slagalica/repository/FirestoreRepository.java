@@ -8,6 +8,7 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.WriteBatch;
 import com.tim14.slagalica.LeagueUtils;
@@ -22,6 +23,8 @@ import com.tim14.slagalica.model.User;
 import com.tim14.slagalica.service.NotificationHelper;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -105,7 +108,14 @@ public class FirestoreRepository {
                 uid
         );
         user.avatar = "avatar_1";
+        user.lastTokenGrantDate = todayKey();
+        user.earnedStarsSinceLastToken = 0;
         user.lastDailyTokenRewardDate = currentDailyRewardDate();
+        user.loggedIn = false;
+        user.inApp = false;
+        user.currentMatchId = "";
+        user.lastSeenAt = System.currentTimeMillis();
+        user.lastActiveAt = 0L;
 
         PlayerStatistics statistics = new PlayerStatistics(uid);
 
@@ -245,6 +255,7 @@ public class FirestoreRepository {
                 .document(userId)
                 .update(
                         "lastActiveAt", System.currentTimeMillis(),
+                        "lastSeenAt", System.currentTimeMillis(),
                         "loggedIn", true
                 )
                 .addOnSuccessListener(unused -> callback.onSuccess(null))
@@ -264,8 +275,11 @@ public class FirestoreRepository {
         db.collection(USERS_COLLECTION)
                 .document(userId)
                 .update(
-                        "lastActiveAt", 0,
-                        "loggedIn", false
+                        "lastActiveAt", 0L,
+                        "lastSeenAt", System.currentTimeMillis(),
+                        "loggedIn", false,
+                        "inApp", false,
+                        "currentMatchId", ""
                 )
                 .addOnSuccessListener(unused -> callback.onSuccess(null))
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
@@ -632,31 +646,85 @@ public class FirestoreRepository {
                 || user.qrCode.equals("Available for friend invite")) {
             user.qrCode = user.id;
         }
+        if (TextUtils.isEmpty(user.lastTokenGrantDate)) {
+            user.lastTokenGrantDate = todayKey();
+        }
+
+        if (user.earnedStarsSinceLastToken < 0) {
+            user.earnedStarsSinceLastToken = 0;
+        }
+
+        if (TextUtils.isEmpty(user.lastDailyTokenRewardDate)) {
+            user.lastDailyTokenRewardDate = user.lastTokenGrantDate;
+        }
+
+        if (user.currentMatchId == null) {
+            user.currentMatchId = "";
+        }
+
+        if (user.lastSeenAt < 0) {
+            user.lastSeenAt = 0L;
+        }
+
+        if (user.lastActiveAt < 0) {
+            user.lastActiveAt = 0L;
+        }
 
         user.stars = Math.max(0, user.stars);
         user.monthlyStars = Math.max(0, user.monthlyStars);
         user.league = LeagueUtils.calculateLeague(user.stars);
         migrateLegacyInitialTokens(user);
-        if (TextUtils.isEmpty(user.lastDailyTokenRewardDate)) {
-            user.lastDailyTokenRewardDate = "";
+    }
+
+    private List<User> extractOtherUsers(List<DocumentSnapshot> documents, String currentUserId) {
+        List<User> users = new ArrayList<>();
+
+        for (DocumentSnapshot document : documents) {
+            if (currentUserId.equals(document.getId())) {
+                continue;
+            }
+
+            User user = document.toObject(User.class);
+            if (user == null) {
+                continue;
+            }
+
+            ensureUserDefaults(user, document.getId());
+            users.add(user);
         }
+
+        return users;
     }
 
     private void migrateLegacyInitialTokens(User user) {
         if (user.tokens >= 200 && user.stars < LeagueUtils.getRequiredStars(1)) {
             user.tokens = LeagueUtils.INITIAL_REGISTRATION_TOKENS;
+            user.lastTokenGrantDate = todayKey();
             user.lastDailyTokenRewardDate = currentDailyRewardDate();
         }
     }
 
     private boolean applyDailyTokenGrant(User user) {
-        String today = currentDailyRewardDate();
-        if (today.equals(user.lastDailyTokenRewardDate)) {
+        LocalDate today = LocalDate.now();
+        LocalDate lastGrantDate;
+
+        try {
+            lastGrantDate = LocalDate.parse(user.lastTokenGrantDate);
+        } catch (Exception exception) {
+            user.lastTokenGrantDate = today.toString();
+            user.lastDailyTokenRewardDate = currentDailyRewardDate();
             return false;
         }
 
-        user.tokens += LeagueUtils.getDailyTokenGrant(user.league);
-        user.lastDailyTokenRewardDate = today;
+        long daysBetween = ChronoUnit.DAYS.between(lastGrantDate, today);
+        if (daysBetween <= 0) {
+            user.lastDailyTokenRewardDate = currentDailyRewardDate();
+            return false;
+        }
+
+        user.tokens += (int) (daysBetween * LeagueUtils.BASE_DAILY_TOKENS);
+        user.lastTokenGrantDate = today.toString();
+        user.lastDailyTokenRewardDate = currentDailyRewardDate();
         return true;
     }
 
@@ -1282,6 +1350,20 @@ public class FirestoreRepository {
             return;
         }
 
+        saveNotificationForUser(userId, title, message, type, null);
+    }
+
+    public void saveNotificationForUser(
+            String userId,
+            String title,
+            String message,
+            String type,
+            Map<String, Object> extras
+    ) {
+        if (TextUtils.isEmpty(userId)) {
+            return;
+        }
+
         Map<String, Object> data = new HashMap<>();
         data.put("userId", userId);
         data.put("title", title);
@@ -1290,6 +1372,10 @@ public class FirestoreRepository {
         data.put("timestamp", new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(new Date()));
         data.put("read", false);
         data.put("createdAt", System.currentTimeMillis());
+
+        if (extras != null && !extras.isEmpty()) {
+            data.putAll(extras);
+        }
 
         db.collection(NOTIFICATIONS_COLLECTION)
                 .add(data)
@@ -1409,7 +1495,121 @@ public class FirestoreRepository {
         Long createdAt = doc.getLong("createdAt");
         n.createdAt = createdAt != null ? createdAt : 0L;
         n.userId = doc.getString("userId");
+        n.senderId = doc.getString("senderId");
+        n.senderName = doc.getString("senderName");
+        n.relatedMatchId = doc.getString("relatedMatchId");
+        n.invitationStatus = doc.getString("invitationStatus");
+        Boolean friendlyMatch = doc.getBoolean("friendlyMatch");
+        n.friendlyMatch = friendlyMatch != null && friendlyMatch;
+        Long expiresAt = doc.getLong("expiresAt");
+        n.expiresAt = expiresAt != null ? expiresAt : 0L;
         return n;
+    }
+
+    public void updateNotificationInviteStatus(
+            String notificationId,
+            String invitationStatus,
+            boolean read
+    ) {
+        if (TextUtils.isEmpty(notificationId)) {
+            return;
+        }
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("invitationStatus", invitationStatus);
+        updates.put("read", read);
+
+        db.collection(NOTIFICATIONS_COLLECTION)
+                .document(notificationId)
+                .update(updates)
+                .addOnFailureListener(e -> Log.w(TAG, "Error updating notification status", e));
+    }
+
+    public void getUserById(String userId, FirebaseCallback<User> callback) {
+        if (TextUtils.isEmpty(userId)) {
+            callback.onError("User was not found.");
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    User user = documentSnapshot.toObject(User.class);
+
+                    if (user == null) {
+                        callback.onError("User was not found.");
+                        return;
+                    }
+
+                    ensureUserDefaults(user, userId);
+                    callback.onSuccess(user);
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void getOtherUsers(FirebaseCallback<List<User>> callback) {
+        String currentUserId;
+
+        try {
+            currentUserId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .get()
+                .addOnSuccessListener(querySnapshot ->
+                        callback.onSuccess(extractOtherUsers(querySnapshot.getDocuments(), currentUserId))
+                )
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public ListenerRegistration listenToOtherUsers(FirebaseCallback<List<User>> callback) {
+        String currentUserId;
+
+        try {
+            currentUserId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return null;
+        }
+
+        return db.collection(USERS_COLLECTION)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+
+                    if (snapshot == null) {
+                        callback.onSuccess(new ArrayList<>());
+                        return;
+                    }
+
+                    callback.onSuccess(extractOtherUsers(snapshot.getDocuments(), currentUserId));
+                });
+    }
+
+    public void markCurrentUserLoggedIn() {
+        updateCurrentUserPresence(Boolean.TRUE, null, null, null);
+    }
+
+    public void markCurrentUserInApp(boolean inApp) {
+        updateCurrentUserPresence(null, inApp, null, null);
+    }
+
+    public void setCurrentUserMatch(String matchId) {
+        updateCurrentUserPresence(null, null, matchId, null);
+    }
+
+    public void clearCurrentUserMatch() {
+        updateCurrentUserPresence(null, null, "", null);
+    }
+
+    public void markCurrentUserLoggedOut(FirebaseCallback<Void> callback) {
+        markCurrentUserInactive(callback);
     }
 
     private String requireUserId() {
@@ -1439,5 +1639,57 @@ public class FirestoreRepository {
 
     private String text(int resId, String fallback) {
         return context != null ? context.getString(resId) : fallback;
+    }
+
+    private boolean applyDailyTokenGrantIfNeeded(User user) {
+        return applyDailyTokenGrant(user);
+    }
+
+    private void updateCurrentUserPresence(
+            Boolean loggedIn,
+            Boolean inApp,
+            String currentMatchId,
+            FirebaseCallback<Void> callback
+    ) {
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            if (callback != null) {
+                callback.onError(e.getMessage());
+            }
+            return;
+        }
+
+        Map<String, Object> updates = new HashMap<>();
+        if (loggedIn != null) {
+            updates.put("loggedIn", loggedIn);
+        }
+        if (inApp != null) {
+            updates.put("inApp", inApp);
+        }
+        if (currentMatchId != null) {
+            updates.put("currentMatchId", currentMatchId);
+        }
+        updates.put("lastSeenAt", System.currentTimeMillis());
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .set(updates, SetOptions.merge())
+                .addOnSuccessListener(unused -> {
+                    if (callback != null) {
+                        callback.onSuccess(null);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) {
+                        callback.onError(e.getMessage());
+                    }
+                });
+    }
+
+    private String todayKey() {
+        return LocalDate.now().toString();
     }
 }
