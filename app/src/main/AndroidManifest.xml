@@ -41,6 +41,9 @@
             android:name=".NotificationsActivity"
             android:exported="false" />
         <activity
+            android:name=".RegionalChatActivity"
+            android:exported="false" />
+        <activity
             android:name=".RegionMapActivity"
             android:exported="false" />
 

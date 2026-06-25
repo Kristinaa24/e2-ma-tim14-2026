@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.Application;
 import android.os.Bundle;
 
+import com.tim14.slagalica.service.ChatNotificationWatcher;
 import com.tim14.slagalica.service.InviteNotificationWatcher;
 import com.tim14.slagalica.service.NotificationHelper;
 
@@ -24,6 +25,10 @@ public class SlagalicaApp extends Application {
             @Override
             public void onActivityStarted(Activity activity) {
                 startedActivityCount++;
+                ChatNotificationWatcher chatWatcher = ChatNotificationWatcher.getInstance();
+                chatWatcher.setAppInForeground(true);
+                chatWatcher.ensureStarted(SlagalicaApp.this);
+
                 InviteNotificationWatcher watcher = InviteNotificationWatcher.getInstance();
                 watcher.setAppInForeground(true);
                 watcher.ensureStarted(SlagalicaApp.this);
@@ -43,6 +48,7 @@ public class SlagalicaApp extends Application {
             public void onActivityStopped(Activity activity) {
                 startedActivityCount = Math.max(0, startedActivityCount - 1);
                 if (startedActivityCount == 0) {
+                    ChatNotificationWatcher.getInstance().setAppInForeground(false);
                     InviteNotificationWatcher.getInstance().setAppInForeground(false);
                 }
             }

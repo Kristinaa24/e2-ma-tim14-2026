@@ -94,6 +94,20 @@
                 android:visibility="gone" />
 
             <TextView
+                android:id="@+id/openRegionChatButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:background="@drawable/bg_lobby_tab_active"
+                android:paddingStart="12dp"
+                android:paddingTop="7dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="7dp"
+                android:text="@string/regions_open_chat"
+                android:textColor="@color/white"
+                android:textStyle="bold" />
+
+            <TextView
                 android:id="@+id/resetMonthlyCycleButton"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

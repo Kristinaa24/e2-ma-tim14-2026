@@ -14,6 +14,7 @@ import com.google.firebase.firestore.WriteBatch;
 import com.tim14.slagalica.LeagueUtils;
 import com.tim14.slagalica.R;
 import com.tim14.slagalica.model.AsocijacijeRound;
+import com.tim14.slagalica.model.ChatMessage;
 import com.tim14.slagalica.model.KoZnaZnaQuestion;
 import com.tim14.slagalica.model.Notification;
 import com.tim14.slagalica.model.PlayerStatistics;
@@ -42,6 +43,7 @@ public class FirestoreRepository {
     private static final String SPOJNICE_COLLECTION = "spojniceRounds";
     private static final String ASOCIJACIJE_COLLECTION = "asocijacijeRounds";
     private static final String NOTIFICATIONS_COLLECTION = "notifications";
+    private static final String REGION_CHAT_COLLECTION = "regionChats";
     private static final String REGIONS_COLLECTION = "regions";
     private static final long ACTIVE_PLAYER_WINDOW_MS = 10 * 60 * 1000;
     private static final int MONTHLY_PLAYER_RANKING_PLACES = 3;
@@ -1382,6 +1384,121 @@ public class FirestoreRepository {
                 .addOnFailureListener(e -> Log.w(TAG, "Error saving notification", e));
     }
 
+    public ListenerRegistration listenToRegionalChatMessages(
+            String regionName,
+            FirebaseCallback<List<ChatMessage>> callback
+    ) {
+        String canonicalRegion = canonicalRegionName(regionName);
+        if (TextUtils.isEmpty(canonicalRegion)) {
+            callback.onError(text(
+                    R.string.chat_region_missing,
+                    "Regional chat is not available because the region is missing."
+            ));
+            return null;
+        }
+
+        return db.collection(REGION_CHAT_COLLECTION)
+                .document(regionCodeForName(canonicalRegion))
+                .collection("messages")
+                .orderBy("createdAt")
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+
+                    if (snapshot == null) {
+                        callback.onSuccess(new ArrayList<>());
+                        return;
+                    }
+
+                    List<ChatMessage> messages = new ArrayList<>();
+                    for (DocumentSnapshot document : snapshot.getDocuments()) {
+                        ChatMessage chatMessage = document.toObject(ChatMessage.class);
+                        if (chatMessage == null) {
+                            continue;
+                        }
+
+                        chatMessage.id = document.getId();
+                        if (TextUtils.isEmpty(chatMessage.regionName)) {
+                            chatMessage.regionName = canonicalRegion;
+                        }
+                        messages.add(chatMessage);
+                    }
+                    callback.onSuccess(messages);
+                });
+    }
+
+    public void sendRegionalChatMessage(
+            String regionName,
+            String messageText,
+            FirebaseCallback<Void> callback
+    ) {
+        String userId;
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        String trimmedMessage = messageText == null ? "" : messageText.trim();
+        if (trimmedMessage.isEmpty()) {
+            callback.onError(text(R.string.chat_empty_message_error, "Enter a message."));
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    User user = documentSnapshot.toObject(User.class);
+                    if (user == null) {
+                        callback.onError(text(
+                                R.string.firestore_error_profile_not_found,
+                                "User profile was not found."
+                        ));
+                        return;
+                    }
+
+                    ensureUserDefaults(user, userId);
+                    String canonicalRegion = canonicalRegionName(
+                            TextUtils.isEmpty(regionName) ? user.region : regionName
+                    );
+                    if (TextUtils.isEmpty(canonicalRegion)) {
+                        callback.onError(text(
+                                R.string.chat_region_missing,
+                                "Regional chat is not available because the region is missing."
+                        ));
+                        return;
+                    }
+
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("regionCode", regionCodeForName(canonicalRegion));
+                    data.put("regionName", canonicalRegion);
+                    data.put("senderId", userId);
+                    data.put("senderName", safeUserName(user));
+                    data.put("text", trimmedMessage);
+                    data.put("createdAt", System.currentTimeMillis());
+
+                    db.collection(REGION_CHAT_COLLECTION)
+                            .document(regionCodeForName(canonicalRegion))
+                            .collection("messages")
+                            .add(data)
+                            .addOnSuccessListener(unused -> {
+                                notifyRegionalChatRecipients(
+                                        canonicalRegion,
+                                        userId,
+                                        safeUserName(user),
+                                        trimmedMessage
+                                );
+                                callback.onSuccess(null);
+                            })
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
     private void addLeagueChangeNotification(
             WriteBatch batch,
             String userId,
@@ -1446,6 +1563,64 @@ public class FirestoreRepository {
         return data;
     }
 
+    private void notifyRegionalChatRecipients(
+            String regionName,
+            String senderId,
+            String senderName,
+            String messageText
+    ) {
+        db.collection(USERS_COLLECTION)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                        if (senderId.equals(document.getId())) {
+                            continue;
+                        }
+
+                        User user = document.toObject(User.class);
+                        if (user == null) {
+                            continue;
+                        }
+
+                        ensureUserDefaults(user, document.getId());
+                        if (!canonicalRegionName(user.region).equals(regionName)) {
+                            continue;
+                        }
+
+                        Map<String, Object> extras = new HashMap<>();
+                        extras.put("senderId", senderId);
+                        extras.put("senderName", senderName);
+                        extras.put("regionName", regionName);
+
+                        saveNotificationForUser(
+                                document.getId(),
+                                text(R.string.chat_notification_title, "Regional chat"),
+                                senderName + ": " + notificationPreview(messageText),
+                                "CHAT",
+                                extras
+                        );
+                    }
+                })
+                .addOnFailureListener(e ->
+                        Log.w(TAG, "Error notifying regional chat recipients", e)
+                );
+    }
+
+    private String notificationPreview(String messageText) {
+        String preview = messageText == null ? "" : messageText.trim();
+        if (preview.length() <= 80) {
+            return preview;
+        }
+        return preview.substring(0, 77) + "...";
+    }
+
+    private String safeUserName(User user) {
+        if (user == null || TextUtils.isEmpty(user.username)) {
+            return text(R.string.chat_player_fallback, "Player");
+        }
+        return user.username.trim();
+    }
+
     public void getNotifications(FirebaseCallback<List<Notification>> callback) {
         String userId;
         try {
@@ -1480,6 +1655,81 @@ public class FirestoreRepository {
                 .document(notificationId)
                 .update("read", true)
                 .addOnFailureListener(e -> Log.w(TAG, "Error marking notification as read", e));
+    }
+
+    public void markCurrentUserChatNotificationsRead() {
+        String userId;
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            return;
+        }
+
+        db.collection(NOTIFICATIONS_COLLECTION)
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                        if (!isUnreadChatNotification(document)) {
+                            continue;
+                        }
+
+                        document.getReference()
+                                .update("read", true)
+                                .addOnFailureListener(updateError ->
+                                        Log.w(TAG, "Error marking chat notification as read", updateError)
+                                );
+                    }
+                })
+                .addOnFailureListener(e ->
+                        Log.w(TAG, "Error loading chat notifications for read update", e)
+                );
+    }
+
+    public ListenerRegistration listenToUnreadChatNotificationCount(
+            FirebaseCallback<Integer> callback
+    ) {
+        String userId;
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return null;
+        }
+
+        return db.collection(NOTIFICATIONS_COLLECTION)
+                .whereEqualTo("userId", userId)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+
+                    if (snapshot == null) {
+                        callback.onSuccess(0);
+                        return;
+                    }
+
+                    int unreadCount = 0;
+                    for (DocumentSnapshot document : snapshot.getDocuments()) {
+                        if (isUnreadChatNotification(document)) {
+                            unreadCount++;
+                        }
+                    }
+
+                    callback.onSuccess(unreadCount);
+                });
+    }
+
+    private boolean isUnreadChatNotification(DocumentSnapshot document) {
+        if (document == null) {
+            return false;
+        }
+
+        String typeString = document.getString("typeString");
+        boolean isChat = "CHAT".equalsIgnoreCase(typeString);
+        boolean isRead = Boolean.TRUE.equals(document.getBoolean("read"));
+        return isChat && !isRead;
     }
 
     private Notification notificationFromDocument(com.google.firebase.firestore.DocumentSnapshot doc) {

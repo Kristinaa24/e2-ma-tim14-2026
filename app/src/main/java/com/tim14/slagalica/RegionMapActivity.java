@@ -1,5 +1,6 @@
 package com.tim14.slagalica;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
@@ -38,6 +39,7 @@ public class RegionMapActivity extends AppCompatActivity {
     private TextView selectedRegionText;
     private TextView mapStatusText;
     private TextView backToRankingButton;
+    private TextView openRegionChatButton;
     private TextView resetMonthlyCycleButton;
 
     private FirestoreRepository firestoreRepository;
@@ -59,10 +61,12 @@ public class RegionMapActivity extends AppCompatActivity {
         selectedRegionText = findViewById(R.id.selectedRegionText);
         mapStatusText = findViewById(R.id.mapStatusText);
         backToRankingButton = findViewById(R.id.backToRankingButton);
+        openRegionChatButton = findViewById(R.id.openRegionChatButton);
         resetMonthlyCycleButton = findViewById(R.id.resetMonthlyCycleButton);
 
         findViewById(R.id.regionBackButton).setOnClickListener(v -> finish());
         backToRankingButton.setOnClickListener(v -> renderRegionRanking());
+        openRegionChatButton.setOnClickListener(v -> openRegionalChat());
         resetMonthlyCycleButton.setOnClickListener(v -> confirmMonthlyCycleReset());
         setupOpenStreetMap();
 
@@ -238,6 +242,12 @@ public class RegionMapActivity extends AppCompatActivity {
                 Toast.makeText(RegionMapActivity.this, error, Toast.LENGTH_SHORT).show();
             }
         });
+    }
+
+    private void openRegionalChat() {
+        Intent intent = new Intent(this, RegionalChatActivity.class);
+        intent.putExtra(RegionalChatActivity.EXTRA_REGION_NAME, currentUserRegion);
+        startActivity(intent);
     }
 
     private void renderOpenStreetMap(List<RegionMapPoint> playerPoints) {

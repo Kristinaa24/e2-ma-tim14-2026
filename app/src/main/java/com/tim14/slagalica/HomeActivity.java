@@ -243,6 +243,15 @@ public class HomeActivity extends AppCompatActivity {
         startActivity(new Intent(HomeActivity.this, RegionMapActivity.class));
     }
 
+    private void openRegionalChat() {
+        if (isGuest) {
+            redirectGuestToLogin();
+            return;
+        }
+
+        startActivity(new Intent(HomeActivity.this, RegionalChatActivity.class));
+    }
+
     private void openMatch() {
         if (isGuest) {
             startLocalMatch();
@@ -736,8 +745,7 @@ public class HomeActivity extends AppCompatActivity {
                 scrollToSection(friendsSection);
                 break;
             case "chat":
-                Toast.makeText(this, "Entering Regional Chat Room...", Toast.LENGTH_LONG).show();
-                // Future: openChatActivity();
+                openRegionalChat();
                 break;
         }
     }

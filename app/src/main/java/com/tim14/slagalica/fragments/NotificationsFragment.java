@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.tabs.TabLayout;
 import com.tim14.slagalica.GameHostActivity;
+import com.tim14.slagalica.RegionalChatActivity;
 import com.tim14.slagalica.R;
 import com.tim14.slagalica.model.Notification;
 import com.tim14.slagalica.repository.FirebaseCallback;
@@ -79,6 +80,12 @@ public class NotificationsFragment extends Fragment {
                 if (notification.id != null) firestoreRepository.markNotificationAsRead(notification.id);
                 applyFilter(currentFilter);
 
+                if (notification.type == Notification.Type.CHAT) {
+                    startActivity(new android.content.Intent(getActivity(), RegionalChatActivity.class));
+                    if (getActivity() != null) getActivity().finish();
+                    return;
+                }
+
                 android.content.Intent intent = new android.content.Intent(getActivity(), com.tim14.slagalica.HomeActivity.class);
                 intent.addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
 
@@ -88,8 +95,6 @@ public class NotificationsFragment extends Fragment {
                     intent.putExtra("TARGET_SECTION", "profile");
                 } else if (notification.type == Notification.Type.INVITE) {
                     intent.putExtra("TARGET_SECTION", "friends");
-                } else if (notification.type == Notification.Type.CHAT) {
-                    intent.putExtra("TARGET_SECTION", "chat");
                 }
 
                 startActivity(intent);
