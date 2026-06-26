@@ -511,13 +511,23 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     }
 
     private void surrenderMatch() {
-        int messageRes = challengeMode
+        boolean cancelingPendingInvite = !challengeMode && isWaitingForFriendlyInvite();
+        int titleRes = cancelingPendingInvite
+                ? R.string.cancel_invite_confirmation_title
+                : R.string.quit_confirmation_title;
+        int messageRes = cancelingPendingInvite
+                ? R.string.cancel_invite_confirmation_message
+                : (challengeMode
                 ? R.string.challenge_quit_confirmation_message
-                : R.string.quit_confirmation_message;
+                : R.string.quit_confirmation_message);
+        int positiveActionRes = cancelingPendingInvite
+                ? R.string.cancel_invite_action
+                : R.string.yes;
+
         new AlertDialog.Builder(this)
-                .setTitle(R.string.quit_confirmation_title)
+                .setTitle(titleRes)
                 .setMessage(messageRes)
-                .setPositiveButton(R.string.yes, (dialog, which) -> {
+                .setPositiveButton(positiveActionRes, (dialog, which) -> {
                     if (challengeMode) {
                         submitChallengeScore(true);
                         return;
@@ -775,6 +785,14 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         return remoteMatchId;
     }
 
+    private boolean isWaitingForFriendlyInvite() {
+        return remoteMatchMode
+                && sharedMatchState != null
+                && localPlayerNumber == 1
+                && SharedMatchState.STATUS_WAITING.equals(sharedMatchState.status)
+                && SharedMatchState.MATCH_TYPE_FRIENDLY.equals(sharedMatchState.matchType);
+    }
+
     public void updateSharedMatch(Map<String, Object> updates) {
         if (!remoteMatchMode || remoteMatchId == null || updates == null || updates.isEmpty()) {
             return;
@@ -838,6 +856,7 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         setPhaseText(buildRemotePhaseText(state));
         tvMatchMeta.setText(getString(R.string.shared_match_you_are_player_format, localPlayerNumber));
         maybeRefreshStatusAfterRemoteMatchStart(state);
+        updatePendingInviteActionUi(state);
 
         if (state.updatedAt == lastAppliedRemoteUpdatedAt && currentRound != null) {
             return;
@@ -851,6 +870,20 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         }
 
         goToRound(nextRound, null);
+        updatePendingInviteActionUi(state);
+    }
+
+    private void updatePendingInviteActionUi(SharedMatchState state) {
+        if (state != null
+                && SharedMatchState.STATUS_WAITING.equals(state.status)
+                && SharedMatchState.MATCH_TYPE_FRIENDLY.equals(state.matchType)
+                && localPlayerNumber == 1) {
+            btnQuitMatch.setVisibility(View.VISIBLE);
+            btnQuitMatch.setText(R.string.cancel_invite_action);
+            return;
+        }
+
+        btnQuitMatch.setText(R.string.quit_game);
     }
 
     private void applyForfeitUi(SharedMatchState state) {
