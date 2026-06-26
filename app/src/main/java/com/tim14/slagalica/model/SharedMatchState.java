@@ -58,6 +58,7 @@ public class SharedMatchState {
     public int rematchRequestedBy;
     public int rematchDeclinedBy;
     public long matchStartedAt;
+    public long friendlyInviteExpiresAt;
     public long updatedAt;
     public List<KoZnaZnaQuestion> quizQuestions;
     public List<SharedSpojniceRound> spojniceRounds;
@@ -79,5 +80,6 @@ public class SharedMatchState {
         rematchRequestedBy = 0;
         rematchDeclinedBy = 0;
         matchStartedAt = 0L;
+        friendlyInviteExpiresAt = 0L;
     }
 }
