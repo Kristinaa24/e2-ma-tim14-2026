@@ -410,6 +410,21 @@
     <string name="friend_invite_title">Invite a friend</string>
     <string name="friend_invite_subtitle">Send a new match invite</string>
     <string name="friend_invite_action">Invite</string>
+    <string name="friend_add_title">Add friend</string>
+    <string name="friend_add_by_username">Search by username</string>
+    <string name="friend_add_by_qr">Scan QR code</string>
+    <string name="friend_search_title">Find player</string>
+    <string name="friend_username_hint">Username</string>
+    <string name="friend_search_empty">No players found.</string>
+    <string name="friend_search_results_title">Select player</string>
+    <string name="friend_added_message">Friend added.</string>
+    <string name="friend_added_named_message">%1$s added to friends.</string>
+    <string name="friend_monthly_rank_format">Monthly #%1$d - %2$d stars</string>
+    <string name="friend_monthly_rank_empty">Monthly rank: -</string>
+    <string name="qr_scanner_status">Point the camera at the QR code</string>
+    <string name="qr_camera_unavailable">Camera is not available.</string>
+    <string name="qr_camera_permission_denied">Camera permission is required to scan QR codes.</string>
+    <string name="search">Search</string>
     <string name="matchmaking_waiting_message">Searching for another player...</string>
     <string name="friend_busy_in_match_message">This player is already in a match.</string>
     <string name="friend_offline_invite_message">This player is offline right now.</string>
@@ -437,6 +452,9 @@
     <string name="match_surrendered_message">You quit the match.</string>
     <string name="quit_confirmation_title">Quit Match</string>
     <string name="quit_confirmation_message">Are you sure you want to quit the match? This will count as a loss.</string>
+    <string name="cancel_invite_action">Cancel invite</string>
+    <string name="cancel_invite_confirmation_title">Cancel invite</string>
+    <string name="cancel_invite_confirmation_message">Cancel this friendly match invite?</string>
 
 
     <string name="phase_ko_zna_zna">Choose the correct answer</string>

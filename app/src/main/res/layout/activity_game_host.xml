@@ -219,14 +219,14 @@
 
         <Button
             android:id="@+id/btnQuitMatch"
-            android:layout_width="88dp"
+            android:layout_width="118dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="10dp"
             android:background="@drawable/bg_match_quit_button"
             android:text="@string/surrender_match"
             android:textAllCaps="false"
             android:textColor="@color/white"
-            android:textSize="12sp"
+            android:textSize="11sp"
             android:maxLines="1"
             android:textStyle="bold" />
     </LinearLayout>
