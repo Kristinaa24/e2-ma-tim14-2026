@@ -139,7 +139,8 @@ public class AsocijacijeFragment extends BaseGameFragment {
                 } else {
                     List<AsocijacijeRound> shuffled = new ArrayList<>(result);
                     Collections.shuffle(shuffled);
-                    roundDataList = shuffled.subList(0, Math.min(2, shuffled.size()));
+                    int roundsToTake = Math.min(isChallengeMode() ? 1 : 2, shuffled.size());
+                    roundDataList = shuffled.subList(0, roundsToTake);
                 }
                 startRound();
             }
@@ -274,13 +275,29 @@ public class AsocijacijeFragment extends BaseGameFragment {
 
         if (triedToGuess) {
             if (!solvedSomething) {
-                asocijacijeService.nextTurn();
+                if (isChallengeMode()) {
+                    asocijacijeService.resetSoloTurn();
+                } else {
+                    asocijacijeService.nextTurn();
+                }
                 updateTurnDisplay();
                 updateInputStates();
-                Toast.makeText(requireContext(), getString(R.string.msg_next_player), Toast.LENGTH_SHORT).show();
+                Toast.makeText(
+                        requireContext(),
+                        getString(
+                                isChallengeMode()
+                                        ? R.string.challenge_asoc_continue_message
+                                        : R.string.msg_next_player
+                        ),
+                        Toast.LENGTH_SHORT
+                ).show();
             }
         } else {
-            asocijacijeService.nextTurn();
+            if (isChallengeMode()) {
+                asocijacijeService.resetSoloTurn();
+            } else {
+                asocijacijeService.nextTurn();
+            }
             updateTurnDisplay();
             updateInputStates();
         }
@@ -366,7 +383,7 @@ public class AsocijacijeFragment extends BaseGameFragment {
 
     private void finishRoundAfterDelay() {
         handler.postDelayed(() -> {
-            if (currentRound == 1) {
+            if (currentRound == 1 && !isChallengeMode()) {
                 currentRound = 2;
                 startRound();
             } else {
@@ -385,6 +402,11 @@ public class AsocijacijeFragment extends BaseGameFragment {
     }
 
     private void updateTurnDisplay() {
+        if (isChallengeMode()) {
+            host().setPhaseText(getString(R.string.challenge_asoc_phase));
+            return;
+        }
+
         host().setPhaseText("Player " + asocijacijeService.getCurrentPlayer() + "'s turn - Round " + currentRound);
     }
 

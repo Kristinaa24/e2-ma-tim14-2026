@@ -118,7 +118,12 @@ public class KorakPoKorakFragment extends BaseGameFragment {
                 persistStatistics(resolution.getStatisticsUpdate());
                 awardPoints(resolution.getAwardedPlayer(), resolution.getAwardedPoints());
                 finalizeCurrentTurn(
-                        getString(
+                        isChallengeMode()
+                                ? getString(
+                                R.string.challenge_kpp_success_format,
+                                resolution.getAwardedPoints()
+                        )
+                                : getString(
                                 R.string.step_by_step_starter_success_format,
                                 resolution.getAwardedPlayer(),
                                 resolution.getAwardedPoints()
@@ -159,7 +164,7 @@ public class KorakPoKorakFragment extends BaseGameFragment {
         Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
 
         submitButton.postDelayed(() -> {
-            if (korakPoKorakService.getCurrentTurnIndex() == 0) {
+            if (korakPoKorakService.getCurrentTurnIndex() == 0 && !isChallengeMode()) {
                 startTurn(1);
             } else {
                 host().goToNextRound();
@@ -177,13 +182,16 @@ public class KorakPoKorakFragment extends BaseGameFragment {
     }
 
     private void updateStarterPhase() {
-        host().setPhaseText(
-                getString(
-                        R.string.step_by_step_round_phase_format,
-                        korakPoKorakService.getCurrentTurnIndex() + 1,
-                        korakPoKorakService.getCurrentStarterPlayer()
-                )
-        );
+        host().setPhaseText(isChallengeMode()
+                ? getString(
+                R.string.challenge_kpp_round_phase_format,
+                korakPoKorakService.getCurrentTurnIndex() + 1
+        )
+                : getString(
+                R.string.step_by_step_round_phase_format,
+                korakPoKorakService.getCurrentTurnIndex() + 1,
+                korakPoKorakService.getCurrentStarterPlayer()
+        ));
     }
 
     private void renderClues() {
@@ -195,6 +203,11 @@ public class KorakPoKorakFragment extends BaseGameFragment {
     }
 
     private void handleStarterTimeout() {
+        if (isChallengeMode()) {
+            finalizeCurrentTurn(getString(R.string.challenge_kpp_timeout_message), false);
+            return;
+        }
+
         KorakPoKorakService.Resolution resolution = korakPoKorakService.handleStarterTimeout();
         persistStatistics(resolution.getStatisticsUpdate());
         renderClues();
