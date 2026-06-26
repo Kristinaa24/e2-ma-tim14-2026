@@ -365,6 +365,58 @@ public class FirestoreRepository {
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
+    public void grantCurrentUserChallengeTestResources(
+            int tokenDelta,
+            int starDelta,
+            FirebaseCallback<User> callback
+    ) {
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    User user = documentSnapshot.toObject(User.class);
+                    if (user == null) {
+                        callback.onError(text(
+                                R.string.firestore_error_profile_not_found,
+                                "User profile was not found."
+                        ));
+                        return;
+                    }
+
+                    ensureUserDefaults(user, userId);
+                    applyDailyTokenGrantIfNeeded(user);
+
+                    user.tokens = Math.max(0, user.tokens + Math.max(0, tokenDelta));
+                    user.stars = Math.max(0, user.stars + Math.max(0, starDelta));
+                    user.league = LeagueUtils.calculateLeague(user.stars);
+                    user.lastSeenAt = System.currentTimeMillis();
+
+                    Map<String, Object> updates = new HashMap<>();
+                    updates.put("tokens", user.tokens);
+                    updates.put("stars", user.stars);
+                    updates.put("league", user.league);
+                    updates.put("lastTokenGrantDate", user.lastTokenGrantDate);
+                    updates.put("lastDailyTokenRewardDate", user.lastDailyTokenRewardDate);
+                    updates.put("lastSeenAt", user.lastSeenAt);
+
+                    db.collection(USERS_COLLECTION)
+                            .document(userId)
+                            .set(updates, SetOptions.merge())
+                            .addOnSuccessListener(unused -> callback.onSuccess(user))
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
     public void resetMonthlyRegionRanking(FirebaseCallback<Void> callback) {
         getRegions(new FirebaseCallback<List<Region>>() {
             @Override

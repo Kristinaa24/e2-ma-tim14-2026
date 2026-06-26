@@ -3,7 +3,10 @@ package com.tim14.slagalica;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -11,9 +14,13 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.google.firebase.firestore.ListenerRegistration;
+import com.tim14.slagalica.model.ChallengeParticipant;
 import com.tim14.slagalica.model.RegionMapPoint;
 import com.tim14.slagalica.model.Region;
+import com.tim14.slagalica.model.RegionChallenge;
 import com.tim14.slagalica.model.User;
+import com.tim14.slagalica.repository.ChallengeRepository;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
 
@@ -41,13 +48,21 @@ public class RegionMapActivity extends AppCompatActivity {
     private TextView backToRankingButton;
     private TextView openRegionChatButton;
     private TextView resetMonthlyCycleButton;
+    private TextView grantChallengeResourcesButton;
+    private TextView createChallengeButton;
+    private LinearLayout challengeListContainer;
 
     private FirestoreRepository firestoreRepository;
+    private ChallengeRepository challengeRepository;
+    private ListenerRegistration challengeListener;
     private String currentUserRegion;
+    private String currentUserId = "";
+    private String currentUserName = "Player";
     private final Map<String, Integer> regionCounts = new HashMap<>();
     private final Map<String, Integer> activeRegionCounts = new HashMap<>();
     private final Map<String, Region> regionsByName = new HashMap<>();
     private final List<Region> currentRegions = new ArrayList<>();
+    private final List<RegionChallenge> latestChallenges = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,6 +71,7 @@ public class RegionMapActivity extends AppCompatActivity {
 
         Configuration.getInstance().setUserAgentValue(getPackageName());
         firestoreRepository = new FirestoreRepository(this);
+        challengeRepository = new ChallengeRepository();
         osmRegionMapView = findViewById(R.id.osmRegionMapView);
         regionSummaryContainer = findViewById(R.id.regionSummaryContainer);
         selectedRegionText = findViewById(R.id.selectedRegionText);
@@ -63,12 +79,19 @@ public class RegionMapActivity extends AppCompatActivity {
         backToRankingButton = findViewById(R.id.backToRankingButton);
         openRegionChatButton = findViewById(R.id.openRegionChatButton);
         resetMonthlyCycleButton = findViewById(R.id.resetMonthlyCycleButton);
+        grantChallengeResourcesButton = findViewById(R.id.grantChallengeResourcesButton);
+        createChallengeButton = findViewById(R.id.createChallengeButton);
+        challengeListContainer = findViewById(R.id.challengeListContainer);
 
         findViewById(R.id.regionBackButton).setOnClickListener(v -> finish());
         backToRankingButton.setOnClickListener(v -> renderRegionRanking());
         openRegionChatButton.setOnClickListener(v -> openRegionalChat());
         resetMonthlyCycleButton.setOnClickListener(v -> confirmMonthlyCycleReset());
+        grantChallengeResourcesButton.setVisibility(View.VISIBLE);
+        grantChallengeResourcesButton.setOnClickListener(v -> confirmChallengeResourceGrant());
+        createChallengeButton.setOnClickListener(v -> showCreateChallengeDialog());
         setupOpenStreetMap();
+        startListeningToChallenges();
 
         markCurrentUserActiveAndLoadRegions();
     }
@@ -101,11 +124,17 @@ public class RegionMapActivity extends AppCompatActivity {
             @Override
             public void onSuccess(User user) {
                 currentUserRegion = FirestoreRepository.canonicalRegionName(user.region);
+                currentUserId = user.id == null ? "" : user.id;
+                currentUserName = TextUtils.isEmpty(user.username) ? "Player" : user.username;
+                renderChallenges(latestChallenges);
                 loadRegionRankingAndPlayers();
             }
 
             @Override
             public void onError(String error) {
+                currentUserId = "";
+                currentUserName = "Player";
+                renderChallenges(latestChallenges);
                 Toast.makeText(RegionMapActivity.this, error, Toast.LENGTH_SHORT).show();
                 loadRegionRankingAndPlayers();
             }
@@ -247,6 +276,409 @@ public class RegionMapActivity extends AppCompatActivity {
     private void openRegionalChat() {
         Intent intent = new Intent(this, RegionalChatActivity.class);
         intent.putExtra(RegionalChatActivity.EXTRA_REGION_NAME, currentUserRegion);
+        startActivity(intent);
+    }
+
+    private void showCreateChallengeDialog() {
+        if (TextUtils.isEmpty(currentUserId)) {
+            Toast.makeText(this, R.string.guest_login_required_message, Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_create_challenge, null, false);
+        EditText tokensInput = dialogView.findViewById(R.id.challengeTokensInput);
+        EditText starsInput = dialogView.findViewById(R.id.challengeStarsInput);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(R.string.challenge_dialog_title)
+                .setView(dialogView)
+                .setPositiveButton(R.string.challenge_create_action, null)
+                .setNegativeButton(R.string.cancel, null)
+                .create();
+
+        dialog.setOnShowListener(unused -> {
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positiveButton.setOnClickListener(v -> {
+                int stakeTokens = parseWholeNumber(tokensInput);
+                int stakeStars = parseWholeNumber(starsInput);
+
+                challengeRepository.createChallenge(stakeTokens, stakeStars, new FirebaseCallback<String>() {
+                    @Override
+                    public void onSuccess(String challengeId) {
+                        Toast.makeText(
+                                RegionMapActivity.this,
+                                R.string.challenge_created_message,
+                                Toast.LENGTH_SHORT
+                        ).show();
+                        dialog.dismiss();
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        Toast.makeText(RegionMapActivity.this, error, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            });
+        });
+
+        dialog.show();
+    }
+
+    private int parseWholeNumber(EditText input) {
+        if (input == null || input.getText() == null) {
+            return 0;
+        }
+
+        String value = input.getText().toString().trim();
+        if (TextUtils.isEmpty(value)) {
+            return 0;
+        }
+
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException exception) {
+            return -1;
+        }
+    }
+
+    private void startListeningToChallenges() {
+        if (challengeListener != null) {
+            return;
+        }
+
+        challengeListener = challengeRepository.listenToChallenges(new FirebaseCallback<List<RegionChallenge>>() {
+            @Override
+            public void onSuccess(List<RegionChallenge> result) {
+                latestChallenges.clear();
+                if (result != null) {
+                    latestChallenges.addAll(result);
+                }
+                renderChallenges(result);
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(RegionMapActivity.this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void confirmChallengeResourceGrant() {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.challenge_grant_test_resources_title)
+                .setMessage(R.string.challenge_grant_test_resources_message)
+                .setPositiveButton(R.string.challenge_grant_test_resources_action,
+                        (dialog, which) -> grantChallengeResourcesForTest())
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void grantChallengeResourcesForTest() {
+        grantChallengeResourcesButton.setEnabled(false);
+        firestoreRepository.grantCurrentUserChallengeTestResources(2, 10, new FirebaseCallback<User>() {
+            @Override
+            public void onSuccess(User user) {
+                grantChallengeResourcesButton.setEnabled(true);
+                Toast.makeText(
+                        RegionMapActivity.this,
+                        getString(
+                                R.string.challenge_grant_test_resources_success,
+                                user.tokens,
+                                user.stars
+                        ),
+                        Toast.LENGTH_SHORT
+                ).show();
+            }
+
+            @Override
+            public void onError(String error) {
+                grantChallengeResourcesButton.setEnabled(true);
+                Toast.makeText(RegionMapActivity.this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void renderChallenges(List<RegionChallenge> challenges) {
+        challengeListContainer.removeAllViews();
+
+        if (challenges == null || challenges.isEmpty()) {
+            TextView emptyText = new TextView(this);
+            emptyText.setText(R.string.challenge_empty_state);
+            emptyText.setTextColor(getResources().getColor(R.color.slagalica_dark_blue, getTheme()));
+            emptyText.setTextSize(12);
+            challengeListContainer.addView(emptyText);
+            return;
+        }
+
+        LayoutInflater inflater = LayoutInflater.from(this);
+        for (RegionChallenge challenge : challenges) {
+            View row = inflater.inflate(R.layout.item_region_challenge, challengeListContainer, false);
+            bindChallengeRow(row, challenge);
+            challengeListContainer.addView(row);
+        }
+    }
+
+    private void bindChallengeRow(View row, RegionChallenge challenge) {
+        TextView titleText = row.findViewById(R.id.challengeTitleText);
+        TextView statusText = row.findViewById(R.id.challengeStatusText);
+        TextView stakeText = row.findViewById(R.id.challengeStakeText);
+        TextView playersText = row.findViewById(R.id.challengePlayersText);
+        TextView resultText = row.findViewById(R.id.challengeResultText);
+        Button actionButton = row.findViewById(R.id.challengeActionButton);
+        Button secondaryButton = row.findViewById(R.id.challengeSecondaryButton);
+
+        ChallengeParticipant currentParticipant = findParticipant(challenge, currentUserId);
+        boolean isCreator = !TextUtils.isEmpty(currentUserId) && currentUserId.equals(challenge.creatorId);
+        boolean canCancel = isCreator
+                && !hasPlayedParticipant(challenge)
+                && (RegionChallenge.STATUS_OPEN.equals(challenge.status)
+                || RegionChallenge.STATUS_READY.equals(challenge.status));
+
+        titleText.setText(getString(
+                R.string.challenge_creator_format,
+                challenge.creatorName,
+                TextUtils.isEmpty(challenge.creatorRegion) ? "--" : challenge.creatorRegion
+        ));
+        statusText.setText(resolveChallengeStatusText(challenge, currentParticipant));
+        stakeText.setText(getString(
+                R.string.challenge_stake_format,
+                challenge.stakeTokens,
+                challenge.stakeStars
+        ));
+        playersText.setText(buildChallengePlayersText(challenge));
+        resultText.setText(buildChallengeResultText(challenge));
+
+        secondaryButton.setVisibility(canCancel ? View.VISIBLE : View.GONE);
+        if (canCancel) {
+            secondaryButton.setText(R.string.challenge_cancel_action);
+            secondaryButton.setOnClickListener(v ->
+                    challengeRepository.cancelChallenge(challenge.id, new FirebaseCallback<Void>() {
+                        @Override
+                        public void onSuccess(Void result) {
+                            Toast.makeText(
+                                    RegionMapActivity.this,
+                                    R.string.challenge_canceled_message,
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                        }
+
+                        @Override
+                        public void onError(String error) {
+                            Toast.makeText(RegionMapActivity.this, error, Toast.LENGTH_SHORT).show();
+                        }
+                    })
+            );
+        }
+
+        configureChallengeActionButton(challenge, currentParticipant, actionButton);
+    }
+
+    private void configureChallengeActionButton(
+            RegionChallenge challenge,
+            ChallengeParticipant currentParticipant,
+            Button actionButton
+    ) {
+        boolean isParticipant = currentParticipant != null;
+        boolean played = isParticipant && currentParticipant.played;
+
+        actionButton.setEnabled(false);
+        actionButton.setOnClickListener(null);
+
+        if (RegionChallenge.STATUS_CANCELED.equals(challenge.status)) {
+            actionButton.setText(R.string.challenge_finished_action);
+            return;
+        }
+
+        if (RegionChallenge.STATUS_FINISHED.equals(challenge.status)) {
+            actionButton.setText(R.string.challenge_finished_action);
+            return;
+        }
+
+        if (isParticipant && RegionChallenge.STATUS_OPEN.equals(challenge.status)) {
+            actionButton.setText(R.string.challenge_joined_waiting_action);
+            return;
+        }
+
+        if (isParticipant && played) {
+            actionButton.setText(R.string.challenge_submitted_action);
+            return;
+        }
+
+        if (isParticipant
+                && (RegionChallenge.STATUS_READY.equals(challenge.status)
+                || RegionChallenge.STATUS_IN_PROGRESS.equals(challenge.status))) {
+            actionButton.setText(R.string.challenge_play_action);
+            actionButton.setEnabled(true);
+            actionButton.setOnClickListener(v -> openChallengeMatch(challenge));
+            return;
+        }
+
+        if (!TextUtils.isEmpty(currentUserId)
+                && !isParticipant && RegionChallenge.STATUS_OPEN.equals(challenge.status)
+                && challenge.getParticipantCount() < challenge.requiredPlayers) {
+            actionButton.setText(R.string.challenge_join_action);
+            actionButton.setEnabled(true);
+            actionButton.setOnClickListener(v ->
+                    challengeRepository.joinChallenge(challenge.id, new FirebaseCallback<Void>() {
+                        @Override
+                        public void onSuccess(Void result) {
+                            Toast.makeText(
+                                    RegionMapActivity.this,
+                                    R.string.challenge_joined_message,
+                                    Toast.LENGTH_SHORT
+                            ).show();
+                        }
+
+                        @Override
+                        public void onError(String error) {
+                            Toast.makeText(RegionMapActivity.this, error, Toast.LENGTH_SHORT).show();
+                        }
+                    })
+            );
+            return;
+        }
+
+        if (!isParticipant && RegionChallenge.STATUS_OPEN.equals(challenge.status)) {
+            actionButton.setText(R.string.challenge_full_action);
+            return;
+        }
+
+        if (isParticipant) {
+            actionButton.setText(R.string.challenge_submitted_action);
+            return;
+        }
+
+        actionButton.setText(R.string.challenge_full_action);
+    }
+
+    private String resolveChallengeStatusText(
+            RegionChallenge challenge,
+            ChallengeParticipant currentParticipant
+    ) {
+        if (RegionChallenge.STATUS_READY.equals(challenge.status)) {
+            return getString(R.string.challenge_status_ready);
+        }
+
+        if (RegionChallenge.STATUS_IN_PROGRESS.equals(challenge.status)) {
+            if (currentParticipant != null && currentParticipant.played) {
+                return getString(R.string.challenge_waiting_after_submit);
+            }
+            return getString(R.string.challenge_status_in_progress);
+        }
+
+        if (RegionChallenge.STATUS_FINISHED.equals(challenge.status)) {
+            return getString(R.string.challenge_status_finished);
+        }
+
+        if (RegionChallenge.STATUS_CANCELED.equals(challenge.status)) {
+            return getString(R.string.challenge_status_canceled);
+        }
+
+        if (currentParticipant != null) {
+            return getString(R.string.challenge_waiting_for_you);
+        }
+
+        return getString(R.string.challenge_status_open);
+    }
+
+    private String buildChallengePlayersText(RegionChallenge challenge) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(getString(
+                R.string.challenge_players_waiting_format,
+                challenge.getParticipantCount(),
+                challenge.requiredPlayers
+        ));
+
+        for (ChallengeParticipant participant : safeParticipants(challenge)) {
+            builder.append('\n');
+            if (participant.played) {
+                builder.append(getString(
+                        R.string.challenge_participant_score_format,
+                        participant.username,
+                        participant.score
+                ));
+            } else {
+                builder.append(getString(
+                        R.string.challenge_participant_waiting_format,
+                        participant.username
+                ));
+            }
+        }
+
+        return builder.toString();
+    }
+
+    private String buildChallengeResultText(RegionChallenge challenge) {
+        if (!RegionChallenge.STATUS_FINISHED.equals(challenge.status)) {
+            return "";
+        }
+
+        List<ChallengeParticipant> ranking = new ArrayList<>(safeParticipants(challenge));
+        ranking.sort((left, right) -> Integer.compare(left.placement, right.placement));
+
+        StringBuilder builder = new StringBuilder();
+        for (ChallengeParticipant participant : ranking) {
+            if (participant.placement <= 0) {
+                continue;
+            }
+
+            if (builder.length() > 0) {
+                builder.append('\n');
+            }
+
+            builder.append(getString(
+                    R.string.challenge_result_row_format,
+                    participant.placement,
+                    participant.username,
+                    participant.score,
+                    participant.rewardTokens,
+                    participant.rewardStars
+            ));
+        }
+
+        return builder.toString();
+    }
+
+    private ChallengeParticipant findParticipant(RegionChallenge challenge, String userId) {
+        if (challenge == null || TextUtils.isEmpty(userId) || challenge.participants == null) {
+            return null;
+        }
+
+        for (ChallengeParticipant participant : challenge.participants) {
+            if (participant != null && userId.equals(participant.userId)) {
+                return participant;
+            }
+        }
+
+        return null;
+    }
+
+    private List<ChallengeParticipant> safeParticipants(RegionChallenge challenge) {
+        if (challenge == null || challenge.participants == null) {
+            return new ArrayList<>();
+        }
+        return challenge.participants;
+    }
+
+    private boolean hasPlayedParticipant(RegionChallenge challenge) {
+        for (ChallengeParticipant participant : safeParticipants(challenge)) {
+            if (participant.played) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void openChallengeMatch(RegionChallenge challenge) {
+        if (challenge == null || TextUtils.isEmpty(challenge.id)) {
+            Toast.makeText(this, "Challenge was not found.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        Intent intent = new Intent(this, GameHostActivity.class);
+        intent.putExtra(GameHostActivity.EXTRA_START_ROUND, com.tim14.slagalica.game.GameRound.KO_ZNA_ZNA);
+        intent.putExtra(GameHostActivity.EXTRA_CHALLENGE_MODE, true);
+        intent.putExtra(GameHostActivity.EXTRA_CHALLENGE_ID, challenge.id);
         startActivity(intent);
     }
 
@@ -438,6 +870,15 @@ public class RegionMapActivity extends AppCompatActivity {
             osmRegionMapView.onPause();
         }
         super.onPause();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (challengeListener != null) {
+            challengeListener.remove();
+            challengeListener = null;
+        }
+        super.onDestroy();
     }
 
     private float minLon(RegionShape shape) {
