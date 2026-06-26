@@ -5,7 +5,6 @@ import android.content.pm.PackageManager;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,12 +33,12 @@ import com.tim14.slagalica.repository.SharedMatchRepository;
 import com.tim14.slagalica.service.NotificationHelper;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class HomeActivity extends AppCompatActivity {
 
     private static final String TAG = "HomeActivity";
+    private static final int REQUEST_SCAN_FRIEND_QR = 602;
 
     private View startGameButton;
     private View topTabsStrip;
@@ -80,7 +79,7 @@ public class HomeActivity extends AppCompatActivity {
     private boolean isGuest;
     private boolean onlineFilterEnabled;
     private FirestoreRepository firestoreRepository;
-    private ListenerRegistration playableUsersListener;
+    private ListenerRegistration friendsListener;
     private HomeRankingAdapter rankingAdapter;
     private HomeFriendAdapter friendAdapter;
     private final List<HomeRankingItem> rankingItems = new ArrayList<>();
@@ -405,7 +404,11 @@ public class HomeActivity extends AppCompatActivity {
                     getString(R.string.friend_initial_1),
                     getString(R.string.friend_name_1),
                     "",
+                    "",
                     Integer.parseInt(getString(R.string.friend_score_1)),
+                    1,
+                    Integer.parseInt(getString(R.string.friend_score_1)),
+                    1,
                     true,
                     false
             ));
@@ -414,7 +417,11 @@ public class HomeActivity extends AppCompatActivity {
                     getString(R.string.friend_initial_2),
                     getString(R.string.friend_name_2),
                     "",
+                    "",
                     Integer.parseInt(getString(R.string.friend_score_2)),
+                    2,
+                    Integer.parseInt(getString(R.string.friend_score_2)),
+                    1,
                     true,
                     false
             ));
@@ -423,7 +430,11 @@ public class HomeActivity extends AppCompatActivity {
                     getString(R.string.friend_initial_3),
                     getString(R.string.friend_name_3),
                     "",
+                    "",
                     Integer.parseInt(getString(R.string.friend_score_3)),
+                    3,
+                    Integer.parseInt(getString(R.string.friend_score_3)),
+                    0,
                     false,
                     false
             ));
@@ -432,7 +443,11 @@ public class HomeActivity extends AppCompatActivity {
                     getString(R.string.friend_initial_4),
                     getString(R.string.friend_name_4),
                     "",
+                    "",
                     Integer.parseInt(getString(R.string.friend_score_4)),
+                    0,
+                    0,
+                    0,
                     false,
                     false
             ));
@@ -441,6 +456,11 @@ public class HomeActivity extends AppCompatActivity {
         friendAdapter = new HomeFriendAdapter(this, new ArrayList<>(), item -> {
             if (isGuest) {
                 redirectGuestToLogin();
+                return;
+            }
+
+            if (item.isInviteTile()) {
+                showAddFriendOptions();
                 return;
             }
 
@@ -509,90 +529,23 @@ public class HomeActivity extends AppCompatActivity {
         });
     }
 
-    private void loadPlayableUsers() {
-        firestoreRepository.getOtherUsers(new FirebaseCallback<List<User>>() {
-            @Override
-            public void onSuccess(List<User> users) {
-                allFriendItems.clear();
-
-                List<User> sortedUsers = new ArrayList<>(users);
-                Collections.sort(sortedUsers, (left, right) -> {
-                    boolean leftAvailable = left.loggedIn && TextUtils.isEmpty(left.currentMatchId);
-                    boolean rightAvailable = right.loggedIn && TextUtils.isEmpty(right.currentMatchId);
-
-                    if (leftAvailable != rightAvailable) {
-                        return leftAvailable ? -1 : 1;
-                    }
-
-                    return Integer.compare(right.stars, left.stars);
-                });
-
-                int rank = 1;
-                for (User user : sortedUsers) {
-                    String username = user.username == null ? "Player" : user.username.trim();
-                    String initial = username.isEmpty()
-                            ? "?"
-                            : username.substring(0, 1).toUpperCase();
-
-                    allFriendItems.add(new HomeFriendItem(
-                            rank++,
-                            initial,
-                            username,
-                            user.id,
-                            user.stars,
-                            user.loggedIn,
-                            user.currentMatchId != null && !user.currentMatchId.trim().isEmpty()
-                    ));
-                }
-
-                applyFriendFilter(onlineFilterEnabled);
-            }
-
-            @Override
-            public void onError(String error) {
-                Toast.makeText(HomeActivity.this, error, Toast.LENGTH_SHORT).show();
-            }
-        });
+    private void startPlayableUsersListener() {
+        startFriendsListener();
     }
 
-    private void startPlayableUsersListener() {
-        if (isGuest || playableUsersListener != null) {
+    private void startFriendsListener() {
+        if (isGuest || friendsListener != null) {
             return;
         }
 
-        playableUsersListener = firestoreRepository.listenToOtherUsers(new FirebaseCallback<List<User>>() {
+        friendsListener = firestoreRepository.listenToFriends(new FirebaseCallback<List<User>>() {
             @Override
             public void onSuccess(List<User> users) {
                 allFriendItems.clear();
 
-                List<User> sortedUsers = new ArrayList<>(users);
-                Collections.sort(sortedUsers, (left, right) -> {
-                    boolean leftAvailable = left.loggedIn && TextUtils.isEmpty(left.currentMatchId);
-                    boolean rightAvailable = right.loggedIn && TextUtils.isEmpty(right.currentMatchId);
-
-                    if (leftAvailable != rightAvailable) {
-                        return leftAvailable ? -1 : 1;
-                    }
-
-                    return Integer.compare(right.stars, left.stars);
-                });
-
                 int rank = 1;
-                for (User user : sortedUsers) {
-                    String username = user.username == null ? "Player" : user.username.trim();
-                    String initial = username.isEmpty()
-                            ? "?"
-                            : username.substring(0, 1).toUpperCase();
-
-                    allFriendItems.add(new HomeFriendItem(
-                            rank++,
-                            initial,
-                            username,
-                            user.id,
-                            user.stars,
-                            user.loggedIn,
-                            user.currentMatchId != null && !user.currentMatchId.trim().isEmpty()
-                    ));
+                for (User user : users) {
+                    allFriendItems.add(createFriendItem(rank++, user));
                 }
 
                 applyFriendFilter(onlineFilterEnabled);
@@ -606,12 +559,33 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void stopPlayableUsersListener() {
-        if (playableUsersListener == null) {
+        if (friendsListener == null) {
             return;
         }
 
-        playableUsersListener.remove();
-        playableUsersListener = null;
+        friendsListener.remove();
+        friendsListener = null;
+    }
+
+    private HomeFriendItem createFriendItem(int rank, User user) {
+        String username = user.username == null ? "Player" : user.username.trim();
+        String initial = username.isEmpty()
+                ? "?"
+                : username.substring(0, 1).toUpperCase();
+
+        return new HomeFriendItem(
+                rank,
+                initial,
+                username,
+                user.id,
+                user.avatar,
+                user.stars,
+                user.currentMonthlyRank,
+                user.monthlyStars,
+                user.league,
+                user.loggedIn,
+                user.currentMatchId != null && !user.currentMatchId.trim().isEmpty()
+        );
     }
 
     private void startCompetitiveMatchmaking() {
@@ -671,6 +645,85 @@ public class HomeActivity extends AppCompatActivity {
         });
     }
 
+    private void showAddFriendOptions() {
+        String[] options = new String[]{
+                getString(R.string.friend_add_by_username),
+                getString(R.string.friend_add_by_qr)
+        };
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.friend_add_title)
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        showUsernameSearchDialog();
+                    } else {
+                        openQrScanner();
+                    }
+                })
+                .show();
+    }
+
+    private void showUsernameSearchDialog() {
+        EditText input = new EditText(this);
+        input.setHint(R.string.friend_username_hint);
+        input.setSingleLine();
+
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.friend_search_title)
+                .setView(input)
+                .setPositiveButton(R.string.search, (dialog, which) ->
+                        searchFriendByUsername(input.getText().toString()))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+    }
+
+    private void searchFriendByUsername(String usernameQuery) {
+        firestoreRepository.searchUsersByUsername(usernameQuery, new FirebaseCallback<List<User>>() {
+            @Override
+            public void onSuccess(List<User> users) {
+                if (users.isEmpty()) {
+                    Toast.makeText(HomeActivity.this, R.string.friend_search_empty, Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                String[] names = new String[users.size()];
+                for (int index = 0; index < users.size(); index++) {
+                    User user = users.get(index);
+                    names[index] = user.username + " - " + LeagueUtils.getLeagueName(user.league);
+                }
+
+                new AlertDialog.Builder(HomeActivity.this)
+                        .setTitle(R.string.friend_search_results_title)
+                        .setItems(names, (dialog, which) -> addFriend(users.get(which).id))
+                        .show();
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(HomeActivity.this, error, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void addFriend(String friendUserId) {
+        firestoreRepository.addFriend(friendUserId, new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                Toast.makeText(HomeActivity.this, R.string.friend_added_message, Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(HomeActivity.this, error, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
+
+    private void openQrScanner() {
+        Intent intent = new Intent(HomeActivity.this, QRScannerActivity.class);
+        startActivityForResult(intent, REQUEST_SCAN_FRIEND_QR);
+    }
+
     private void setTopMargin(View view, int dpValue) {
         ViewGroup.LayoutParams params = view.getLayoutParams();
 
@@ -718,6 +771,32 @@ public class HomeActivity extends AppCompatActivity {
         super.onNewIntent(intent);
         setIntent(intent);
         checkTargetSection(intent);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode != REQUEST_SCAN_FRIEND_QR || resultCode != RESULT_OK || data == null) {
+            return;
+        }
+
+        String qrCode = data.getStringExtra(QRScannerActivity.EXTRA_QR_TEXT);
+        firestoreRepository.addFriendByQrCode(qrCode, new FirebaseCallback<User>() {
+            @Override
+            public void onSuccess(User user) {
+                Toast.makeText(
+                        HomeActivity.this,
+                        getString(R.string.friend_added_named_message, user.username),
+                        Toast.LENGTH_SHORT
+                ).show();
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(HomeActivity.this, error, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     private void checkTargetSection(Intent intent) {

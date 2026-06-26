@@ -9,6 +9,7 @@ import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
 import com.google.firebase.firestore.WriteBatch;
 import com.tim14.slagalica.LeagueUtils;
@@ -43,6 +44,7 @@ public class FirestoreRepository {
     private static final String ASOCIJACIJE_COLLECTION = "asocijacijeRounds";
     private static final String NOTIFICATIONS_COLLECTION = "notifications";
     private static final String REGIONS_COLLECTION = "regions";
+    private static final String FRIENDS_COLLECTION = "friends";
     private static final long ACTIVE_PLAYER_WINDOW_MS = 10 * 60 * 1000;
     private static final int MONTHLY_PLAYER_RANKING_PLACES = 3;
 
@@ -694,6 +696,71 @@ public class FirestoreRepository {
         }
 
         return users;
+    }
+
+    private List<User> extractUsersByIds(
+            List<DocumentSnapshot> documents,
+            List<String> userIds,
+            Map<String, Integer> monthlyRanks
+    ) {
+        List<User> users = new ArrayList<>();
+
+        for (DocumentSnapshot document : documents) {
+            if (!userIds.contains(document.getId())) {
+                continue;
+            }
+
+            User user = document.toObject(User.class);
+            if (user == null) {
+                continue;
+            }
+
+            ensureUserDefaults(user, document.getId());
+            Integer monthlyRank = monthlyRanks.get(document.getId());
+            user.currentMonthlyRank = monthlyRank != null ? monthlyRank : 0;
+            users.add(user);
+        }
+
+        users.sort((left, right) -> {
+            boolean leftAvailable = left.loggedIn && TextUtils.isEmpty(left.currentMatchId);
+            boolean rightAvailable = right.loggedIn && TextUtils.isEmpty(right.currentMatchId);
+
+            if (leftAvailable != rightAvailable) {
+                return leftAvailable ? -1 : 1;
+            }
+
+            int monthlyCompare = Integer.compare(right.monthlyStars, left.monthlyStars);
+            if (monthlyCompare != 0) {
+                return monthlyCompare;
+            }
+
+            return left.username.compareToIgnoreCase(right.username);
+        });
+
+        return users;
+    }
+
+    private Map<String, Integer> calculateMonthlyRanks(List<DocumentSnapshot> documents) {
+        List<DocumentSnapshot> rankedDocuments = new ArrayList<>(documents);
+        rankedDocuments.sort((left, right) -> {
+            User leftUser = left.toObject(User.class);
+            User rightUser = right.toObject(User.class);
+            int leftMonthlyStars = leftUser != null ? Math.max(0, leftUser.monthlyStars) : 0;
+            int rightMonthlyStars = rightUser != null ? Math.max(0, rightUser.monthlyStars) : 0;
+            return Integer.compare(rightMonthlyStars, leftMonthlyStars);
+        });
+
+        Map<String, Integer> ranks = new HashMap<>();
+        int rank = 1;
+        for (DocumentSnapshot document : rankedDocuments) {
+            User user = document.toObject(User.class);
+            if (user == null || user.monthlyStars <= 0) {
+                continue;
+            }
+            ranks.put(document.getId(), rank++);
+        }
+
+        return ranks;
     }
 
     private void migrateLegacyInitialTokens(User user) {
@@ -1548,6 +1615,150 @@ public class FirestoreRepository {
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
+    public void searchUsersByUsername(String usernameQuery, FirebaseCallback<List<User>> callback) {
+        String currentUserId;
+
+        try {
+            currentUserId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        String query = usernameQuery == null ? "" : usernameQuery.trim();
+        if (TextUtils.isEmpty(query)) {
+            callback.onError("Enter a username.");
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .orderBy("username")
+                .startAt(query)
+                .endAt(query + "\uf8ff")
+                .limit(10)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<User> users = extractOtherUsers(querySnapshot.getDocuments(), currentUserId);
+                    callback.onSuccess(users);
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void addFriend(String friendUserId, FirebaseCallback<Void> callback) {
+        String currentUserId;
+
+        try {
+            currentUserId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        if (TextUtils.isEmpty(friendUserId) || currentUserId.equals(friendUserId)) {
+            callback.onError("Select a valid player.");
+            return;
+        }
+
+        getUserById(friendUserId, new FirebaseCallback<User>() {
+            @Override
+            public void onSuccess(User user) {
+                Map<String, Object> currentFriendData = new HashMap<>();
+                currentFriendData.put("friendId", friendUserId);
+                currentFriendData.put("createdAt", System.currentTimeMillis());
+
+                Map<String, Object> targetFriendData = new HashMap<>();
+                targetFriendData.put("friendId", currentUserId);
+                targetFriendData.put("createdAt", System.currentTimeMillis());
+
+                WriteBatch batch = db.batch();
+                batch.set(
+                        db.collection(USERS_COLLECTION)
+                                .document(currentUserId)
+                                .collection(FRIENDS_COLLECTION)
+                                .document(friendUserId),
+                        currentFriendData,
+                        SetOptions.merge()
+                );
+                batch.set(
+                        db.collection(USERS_COLLECTION)
+                                .document(friendUserId)
+                                .collection(FRIENDS_COLLECTION)
+                                .document(currentUserId),
+                        targetFriendData,
+                        SetOptions.merge()
+                );
+                batch.commit()
+                        .addOnSuccessListener(unused -> callback.onSuccess(null))
+                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void addFriendByQrCode(String qrCode, FirebaseCallback<User> callback) {
+        String code = qrCode == null ? "" : qrCode.trim();
+        if (TextUtils.isEmpty(code)) {
+            callback.onError("QR code is empty.");
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .whereEqualTo("qrCode", code)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    DocumentSnapshot document = querySnapshot.isEmpty()
+                            ? null
+                            : querySnapshot.getDocuments().get(0);
+
+                    if (document == null) {
+                        document = null;
+                    }
+
+                    if (document == null && !TextUtils.isEmpty(code)) {
+                        db.collection(USERS_COLLECTION)
+                                .document(code)
+                                .get()
+                                .addOnSuccessListener(idDocument -> addFriendFromDocument(idDocument, callback))
+                                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                        return;
+                    }
+
+                    addFriendFromDocument(document, callback);
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    private void addFriendFromDocument(DocumentSnapshot document, FirebaseCallback<User> callback) {
+        if (document == null || !document.exists()) {
+            callback.onError("Player was not found.");
+            return;
+        }
+
+        User user = document.toObject(User.class);
+        if (user == null) {
+            callback.onError("Player was not found.");
+            return;
+        }
+
+        ensureUserDefaults(user, document.getId());
+        addFriend(document.getId(), new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                callback.onSuccess(user);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
     public void getOtherUsers(FirebaseCallback<List<User>> callback) {
         String currentUserId;
 
@@ -1590,6 +1801,79 @@ public class FirestoreRepository {
 
                     callback.onSuccess(extractOtherUsers(snapshot.getDocuments(), currentUserId));
                 });
+    }
+
+    public ListenerRegistration listenToFriends(FirebaseCallback<List<User>> callback) {
+        String currentUserId;
+
+        try {
+            currentUserId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return null;
+        }
+
+        final List<String> friendIds = new ArrayList<>();
+        final List<DocumentSnapshot> userDocuments = new ArrayList<>();
+        final boolean[] hasFriendSnapshot = {false};
+        final boolean[] hasUserSnapshot = {false};
+
+        class Emitter {
+            void emitIfReady() {
+                if (!hasFriendSnapshot[0] || !hasUserSnapshot[0]) {
+                    return;
+                }
+
+                callback.onSuccess(extractUsersByIds(
+                        userDocuments,
+                        new ArrayList<>(friendIds),
+                        calculateMonthlyRanks(userDocuments)
+                ));
+            }
+        }
+
+        Emitter emitter = new Emitter();
+
+        ListenerRegistration friendsRegistration = db.collection(USERS_COLLECTION)
+                .document(currentUserId)
+                .collection(FRIENDS_COLLECTION)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+
+                    friendIds.clear();
+                    if (snapshot != null) {
+                        for (DocumentSnapshot document : snapshot.getDocuments()) {
+                            friendIds.add(document.getId());
+                        }
+                    }
+
+                    hasFriendSnapshot[0] = true;
+                    emitter.emitIfReady();
+                });
+
+        ListenerRegistration usersRegistration = db.collection(USERS_COLLECTION)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+
+                    userDocuments.clear();
+                    if (snapshot != null) {
+                        userDocuments.addAll(snapshot.getDocuments());
+                    }
+
+                    hasUserSnapshot[0] = true;
+                    emitter.emitIfReady();
+                });
+
+        return () -> {
+            friendsRegistration.remove();
+            usersRegistration.remove();
+        };
     }
 
     public void markCurrentUserLoggedIn() {

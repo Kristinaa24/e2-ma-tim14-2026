@@ -20,6 +20,7 @@ public class User {
     public String currentMatchId;
     public long lastSeenAt;
     public long lastActiveAt;
+    public int currentMonthlyRank;
 
     public User() {
         // Empty constructor required for Firebase
@@ -44,6 +45,7 @@ public class User {
         this.currentMatchId = "";
         this.lastSeenAt = 0L;
         this.lastActiveAt = 0L;
+        this.currentMonthlyRank = 0;
     }
 
     public User(String id, String username, String email, String region,
@@ -67,5 +69,6 @@ public class User {
         this.currentMatchId = "";
         this.lastSeenAt = 0L;
         this.lastActiveAt = 0L;
+        this.currentMonthlyRank = 0;
     }
 }
