@@ -92,6 +92,10 @@ public class KoZnaZnaFragment extends BaseGameFragment {
             return;
         }
 
+        if (isChallengeMode()) {
+            playerTwoAnswerButton.setVisibility(View.GONE);
+        }
+
         host().setTimerValue(25);
         loadQuestionsFromFirestore();
     }
@@ -304,7 +308,9 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         host().setPhaseText(getString(R.string.phase_ko_zna_zna_finished));
 
         Toast.makeText(requireContext(),
-                getString(
+                isChallengeMode()
+                        ? getString(R.string.challenge_result_score_format, koZnaZnaService.getPlayerOneScore())
+                        : getString(
                         R.string.ko_zna_zna_end_format,
                         koZnaZnaService.getPlayerOneScore(),
                         koZnaZnaService.getPlayerTwoScore()
@@ -337,10 +343,16 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         );
         questionText.setText(question.question);
         answerAButton.setText(question.answers.get(0));
-        answerBButton.setText(question.answers.get(1));
+       answerBButton.setText(question.answers.get(1));
         answerCButton.setText(question.answers.get(2));
         answerDButton.setText(question.answers.get(3));
-        ruleInfoText.setText(getString(R.string.shared_match_kzz_phase_format, questionNumber, totalQuestions));
+        ruleInfoText.setText(getString(
+                isChallengeMode()
+                        ? R.string.challenge_kzz_phase_format
+                        : R.string.shared_match_kzz_phase_format,
+                questionNumber,
+                totalQuestions
+        ));
     }
 
     private void renderRemoteQuestion() {

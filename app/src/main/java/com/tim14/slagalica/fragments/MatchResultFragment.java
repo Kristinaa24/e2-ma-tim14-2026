@@ -31,9 +31,22 @@ public class MatchResultFragment extends BaseGameFragment {
 
         int playerOneScore = host().getPlayerOneScore();
         int playerTwoScore = host().getPlayerTwoScore();
+        GameHostActivity activity = (GameHostActivity) requireActivity();
 
         host().setTimerValue(0);
         host().setPhaseText(getString(R.string.match_result_phase));
+
+        if (activity.isChallengeMode()) {
+            titleText.setText(R.string.challenge_result_title);
+            summaryText.setText(R.string.challenge_result_summary);
+            playerOneScoreText.setText(getString(R.string.challenge_result_score_format, playerOneScore));
+            playerTwoScoreText.setVisibility(View.GONE);
+            winnerText.setText(R.string.challenge_result_waiting);
+            backButton.setText(R.string.challenge_back_to_regions);
+            rematchButton.setVisibility(View.GONE);
+            backButton.setOnClickListener(v -> host().finishMatch());
+            return;
+        }
 
         titleText.setText(R.string.match_finished_title);
         summaryText.setText(R.string.match_result_summary);

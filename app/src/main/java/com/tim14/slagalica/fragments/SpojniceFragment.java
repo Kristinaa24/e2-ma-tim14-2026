@@ -33,6 +33,7 @@ public class SpojniceFragment extends BaseGameFragment {
     private TextView currentPlayerText;
     private TextView selectedPairText;
     private TextView secondChanceInfoText;
+    private TextView ruleText;
 
     private Button left1Button;
     private Button left2Button;
@@ -77,6 +78,7 @@ public class SpojniceFragment extends BaseGameFragment {
         currentPlayerText = view.findViewById(R.id.currentPlayerText);
         selectedPairText = view.findViewById(R.id.selectedPairText);
         secondChanceInfoText = view.findViewById(R.id.secondChanceInfoText);
+        ruleText = view.findViewById(R.id.ruleText);
 
         left1Button = view.findViewById(R.id.left1Button);
         left2Button = view.findViewById(R.id.left2Button);
@@ -124,7 +126,8 @@ public class SpojniceFragment extends BaseGameFragment {
                     return;
                 }
 
-                if (result == null || result.size() < 2) {
+                int requiredRounds = isChallengeMode() ? 1 : 2;
+                if (result == null || result.size() < requiredRounds) {
                     secondChanceInfoText.setText(getString(R.string.not_enough_spojnice_rounds));
                     Toast.makeText(requireContext(),
                             R.string.need_at_least_2_spojnice_rounds,
@@ -158,7 +161,14 @@ public class SpojniceFragment extends BaseGameFragment {
         setRoundItems();
         enableAllPairButtons();
         confirmConnectionButton.setEnabled(true);
-        secondChanceInfoText.setText(getString(R.string.spojnice_start_info));
+        if (isChallengeMode()) {
+            secondChanceInfoText.setVisibility(View.GONE);
+            ruleText.setVisibility(View.VISIBLE);
+        } else {
+            secondChanceInfoText.setVisibility(View.VISIBLE);
+            ruleText.setVisibility(View.VISIBLE);
+            secondChanceInfoText.setText(getString(R.string.spojnice_start_info));
+        }
 
         updateHeader();
         updateScores();
@@ -209,7 +219,9 @@ public class SpojniceFragment extends BaseGameFragment {
                 roundTimer = null;
                 host().setTimerValue(0);
 
-                if (!spojniceService.isSecondChance()
+                if (isChallengeMode() && spojniceService.getRemainingPairsCount() > 0) {
+                    prepareNextRoundOrEnd();
+                } else if (!spojniceService.isSecondChance()
                         && spojniceService.getRemainingPairsCount() > 0) {
                     switchToSecondPlayer();
                 } else {
@@ -282,7 +294,11 @@ public class SpojniceFragment extends BaseGameFragment {
         if (spojniceService.shouldSwitchToSecondChance()) {
             handler.postDelayed(() -> {
                 if (isAdded()) {
-                    switchToSecondPlayer();
+                    if (isChallengeMode()) {
+                        prepareNextRoundOrEnd();
+                    } else {
+                        switchToSecondPlayer();
+                    }
                 }
             }, 900);
             return;
@@ -332,7 +348,7 @@ public class SpojniceFragment extends BaseGameFragment {
         spojniceService.finishRound();
         confirmConnectionButton.setEnabled(false);
 
-        if (round == 1) {
+        if (round == 1 && !isChallengeMode()) {
             Toast.makeText(requireContext(), R.string.round_one_finished, Toast.LENGTH_LONG).show();
             handler.postDelayed(() -> {
                 if (isAdded()) {
@@ -422,7 +438,9 @@ public class SpojniceFragment extends BaseGameFragment {
         host().setPhaseText(getString(R.string.phase_spojnice_finished));
 
         Toast.makeText(requireContext(),
-                getString(
+                isChallengeMode()
+                        ? getString(R.string.challenge_result_score_format, spojniceService.getPlayerOneScore())
+                        : getString(
                         R.string.spojnice_end_format,
                         spojniceService.getPlayerOneScore(),
                         spojniceService.getPlayerTwoScore()
@@ -437,6 +455,12 @@ public class SpojniceFragment extends BaseGameFragment {
     }
 
     private void updateHeader() {
+        if (isChallengeMode()) {
+            roundText.setText(getString(R.string.challenge_spojnice_round_label_format, round));
+            currentPlayerText.setText(R.string.challenge_spojnice_current_player);
+            return;
+        }
+
         roundText.setText(getString(R.string.round_counter_format, round));
         currentPlayerText.setText(
                 getString(R.string.current_player_format, spojniceService.getCurrentPlayer())
