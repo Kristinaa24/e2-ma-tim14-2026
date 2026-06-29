@@ -14,7 +14,7 @@
     <string name="logout">Logout</string>
     <string name="silver_league">Silver League</string>
     <string name="qr_code">QR CODE</string>
-    <string name="league_icon">League icon: 🥈</string>
+    <string name="league_icon">League icon: &#129352;</string>
     <string name="avatar_frame">Avatar frame: Silver</string>
     <string name="view_statistics">View statistics</string>
     <string name="player_statistics">Player statistics</string>
@@ -22,8 +22,8 @@
     <string name="statistics_chart_placeholder">Chart will be shown here after games are played.</string>
     <string name="statistics_load_failed">Statistics could not be loaded.</string>
     <string name="statistics_summary_format">Summary\nGames played: %1$d\nWins: %2$d\nLosses: %3$d\n\nQuiz\nCorrect answers: %4$d\nWrong answers: %5$d\nSuccess: %6$d%%\nTotal score: %7$d\n\nPairs\nCorrect pairs: %8$d\nTotal pairs: %9$d\nSuccess: %10$d%%\nTotal score: %11$d\n\nStep by Step\nSolved rounds: %12$d\nBest solved step: %13$s\nTotal score: %14$d\n\nMy Number\nExact hits: %15$d\nClose hits: %16$d\nTotal score: %17$d</string>
-    <string name="avatar_icon">👤</string>
-    <string name="silver_medal_icon">🥈</string>
+    <string name="avatar_icon">&#128100;</string>
+    <string name="silver_medal_icon">&#129352;</string>
     <string name="region_reward_loading">Region reward: ...</string>
     <string name="region_reward_format">Region reward: %1$s Frame</string>
     <string name="no_avatar_frame">None</string>
@@ -80,10 +80,10 @@
     <string name="close">X</string>
     <string name="statistics_success">Success&#10;60%</string>
     <string name="statistics_games_played">Games played&#10;12</string>
-    <string name="statistics_average_scores">Average score per game:&#10;&#10;Ko zna zna: 34 / 50&#10;Spojnice: 14 / 20&#10;Asocijacije: 38 / 60&#10;Skočko: 25 / 40&#10;Korak po korak: 18 / 40&#10;Moj broj: 7 / 20</string>
+    <string name="statistics_average_scores">Average score per game:&#10;&#10;Ko zna zna: 34 / 50&#10;Spojnice: 14 / 20&#10;Asocijacije: 38 / 60&#10;Skocko: 25 / 40&#10;Korak po korak: 18 / 40&#10;Moj broj: 7 / 20</string>
     <string name="statistics_knowledge_numbers_pairs">Ko zna zna:&#10;Correct answers: 42&#10;Wrong answers: 18&#10;&#10;Moj broj:&#10;Exact target number found: 40%&#10;&#10;Spojnice:&#10;Successfully connected pairs: 60%</string>
     <string name="statistics_steps" formatted="false">Korak po korak:&#10;Step 1: 5%&#10;Step 2: 8%&#10;Step 3: 12%&#10;Step 4: 20%&#10;Step 5: 25%&#10;Step 6: 18%&#10;Step 7: 12%</string>
-    <string name="statistics_associations_skocko" formatted="false">Asocijacije:&#10;Solved: 9&#10;Unsolved: 4&#10;&#10;Skočko:&#10;Attempt 1: 5%&#10;Attempt 2: 10%&#10;Attempt 3: 20%&#10;Attempt 4: 25%&#10;Attempt 5: 25%&#10;Attempt 6: 15%</string>
+    <string name="statistics_associations_skocko" formatted="false">Asocijacije:&#10;Solved: 9&#10;Unsolved: 4&#10;&#10;Skocko:&#10;Attempt 1: 5%&#10;Attempt 2: 10%&#10;Attempt 3: 20%&#10;Attempt 4: 25%&#10;Attempt 5: 25%&#10;Attempt 6: 15%</string>
     <string name="statistics_total">Total played games: 12&#10;Wins: 7&#10;Losses: 5&#10;Win rate: 58%&#10;Loss rate: 42%</string>
 
     <string name="adele">Adele</string>
@@ -268,14 +268,14 @@
     <string name="final_solution">FINAL SOLUTION</string>
     <string name="enter_solution_hint">Enter solution...</string>
 
-    <!-- Skočko -->
-    <string name="skocko">Skočko</string>
-    <string name="skocko_symbol">🧐</string>
-    <string name="star_symbol">⭐</string>
-    <string name="spade_symbol">♠</string>
-    <string name="heart_symbol">❤️</string>
-    <string name="diamond_symbol">♦</string>
-    <string name="club_symbol">♣</string>
+    <!-- SkoÃƒÆ’Ã¢â‚¬Å¾Ãƒâ€šÃ‚Âko -->
+    <string name="skocko">Skocko</string>
+    <string name="skocko_symbol">&#129488;</string>
+    <string name="star_symbol">&#11088;</string>
+    <string name="spade_symbol">&#9824;</string>
+    <string name="heart_symbol">&#9829;</string>
+    <string name="diamond_symbol">&#9830;</string>
+    <string name="club_symbol">&#9827;</string>
     <string name="skocko_opponent_attempt">Opponent attempt</string>
     <string name="skocko_correct_solution">Correct solution</string>
     <string name="submit_combination">Check</string>
@@ -311,10 +311,10 @@
     <string name="start_game">START MATCH</string>
     <string name="players_online">Players online: 37/74</string>
     <string name="available_games">Available games</string>
-    <string name="profile_short">👤&#10;Profile</string>
-    <string name="friends_short">👥&#10;Friends</string>
-    <string name="rank_short">🏆&#10;Rank</string>
-    <string name="alerts_short">🔔&#10;Alerts</string>
+    <string name="profile_short">&#128100;&#10;Profile</string>
+    <string name="friends_short">&#128101;&#10;Friends</string>
+    <string name="rank_short">&#127942;&#10;Rank</string>
+    <string name="alerts_short">!&#10;Alerts</string>
 
 
     <string name="loading">Loading...</string>
@@ -323,7 +323,7 @@
     <string name="status_tokens">5</string>
     <string name="status_stars">120</string>
     <string name="status_league">No League</string>
-    <string name="nav_header_icon">★</string>
+    <string name="nav_header_icon">&#11088;</string>
     <string name="nav_header_title">Slagalica</string>
     <string name="nav_header_subtitle">Play. Win. Climb the league.</string>
     <string name="tokens_label">TOKENS</string>
@@ -444,9 +444,9 @@
     <string name="chat_region_missing">Regional chat is not available because your region is missing.</string>
     <string name="chat_empty_message_error">Enter a message first.</string>
     <string name="chat_match_region_restricted_message">You cannot chat with this player because you are not from the same region.</string>
-    <string name="status_tokens_icon">🪙</string>
-    <string name="status_stars_icon">⭐</string>
-    <string name="status_league_icon">🏆</string>
+    <string name="status_tokens_icon">&#129689;</string>
+    <string name="status_stars_icon">&#11088;</string>
+    <string name="status_league_icon">&#127942;</string>
     <string name="guest_login_required_message">Log in or register to open this section.</string>
     <string name="match_surrendered_message">You quit the match.</string>
     <string name="quit_confirmation_title">Quit Match</string>
@@ -571,7 +571,7 @@
     <string name="shared_match_room_code_hint">Enter room code</string>
     <string name="shared_match_missing_id">Shared match ID is missing.</string>
     <string name="shared_match_you_are_player_format">You are Player %1$d</string>
-    <string name="shared_match_meta_format">Code: %1$s  •  You are Player %2$d</string>
+    <string name="shared_match_meta_format">Code: %1$s | You are Player %2$d</string>
     <string name="shared_match_waiting_phase">Waiting for player 2</string>
     <string name="shared_match_wait_turn_hint">Wait for your turn on the other device.</string>
     <string name="shared_match_kzz_phase_format">Question %1$d / %2$d. Both players can answer.</string>
@@ -625,4 +625,18 @@
     <string name="regions_reset_confirm_message">This will save the current top 3 regions, reset monthly stars to zero and award region frames on profile reload.</string>
     <string name="regions_reset_confirm_action">Reset cycle</string>
     <string name="regions_reset_success">Monthly region cycle reset.</string>
+    <string name="home_start_tournament_cta">Start tournament (3 tokens)</string>
+    <string name="monthly_ranking_title">Monthly ranking</string>
+    <string name="ranking_cycle_format">Cycle: %1$s</string>
+    <string name="ranking_empty">No ranked players in this cycle yet.</string>
+    <string name="daily_missions_title">Daily missions</string>
+    <string name="daily_missions_status_format">%1$s Win a match\n%2$s Send a chat message\n%3$s Play a friendly match\n%4$s Win a tournament match\nCompleted: %5$d/4</string>
+    <string name="daily_missions_bonus_ready">All missions done. Bonus claimed: 2 tokens and 3 stars.</string>
+    <string name="tournament_waiting_message">Searching for tournament players...</string>
+    <string name="daily_missions_progress_format">Completed: %1$d/4 | +3 stars each</string>
+    <string name="daily_mission_win_match">Win a match</string>
+    <string name="daily_mission_send_chat">Send a chat message</string>
+    <string name="daily_mission_friendly">Play a friendly match</string>
+    <string name="daily_mission_tournament">Win a tournament match</string>
+    <string name="daily_mission_row_format">%1$s  %2$s   %3$s</string>
 </resources>

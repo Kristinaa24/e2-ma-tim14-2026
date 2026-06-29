@@ -1,10 +1,18 @@
 package com.tim14.slagalica;
 
 import android.Manifest;
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.content.Intent;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Bundle;
+import android.media.AudioManager;
+import android.media.ToneGenerator;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
@@ -16,6 +24,7 @@ import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.view.Gravity;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -26,7 +35,10 @@ import androidx.core.content.ContextCompat;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.tim14.slagalica.game.GameRound;
 import com.tim14.slagalica.model.HomeFriendItem;
+import com.tim14.slagalica.model.DailyMissionStatus;
 import com.tim14.slagalica.model.HomeRankingItem;
+import com.tim14.slagalica.model.RankingCycleInfo;
+import com.tim14.slagalica.model.Notification;
 import com.tim14.slagalica.model.User;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
@@ -36,10 +48,12 @@ import com.tim14.slagalica.service.NotificationHelper;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 public class HomeActivity extends AppCompatActivity {
 
     private static final String TAG = "HomeActivity";
+    public static final String EXTRA_SHOW_REWARD_DIALOG = "SHOW_REWARD_DIALOG";
 
     private View startGameButton;
     private View topTabsStrip;
@@ -54,6 +68,13 @@ public class HomeActivity extends AppCompatActivity {
     private TextView friendsFilterOnlineButton;
     private TextView guestRankingHint;
     private TextView guestFriendsHint;
+    private TextView weeklyRankingCycleText;
+    private TextView monthlyRankingCycleText;
+    private TextView dailyMissionsProgressText;
+    private TextView missionWinMatchText;
+    private TextView missionSendChatText;
+    private TextView missionFriendlyText;
+    private TextView missionTournamentText;
     private TextView tvStatusTokens;
     private TextView tvStatusStars;
     private TextView tvStatusLeague;
@@ -61,6 +82,7 @@ public class HomeActivity extends AppCompatActivity {
     private Button guestLoginButton;
     private Button guestRegisterButton;
     private Button buyTokensButton;
+    private Button startTournamentButton;
 
     private TextView notificationsMenuButton;
     private TextView tvProfile;
@@ -75,15 +97,27 @@ public class HomeActivity extends AppCompatActivity {
     private View rankingSection;
     private View friendsSection;
     private ListView rankingListView;
+    private ListView monthlyRankingListView;
     private ListView friendsListView;
 
     private boolean isGuest;
     private boolean onlineFilterEnabled;
+    private boolean rewardDialogShown;
     private FirestoreRepository firestoreRepository;
     private ListenerRegistration playableUsersListener;
     private HomeRankingAdapter rankingAdapter;
+    private HomeRankingAdapter monthlyRankingAdapter;
     private HomeFriendAdapter friendAdapter;
     private final List<HomeRankingItem> rankingItems = new ArrayList<>();
+    private final List<HomeRankingItem> monthlyRankingItems = new ArrayList<>();
+    private final Handler rankingRefreshHandler = new Handler(Looper.getMainLooper());
+    private final Runnable rankingRefreshRunnable = new Runnable() {
+        @Override
+        public void run() {
+            loadRankings();
+            rankingRefreshHandler.postDelayed(this, 120000);
+        }
+    };
     private final List<HomeFriendItem> allFriendItems = new ArrayList<>();
 
     @Override
@@ -119,6 +153,7 @@ public class HomeActivity extends AppCompatActivity {
         guestLoginButton = findViewById(R.id.guestLoginButton);
         guestRegisterButton = findViewById(R.id.guestRegisterButton);
         buyTokensButton = findViewById(R.id.buyTokensButton);
+        startTournamentButton = findViewById(R.id.startTournamentButton);
 
         notificationsMenuButton = findViewById(R.id.notificationsMenuButton);
         tvProfile = findViewById(R.id.tvProfile);
@@ -127,7 +162,15 @@ public class HomeActivity extends AppCompatActivity {
         tvRegions = findViewById(R.id.tvRegions);
         guestRankingHint = findViewById(R.id.guestRankingHint);
         guestFriendsHint = findViewById(R.id.guestFriendsHint);
+        weeklyRankingCycleText = findViewById(R.id.weeklyRankingCycleText);
+        monthlyRankingCycleText = findViewById(R.id.monthlyRankingCycleText);
+        dailyMissionsProgressText = findViewById(R.id.dailyMissionsProgressText);
+        missionWinMatchText = findViewById(R.id.missionWinMatchText);
+        missionSendChatText = findViewById(R.id.missionSendChatText);
+        missionFriendlyText = findViewById(R.id.missionFriendlyText);
+        missionTournamentText = findViewById(R.id.missionTournamentText);
         rankingListView = findViewById(R.id.rankingListView);
+        monthlyRankingListView = findViewById(R.id.monthlyRankingListView);
         friendsListView = findViewById(R.id.friendsListView);
 
         memberActionsGroup = findViewById(R.id.memberActionsGroup);
@@ -140,6 +183,9 @@ public class HomeActivity extends AppCompatActivity {
         setupHomeLists();
         if (!isGuest) {
             loadUserStatus();
+            refreshRankingRewards();
+            loadDailyMissions();
+            startRankingAutoRefresh();
             startPlayableUsersListener();
         }
         checkTargetSection(getIntent());
@@ -153,11 +199,12 @@ public class HomeActivity extends AppCompatActivity {
                 scrollToSection(startSection);
             }
         });
-        rankingTabButton.setOnClickListener(v -> scrollToSection(rankingSection));
+        rankingTabButton.setOnClickListener(v -> openRankings());
         friendsFilterAllButton.setOnClickListener(v -> applyFriendFilter(false));
         friendsFilterOnlineButton.setOnClickListener(v -> applyFriendFilter(true));
 
         startGameButton.setOnClickListener(v -> openMatch());
+        startTournamentButton.setOnClickListener(v -> openTournament());
         buyTokensButton.setOnClickListener(v -> {
             if (isGuest) {
                 redirectGuestToLogin();
@@ -324,16 +371,27 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void openSharedMatch(String matchId, int localPlayerNumber) {
+        openSharedMatch(matchId, localPlayerNumber, false);
+    }
+
+    private void openSharedMatch(String matchId, int localPlayerNumber, boolean friendly) {
         Intent intent = new Intent(HomeActivity.this, GameHostActivity.class);
         intent.putExtra("IS_GUEST", false);
         intent.putExtra(GameHostActivity.EXTRA_REMOTE_MATCH, true);
-        intent.putExtra(GameHostActivity.EXTRA_FRIENDLY_MATCH, false);
+        intent.putExtra(GameHostActivity.EXTRA_FRIENDLY_MATCH, friendly);
         intent.putExtra(GameHostActivity.EXTRA_REMOTE_MATCH_ID, matchId);
         intent.putExtra(GameHostActivity.EXTRA_LOCAL_PLAYER_NUMBER, localPlayerNumber);
         intent.putExtra(GameHostActivity.EXTRA_START_ROUND, GameRound.MOJ_BROJ);
         startActivity(intent);
     }
 
+    private void openRankings() {
+        if (isGuest) {
+            redirectGuestToLogin();
+            return;
+        }
+        startActivity(new Intent(HomeActivity.this, RankingActivity.class));
+    }
     private void openNotifications() {
         if (isGuest) {
             redirectGuestToLogin();
@@ -364,7 +422,7 @@ public class HomeActivity extends AppCompatActivity {
         statusBarLayout.setVisibility(isGuest ? View.GONE : View.VISIBLE);
         guestProgressCard.setVisibility(isGuest ? View.VISIBLE : View.GONE);
 
-        rankingSection.setVisibility(View.VISIBLE);
+        rankingSection.setVisibility(View.GONE);
         friendsSection.setVisibility(View.VISIBLE);
         buyTokensButton.setVisibility(View.VISIBLE);
         buyTokensButton.setText(isGuest
@@ -381,30 +439,13 @@ public class HomeActivity extends AppCompatActivity {
 
     private void setupHomeLists() {
         rankingItems.clear();
-        rankingItems.add(new HomeRankingItem(
-                1,
-                getString(R.string.ranking_player_1),
-                Integer.parseInt(getString(R.string.ranking_points_1))
-        ));
-        rankingItems.add(new HomeRankingItem(
-                2,
-                getString(R.string.ranking_player_2),
-                Integer.parseInt(getString(R.string.ranking_points_2))
-        ));
-        rankingItems.add(new HomeRankingItem(
-                3,
-                getString(R.string.ranking_player_3),
-                Integer.parseInt(getString(R.string.ranking_points_3))
-        ));
-        rankingItems.add(new HomeRankingItem(
-                4,
-                getString(R.string.ranking_player_4),
-                Integer.parseInt(getString(R.string.ranking_points_4))
-        ));
+        monthlyRankingItems.clear();
 
         rankingAdapter = new HomeRankingAdapter(this, rankingItems);
+        monthlyRankingAdapter = new HomeRankingAdapter(this, monthlyRankingItems);
         rankingListView.setAdapter(rankingAdapter);
-        rankingListView.post(() -> setListViewHeightBasedOnChildren(rankingListView));
+        monthlyRankingListView.setAdapter(monthlyRankingAdapter);
+        loadRankings();
 
         allFriendItems.clear();
 
@@ -458,7 +499,102 @@ public class HomeActivity extends AppCompatActivity {
         friendsListView.setAdapter(friendAdapter);
         applyFriendFilter(false);
     }
+    private void loadRankings() {
+        RankingCycleInfo weeklyInfo = firestoreRepository.getCurrentRankingCycleInfo(FirestoreRepository.RANKING_WEEKLY);
+        RankingCycleInfo monthlyInfo = firestoreRepository.getCurrentRankingCycleInfo(FirestoreRepository.RANKING_MONTHLY);
+        weeklyRankingCycleText.setText(getString(R.string.ranking_cycle_format, weeklyInfo.dateRange));
+        monthlyRankingCycleText.setText(getString(R.string.ranking_cycle_format, monthlyInfo.dateRange));
+        loadRankingList(FirestoreRepository.RANKING_WEEKLY, rankingAdapter, rankingListView);
+        loadRankingList(FirestoreRepository.RANKING_MONTHLY, monthlyRankingAdapter, monthlyRankingListView);
+    }
 
+    private void loadRankingList(String type, HomeRankingAdapter adapter, ListView listView) {
+        firestoreRepository.getPlayerRanking(type, new FirebaseCallback<List<HomeRankingItem>>() {
+            @Override
+            public void onSuccess(List<HomeRankingItem> items) {
+                adapter.clear();
+                if (items == null || items.isEmpty()) {
+                    adapter.add(new HomeRankingItem(0, getString(R.string.ranking_empty), "", 0, 0));
+                } else {
+                    adapter.addAll(items);
+                }
+                adapter.notifyDataSetChanged();
+                listView.post(() -> setListViewHeightBasedOnChildren(listView));
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(HomeActivity.this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void loadDailyMissions() {
+        if (isGuest) {
+            dailyMissionsProgressText.setText(getString(R.string.guest_progress_message));
+            return;
+        }
+
+        firestoreRepository.getDailyMissionStatus(new FirebaseCallback<DailyMissionStatus>() {
+            @Override
+            public void onSuccess(DailyMissionStatus status) {
+                dailyMissionsProgressText.setText(getString(
+                        R.string.daily_missions_progress_format,
+                        status.completedCount()
+                ));
+                bindMissionRow(missionWinMatchText, status.winMatch, R.string.daily_mission_win_match);
+                bindMissionRow(missionSendChatText, status.sendChat, R.string.daily_mission_send_chat);
+                bindMissionRow(missionFriendlyText, status.playFriendly, R.string.daily_mission_friendly);
+                bindMissionRow(missionTournamentText, status.winTournament, R.string.daily_mission_tournament);
+
+                if (status.bonusClaimed) {
+                    dailyMissionsProgressText.setText(R.string.daily_missions_bonus_ready);
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                dailyMissionsProgressText.setText(error);
+            }
+        });
+    }
+
+    private void bindMissionRow(TextView view, boolean completed, int labelResId) {
+        view.setText(getString(
+                R.string.daily_mission_row_format,
+                completed ? String.valueOf((char) 0x2713) : "X",
+                getString(labelResId),
+                "+3 stars"
+        ));
+        view.setAlpha(completed ? 1f : 0.82f);
+        view.setTextColor(ContextCompat.getColor(
+                this,
+                completed ? R.color.slagalica_yellow : R.color.white
+        ));
+    }
+
+    private void openTournament() {
+        if (isGuest) {
+            redirectGuestToLogin();
+            return;
+        }
+
+        SharedMatchRepository repository = new SharedMatchRepository();
+        repository.startTournamentMatchmaking(new FirebaseCallback<SharedMatchRepository.MatchJoinResult>() {
+            @Override
+            public void onSuccess(SharedMatchRepository.MatchJoinResult result) {
+                if (result.waitingForOpponent) {
+                    Toast.makeText(HomeActivity.this, R.string.tournament_waiting_message, Toast.LENGTH_SHORT).show();
+                }
+                openSharedMatch(result.matchId, result.localPlayerNumber);
+            }
+
+            @Override
+            public void onError(String error) {
+                Toast.makeText(HomeActivity.this, error, Toast.LENGTH_LONG).show();
+            }
+        });
+    }
     private void applyFriendFilter(boolean onlineOnly) {
         onlineFilterEnabled = onlineOnly;
 
@@ -670,7 +806,7 @@ public class HomeActivity extends AppCompatActivity {
                         R.string.friendly_invite_sent_message,
                         Toast.LENGTH_SHORT
                 ).show();
-                openSharedMatch(result.matchId, result.localPlayerNumber);
+                openSharedMatch(result.matchId, result.localPlayerNumber, true);
             }
 
             @Override
@@ -732,24 +868,191 @@ public class HomeActivity extends AppCompatActivity {
     private void checkTargetSection(Intent intent) {
         if (intent == null || intent.getExtras() == null) return;
         String section = intent.getStringExtra("TARGET_SECTION");
-        if (section == null) return;
+        boolean showRewardDialog = intent.getBooleanExtra(EXTRA_SHOW_REWARD_DIALOG, false);
 
-        switch (section) {
-            case "ranking":
-                scrollToSection(rankingSection);
-                break;
-            case "profile":
-                openProfile();
-                break;
-            case "friends":
-                scrollToSection(friendsSection);
-                break;
-            case "chat":
-                openRegionalChat();
-                break;
+        if (section != null) {
+            switch (section) {
+                case "ranking":
+                    openRankings();
+                    break;
+                case "profile":
+                    openProfile();
+                    break;
+                case "friends":
+                    scrollToSection(friendsSection);
+                    break;
+                case "chat":
+                    openRegionalChat();
+                    break;
+            }
+        }
+
+        if (showRewardDialog && !isGuest) {
+            homeScrollView.postDelayed(this::showPendingRewardDialog, 350);
         }
     }
 
+    private void refreshRankingRewards() {
+        firestoreRepository.refreshRankingRewards(new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                loadRankings();
+                loadUserStatus();
+                showPendingRewardDialog();
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.w(TAG, "Ranking reward refresh failed: " + error);
+            }
+        });
+    }
+
+    private void showPendingRewardDialog() {
+        if (isGuest || rewardDialogShown) {
+            return;
+        }
+
+        firestoreRepository.getNotifications(new FirebaseCallback<List<Notification>>() {
+            @Override
+            public void onSuccess(List<Notification> notifications) {
+                if (notifications == null) {
+                    return;
+                }
+                for (Notification notification : notifications) {
+                    if (notification == null || notification.read) {
+                        continue;
+                    }
+                    boolean rankingReward = "RANKING".equalsIgnoreCase(notification.typeString)
+                            && notification.title != null
+                            && notification.title.toLowerCase(Locale.US).contains("ranking reward");
+                    boolean rewardMessage = notification.message != null
+                            && (notification.message.toLowerCase(Locale.US).contains("earned")
+                            || notification.message.toLowerCase(Locale.US).contains("tokens"));
+                    if (!rankingReward || !rewardMessage) {
+                        continue;
+                    }
+                    rewardDialogShown = true;
+                    firestoreRepository.markNotificationAsRead(notification.id);
+                    showRewardAnimationDialog(notification.title, notification.message);
+                    return;
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                Log.w(TAG, "Reward dialog lookup failed: " + error);
+            }
+        });
+    }
+
+    private void showRewardAnimationDialog(String title, String message) {
+        int outerPadding = dpToPx(22);
+        LinearLayout rewardPanel = new LinearLayout(this);
+        rewardPanel.setOrientation(LinearLayout.VERTICAL);
+        rewardPanel.setGravity(Gravity.CENTER_HORIZONTAL);
+        rewardPanel.setPadding(outerPadding, dpToPx(24), outerPadding, dpToPx(18));
+        rewardPanel.setBackgroundResource(R.drawable.bg_home_panel);
+
+        TextView trophyView = new TextView(this);
+        trophyView.setText(getString(R.string.status_tokens_icon));
+        trophyView.setTextSize(40f);
+        trophyView.setGravity(Gravity.CENTER);
+        trophyView.setTextColor(ContextCompat.getColor(this, R.color.slagalica_yellow));
+        trophyView.setBackgroundResource(R.drawable.bg_match_timer_circle);
+        LinearLayout.LayoutParams trophyParams = new LinearLayout.LayoutParams(dpToPx(82), dpToPx(82));
+        rewardPanel.addView(trophyView, trophyParams);
+
+        TextView titleView = new TextView(this);
+        titleView.setText(title == null ? "Ranking reward" : title);
+        titleView.setTextColor(ContextCompat.getColor(this, R.color.slagalica_yellow));
+        titleView.setTextSize(22f);
+        titleView.setGravity(Gravity.CENTER);
+        titleView.setTypeface(titleView.getTypeface(), android.graphics.Typeface.BOLD);
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        titleParams.topMargin = dpToPx(14);
+        rewardPanel.addView(titleView, titleParams);
+
+        TextView messageView = new TextView(this);
+        messageView.setText(message == null ? "Reward earned." : message);
+        messageView.setTextColor(ContextCompat.getColor(this, R.color.white));
+        messageView.setTextSize(16f);
+        messageView.setGravity(Gravity.CENTER);
+        messageView.setLineSpacing(dpToPx(2), 1f);
+        LinearLayout.LayoutParams messageParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        messageParams.topMargin = dpToPx(10);
+        rewardPanel.addView(messageView, messageParams);
+
+        TextView sparkleView = new TextView(this);
+        sparkleView.setText("+ tokens");
+        sparkleView.setTextColor(ContextCompat.getColor(this, R.color.slagalica_dark_blue));
+        sparkleView.setTextSize(18f);
+        sparkleView.setGravity(Gravity.CENTER);
+        sparkleView.setTypeface(sparkleView.getTypeface(), android.graphics.Typeface.BOLD);
+        sparkleView.setBackgroundResource(R.drawable.bg_button_primary);
+        LinearLayout.LayoutParams sparkleParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dpToPx(46)
+        );
+        sparkleParams.topMargin = dpToPx(18);
+        rewardPanel.addView(sparkleView, sparkleParams);
+
+        Button okButton = new Button(this);
+        okButton.setAllCaps(false);
+        okButton.setText(android.R.string.ok);
+        okButton.setTextColor(ContextCompat.getColor(this, R.color.slagalica_dark_blue));
+        okButton.setTextSize(15f);
+        okButton.setTypeface(okButton.getTypeface(), android.graphics.Typeface.BOLD);
+        okButton.setBackgroundResource(R.drawable.bg_button_secondary);
+        LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dpToPx(44)
+        );
+        buttonParams.topMargin = dpToPx(12);
+        rewardPanel.addView(okButton, buttonParams);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(rewardPanel)
+                .create();
+        okButton.setOnClickListener(v -> dialog.dismiss());
+        dialog.setOnShowListener(dialogInterface -> {
+            if (dialog.getWindow() != null) {
+                dialog.getWindow().setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+            }
+            ToneGenerator toneGenerator = new ToneGenerator(AudioManager.STREAM_NOTIFICATION, 80);
+            toneGenerator.startTone(ToneGenerator.TONE_PROP_ACK, 220);
+            rewardPanel.setScaleX(0.72f);
+            rewardPanel.setScaleY(0.72f);
+            rewardPanel.setAlpha(0.1f);
+            trophyView.setRotation(-12f);
+            AnimatorSet set = new AnimatorSet();
+            set.playTogether(
+                    ObjectAnimator.ofFloat(rewardPanel, View.SCALE_X, 0.72f, 1.06f, 1f),
+                    ObjectAnimator.ofFloat(rewardPanel, View.SCALE_Y, 0.72f, 1.06f, 1f),
+                    ObjectAnimator.ofFloat(rewardPanel, View.ALPHA, 0.1f, 1f),
+                    ObjectAnimator.ofFloat(trophyView, View.ROTATION, -12f, 12f, 0f),
+                    ObjectAnimator.ofFloat(sparkleView, View.TRANSLATION_Y, dpToPx(12), 0f)
+            );
+            set.setDuration(750);
+            set.start();
+            rewardPanel.postDelayed(toneGenerator::release, 500);
+        });
+        dialog.show();
+    }
+    private void startRankingAutoRefresh() {
+        rankingRefreshHandler.removeCallbacks(rankingRefreshRunnable);
+        rankingRefreshHandler.post(rankingRefreshRunnable);
+    }
+
+    private void stopRankingAutoRefresh() {
+        rankingRefreshHandler.removeCallbacks(rankingRefreshRunnable);
+    }
     @Override protected void onStart() { super.onStart(); Log.d(TAG, "onStart"); }
     @Override protected void onRestart() { super.onRestart(); Log.d(TAG, "onRestart"); }
     @Override
@@ -762,6 +1065,9 @@ public class HomeActivity extends AppCompatActivity {
             firestoreRepository.markCurrentUserInApp(true);
             firestoreRepository.clearCurrentUserMatch();
             loadUserStatus();
+            refreshRankingRewards();
+            loadDailyMissions();
+            startRankingAutoRefresh();
             startPlayableUsersListener();
 
             firestoreRepository.markCurrentUserActive(new FirebaseCallback<Void>() {
@@ -783,6 +1089,7 @@ public class HomeActivity extends AppCompatActivity {
             firestoreRepository.markCurrentUserInApp(false);
             stopPlayableUsersListener();
         }
+        stopRankingAutoRefresh();
         super.onPause();
         Log.d(TAG, "onPause");
     }
@@ -790,6 +1097,7 @@ public class HomeActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         stopPlayableUsersListener();
+        stopRankingAutoRefresh();
         super.onDestroy();
         Log.d(TAG, "onDestroy");
     }
