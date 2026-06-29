@@ -31,6 +31,7 @@ public class SharedMatchState {
     public static final String PHASE_RESULT = "RESULT";
     public static final String MATCH_TYPE_COMPETITIVE = "COMPETITIVE";
     public static final String MATCH_TYPE_FRIENDLY = "FRIENDLY";
+    public static final String MATCH_TYPE_TOURNAMENT = "TOURNAMENT";
 
     public String roomCode;
     public String status;
@@ -60,6 +61,14 @@ public class SharedMatchState {
     public long matchStartedAt;
     public long friendlyInviteExpiresAt;
     public long updatedAt;
+    public String tournamentId;
+    public String tournamentStage;
+    public int tournamentSemiNumber;
+    public boolean playerOneEntryPaid;
+    public boolean playerTwoEntryPaid;
+    public String siblingMatchId;
+    public String finalMatchId;
+    public String winnerId;
     public List<KoZnaZnaQuestion> quizQuestions;
     public List<SharedSpojniceRound> spojniceRounds;
     public List<SharedSkockoRound> skockoRounds;
@@ -81,5 +90,13 @@ public class SharedMatchState {
         rematchDeclinedBy = 0;
         matchStartedAt = 0L;
         friendlyInviteExpiresAt = 0L;
+        tournamentId = "";
+        tournamentStage = "";
+        tournamentSemiNumber = 0;
+        playerOneEntryPaid = false;
+        playerTwoEntryPaid = false;
+        siblingMatchId = "";
+        finalMatchId = "";
+        winnerId = "";
     }
 }

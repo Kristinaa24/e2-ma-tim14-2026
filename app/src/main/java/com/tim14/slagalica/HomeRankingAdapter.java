@@ -38,10 +38,12 @@ public class HomeRankingAdapter extends ArrayAdapter<HomeRankingItem> {
 
         TextView positionText = view.findViewById(R.id.rankingPositionText);
         TextView playerNameText = view.findViewById(R.id.rankingPlayerNameText);
+        TextView leagueText = view.findViewById(R.id.rankingLeagueText);
         TextView starsText = view.findViewById(R.id.rankingStarsText);
 
         positionText.setText(String.valueOf(item.getPosition()));
         playerNameText.setText(item.getPlayerName());
+        leagueText.setText(LeagueUtils.getLeagueIcon(item.getLeague()) + " " + item.getLeagueName());
         starsText.setText(String.valueOf(item.getStars()));
 
         return view;

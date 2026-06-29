@@ -16,6 +16,9 @@ import com.tim14.slagalica.LeagueUtils;
 import com.tim14.slagalica.R;
 import com.tim14.slagalica.model.AsocijacijeRound;
 import com.tim14.slagalica.model.ChatMessage;
+import com.tim14.slagalica.model.DailyMissionStatus;
+import com.tim14.slagalica.model.HomeRankingItem;
+import com.tim14.slagalica.model.RankingCycleInfo;
 import com.tim14.slagalica.model.KoZnaZnaQuestion;
 import com.tim14.slagalica.model.Notification;
 import com.tim14.slagalica.model.PlayerStatistics;
@@ -26,6 +29,8 @@ import com.tim14.slagalica.service.NotificationHelper;
 
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.WeekFields;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
@@ -48,7 +53,13 @@ public class FirestoreRepository {
     private static final String REGIONS_COLLECTION = "regions";
     private static final String FRIENDS_COLLECTION = "friends";
     private static final long ACTIVE_PLAYER_WINDOW_MS = 10 * 60 * 1000;
-    private static final int MONTHLY_PLAYER_RANKING_PLACES = 3;
+    private static final int MONTHLY_PLAYER_RANKING_PLACES = 10;
+    public static final String RANKING_WEEKLY = "weekly";
+    public static final String RANKING_MONTHLY = "monthly";
+    public static final String MISSION_WIN_MATCH = "WIN_MATCH";
+    public static final String MISSION_SEND_CHAT = "SEND_CHAT";
+    public static final String MISSION_PLAY_FRIENDLY = "PLAY_FRIENDLY";
+    public static final String MISSION_WIN_TOURNAMENT = "WIN_TOURNAMENT";
 
     private static final Region[] DEFAULT_REGIONS = new Region[]{
             new Region("VO", "Vojvodina", "\uD83C\uDF3E"),
@@ -245,6 +256,167 @@ public class FirestoreRepository {
         });
     }
 
+    public RankingCycleInfo getCurrentRankingCycleInfo(String type) {
+        LocalDate today = LocalDate.now();
+        if (RANKING_MONTHLY.equals(type)) {
+            LocalDate start = today.withDayOfMonth(1);
+            LocalDate end = today.withDayOfMonth(today.lengthOfMonth());
+            return new RankingCycleInfo(type, currentMonthlyCycleKey(), formatCycleRange(start, end));
+        }
+
+        LocalDate start = today.minusDays(today.getDayOfWeek().getValue() - 1L);
+        LocalDate end = start.plusDays(6);
+        return new RankingCycleInfo(RANKING_WEEKLY, currentWeeklyCycleKey(), formatCycleRange(start, end));
+    }
+
+    public void getPlayerRanking(String type, FirebaseCallback<List<HomeRankingItem>> callback) {
+        String cycleKey = RANKING_MONTHLY.equals(type) ? currentMonthlyCycleKey() : currentWeeklyCycleKey();
+        db.collection(USERS_COLLECTION)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<User> users = new ArrayList<>();
+                    for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                        User user = document.toObject(User.class);
+                        if (user == null) {
+                            continue;
+                        }
+                        ensureUserDefaults(user, document.getId());
+                        boolean inCycle = RANKING_MONTHLY.equals(type)
+                                ? cycleKey.equals(user.monthlyCycleKey)
+                                : cycleKey.equals(user.weeklyCycleKey);
+                        int cycleStars = RANKING_MONTHLY.equals(type) ? user.monthlyStars : user.weeklyStars;
+                        int cycleGames = RANKING_MONTHLY.equals(type) ? user.monthlyGames : user.weeklyGames;
+                        if (inCycle && cycleGames > 0) {
+                            users.add(user);
+                        }
+                    }
+
+                    users.sort((left, right) -> Integer.compare(
+                            RANKING_MONTHLY.equals(type) ? right.monthlyStars : right.weeklyStars,
+                            RANKING_MONTHLY.equals(type) ? left.monthlyStars : left.weeklyStars
+                    ));
+
+                    List<HomeRankingItem> items = new ArrayList<>();
+                    int limit = Math.min(10, users.size());
+                    for (int index = 0; index < limit; index++) {
+                        User user = users.get(index);
+                        int cycleStars = RANKING_MONTHLY.equals(type) ? user.monthlyStars : user.weeklyStars;
+                        items.add(new HomeRankingItem(
+                                index + 1,
+                                safeUserName(user),
+                                LeagueUtils.getLeagueName(user.league),
+                                user.league,
+                                cycleStars
+                        ));
+                    }
+                    callback.onSuccess(items);
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void refreshRankingRewards(FirebaseCallback<Void> callback) {
+        db.collection(USERS_COLLECTION)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    WriteBatch batch = db.batch();
+                    List<DocumentSnapshot> documents = new ArrayList<>(querySnapshot.getDocuments());
+                    applyRankingCycleRefresh(batch, documents, RANKING_WEEKLY, currentWeeklyCycleKey());
+                    applyRankingCycleRefresh(batch, documents, RANKING_MONTHLY, currentMonthlyCycleKey());
+                    batch.commit()
+                            .addOnSuccessListener(unused -> callback.onSuccess(null))
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void getDailyMissionStatus(FirebaseCallback<DailyMissionStatus> callback) {
+        getCurrentUser(new FirebaseCallback<User>() {
+            @Override
+            public void onSuccess(User user) {
+                DailyMissionStatus status = new DailyMissionStatus();
+                status.winMatch = user.dailyMissionWinMatch;
+                status.sendChat = user.dailyMissionSendChat;
+                status.playFriendly = user.dailyMissionPlayFriendly;
+                status.winTournament = user.dailyMissionWinTournament;
+                status.bonusClaimed = user.dailyMissionBonusClaimed;
+                callback.onSuccess(status);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void completeDailyMission(String mission, FirebaseCallback<Void> callback) {
+        String userId;
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    User user = documentSnapshot.toObject(User.class);
+                    if (user == null) {
+                        callback.onError(text(R.string.firestore_error_profile_not_found, "User profile was not found."));
+                        return;
+                    }
+
+                    ensureUserDefaults(user, userId);
+                    resetDailyMissionsIfNeeded(user);
+
+                    boolean newlyCompleted = false;
+                    if (MISSION_WIN_MATCH.equals(mission) && !user.dailyMissionWinMatch) {
+                        user.dailyMissionWinMatch = true;
+                        newlyCompleted = true;
+                    } else if (MISSION_SEND_CHAT.equals(mission) && !user.dailyMissionSendChat) {
+                        user.dailyMissionSendChat = true;
+                        newlyCompleted = true;
+                    } else if (MISSION_PLAY_FRIENDLY.equals(mission) && !user.dailyMissionPlayFriendly) {
+                        user.dailyMissionPlayFriendly = true;
+                        newlyCompleted = true;
+                    } else if (MISSION_WIN_TOURNAMENT.equals(mission) && !user.dailyMissionWinTournament) {
+                        user.dailyMissionWinTournament = true;
+                        newlyCompleted = true;
+                    }
+
+                    int starDelta = newlyCompleted ? 3 : 0;
+                    if (newlyCompleted
+                            && !user.dailyMissionBonusClaimed
+                            && user.dailyMissionWinMatch
+                            && user.dailyMissionSendChat
+                            && user.dailyMissionPlayFriendly
+                            && user.dailyMissionWinTournament) {
+                        user.dailyMissionBonusClaimed = true;
+                        user.tokens += 2;
+                        starDelta += 3;
+                        saveNotificationForUser(
+                                userId,
+                                "Daily missions completed",
+                                "You completed all daily missions and earned 2 tokens and 3 bonus stars.",
+                                "REWARD",
+                                null
+                        );
+                    }
+
+                    if (starDelta > 0) {
+                        applyPositiveStars(user, starDelta);
+                    }
+
+                    db.collection(USERS_COLLECTION)
+                            .document(userId)
+                            .set(user, SetOptions.merge())
+                            .addOnSuccessListener(unused -> callback.onSuccess(null))
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
     public void markCurrentUserActive(FirebaseCallback<Void> callback) {
         String userId;
 
@@ -320,8 +492,14 @@ public class FirestoreRepository {
                     ensureUserDefaults(user, userId);
 
                     int previousLeague = user.league;
+                    markRankingGamePlayed(user);
                     int starDelta = calculateMatchStarDelta(playerScore, won, lost);
                     user.stars = Math.max(0, user.stars + starDelta);
+                    if (starDelta > 0) {
+                        ensureUserCycleKeys(user);
+                        user.weeklyStars += starDelta;
+                        user.monthlyStars += starDelta;
+                    }
                     user.league = LeagueUtils.calculateLeague(user.stars);
                     Log.i(TAG, "Applying match rewards for user=" + userId
                             + ", region=" + user.region
@@ -335,7 +513,6 @@ public class FirestoreRepository {
 
                     String regionCode = regionCodeForName(user.region);
                     int earnedRegionStars = Math.max(0, starDelta);
-                    user.monthlyStars += earnedRegionStars;
                     WriteBatch batch = db.batch();
                     batch.set(
                             db.collection(REGIONS_COLLECTION).document(regionCode),
@@ -345,7 +522,12 @@ public class FirestoreRepository {
 
                     Map<String, Object> userUpdates = new HashMap<>();
                     userUpdates.put("stars", user.stars);
+                    userUpdates.put("weeklyStars", user.weeklyStars);
                     userUpdates.put("monthlyStars", user.monthlyStars);
+                    userUpdates.put("weeklyGames", user.weeklyGames);
+                    userUpdates.put("monthlyGames", user.monthlyGames);
+                    userUpdates.put("weeklyCycleKey", user.weeklyCycleKey);
+                    userUpdates.put("monthlyCycleKey", user.monthlyCycleKey);
                     userUpdates.put("league", user.league);
                     batch.update(db.collection(USERS_COLLECTION).document(userId), userUpdates);
 
@@ -727,7 +909,12 @@ public class FirestoreRepository {
         }
 
         user.stars = Math.max(0, user.stars);
+        user.weeklyStars = Math.max(0, user.weeklyStars);
         user.monthlyStars = Math.max(0, user.monthlyStars);
+        user.weeklyGames = Math.max(0, user.weeklyGames);
+        user.monthlyGames = Math.max(0, user.monthlyGames);
+        ensureUserCycleKeys(user);
+        resetDailyMissionsIfNeeded(user);
         user.league = LeagueUtils.calculateLeague(user.stars);
         migrateLegacyInitialTokens(user);
     }
@@ -1611,7 +1798,17 @@ public class FirestoreRepository {
                                         safeUserName(user),
                                         trimmedMessage
                                 );
-                                callback.onSuccess(null);
+                                completeDailyMission(MISSION_SEND_CHAT, new FirebaseCallback<Void>() {
+                                    @Override
+                                    public void onSuccess(Void result) {
+                                        callback.onSuccess(null);
+                                    }
+
+                                    @Override
+                                    public void onError(String error) {
+                                        callback.onSuccess(null);
+                                    }
+                                });
                             })
                             .addOnFailureListener(e -> callback.onError(e.getMessage()));
                 })
@@ -2275,6 +2472,195 @@ public class FirestoreRepository {
                 });
     }
 
+    private void applyRankingCycleRefresh(
+            WriteBatch batch,
+            List<DocumentSnapshot> documents,
+            String type,
+            String currentCycleKey
+    ) {
+        Map<String, List<DocumentSnapshot>> endedCycles = new HashMap<>();
+        for (DocumentSnapshot document : documents) {
+            User user = document.toObject(User.class);
+            if (user == null) {
+                continue;
+            }
+            if (TextUtils.isEmpty(user.id)) {
+                user.id = document.getId();
+            }
+            String userCycleKey = RANKING_MONTHLY.equals(type) ? user.monthlyCycleKey : user.weeklyCycleKey;
+            int cycleGames = RANKING_MONTHLY.equals(type) ? user.monthlyGames : user.weeklyGames;
+            String lastRewardCycle = RANKING_MONTHLY.equals(type) ? user.lastMonthlyRewardCycle : user.lastWeeklyRewardCycle;
+            boolean alreadyRewarded = !TextUtils.isEmpty(userCycleKey) && userCycleKey.equals(lastRewardCycle);
+            if (!TextUtils.isEmpty(userCycleKey)
+                    && !currentCycleKey.equals(userCycleKey)
+                    && cycleGames > 0
+                    && !alreadyRewarded) {
+                if (!endedCycles.containsKey(userCycleKey)) {
+                    endedCycles.put(userCycleKey, new ArrayList<>());
+                }
+                endedCycles.get(userCycleKey).add(document);
+            }
+        }
+
+        for (Map.Entry<String, List<DocumentSnapshot>> entry : endedCycles.entrySet()) {
+            List<DocumentSnapshot> rankedDocuments = entry.getValue();
+            rankedDocuments.sort((left, right) -> {
+                User leftUser = left.toObject(User.class);
+                User rightUser = right.toObject(User.class);
+                int leftStars = getCycleStars(leftUser, type);
+                int rightStars = getCycleStars(rightUser, type);
+                return Integer.compare(rightStars, leftStars);
+            });
+
+            for (int index = 0; index < rankedDocuments.size(); index++) {
+                DocumentSnapshot document = rankedDocuments.get(index);
+                User user = document.toObject(User.class);
+                if (user == null) {
+                    continue;
+                }
+                if (TextUtils.isEmpty(user.id)) {
+                    user.id = document.getId();
+                }
+                if (TextUtils.isEmpty(user.username)) {
+                    user.username = "Player";
+                }
+                user.tokens = Math.max(0, user.tokens);
+                user.stars = Math.max(0, user.stars);
+                user.weeklyStars = Math.max(0, user.weeklyStars);
+                user.monthlyStars = Math.max(0, user.monthlyStars);
+                user.weeklyGames = Math.max(0, user.weeklyGames);
+                user.monthlyGames = Math.max(0, user.monthlyGames);
+
+                int rewardTokens = rankingRewardTokens(index + 1, type);
+                if (rewardTokens > 0) {
+                    String title = RANKING_MONTHLY.equals(type) ? "Monthly ranking reward" : "Weekly ranking reward";
+                    String message = "You placed #" + (index + 1) + " and earned " + rewardTokens + " tokens.";
+                    batch.set(
+                            db.collection(NOTIFICATIONS_COLLECTION).document(),
+                            notificationData(document.getId(), title, message, "RANKING")
+                    );
+                    if (document.getId().equals(currentFirebaseUserIdOrEmpty())) {
+                        showLeagueSystemNotification(title, message, "RANKING");
+                    }
+                }
+
+                Map<String, Object> userUpdates = new HashMap<>();
+                if (rewardTokens > 0) {
+                    userUpdates.put("tokens", FieldValue.increment(rewardTokens));
+                }
+                if (RANKING_MONTHLY.equals(type)) {
+                    userUpdates.put("monthlyStars", 0);
+                    userUpdates.put("monthlyGames", 0);
+                    userUpdates.put("monthlyCycleKey", currentCycleKey);
+                    userUpdates.put("lastMonthlyRewardCycle", entry.getKey());
+                } else {
+                    userUpdates.put("weeklyStars", 0);
+                    userUpdates.put("weeklyGames", 0);
+                    userUpdates.put("weeklyCycleKey", currentCycleKey);
+                    userUpdates.put("lastWeeklyRewardCycle", entry.getKey());
+                }
+                batch.set(db.collection(USERS_COLLECTION).document(document.getId()), userUpdates, SetOptions.merge());
+            }
+        }
+    }
+
+    private int getCycleStars(User user, String type) {
+        if (user == null) {
+            return 0;
+        }
+        return RANKING_MONTHLY.equals(type) ? Math.max(0, user.monthlyStars) : Math.max(0, user.weeklyStars);
+    }
+
+    private int rankingRewardTokens(int rank, String type) {
+        if (rank <= 0 || rank > 10) {
+            return 0;
+        }
+        boolean monthly = RANKING_MONTHLY.equals(type);
+        if (rank == 1) {
+            return monthly ? 10 : 5;
+        }
+        if (rank == 2) {
+            return monthly ? 6 : 3;
+        }
+        if (rank == 3) {
+            return monthly ? 4 : 2;
+        }
+        return monthly ? 2 : 1;
+    }
+
+    private void markRankingGamePlayed(User user) {
+        if (user == null) {
+            return;
+        }
+        ensureUserCycleKeys(user);
+        user.weeklyGames++;
+        user.monthlyGames++;
+    }
+    private void applyPositiveStars(User user, int starDelta) {
+        if (user == null || starDelta <= 0) {
+            return;
+        }
+        ensureUserCycleKeys(user);
+        user.stars = Math.max(0, user.stars + starDelta);
+        user.weeklyStars += starDelta;
+        user.monthlyStars += starDelta;
+        user.league = LeagueUtils.calculateLeague(user.stars);
+    }
+
+    private void ensureUserCycleKeys(User user) {
+        String weeklyCycleKey = currentWeeklyCycleKey();
+        String monthlyCycleKey = currentMonthlyCycleKey();
+        if (!weeklyCycleKey.equals(user.weeklyCycleKey)
+                && canMoveToNewRankingCycle(user.weeklyCycleKey, user.lastWeeklyRewardCycle, user.weeklyGames)) {
+            user.weeklyCycleKey = weeklyCycleKey;
+            user.weeklyStars = 0;
+            user.weeklyGames = 0;
+        }
+        if (!monthlyCycleKey.equals(user.monthlyCycleKey)
+                && canMoveToNewRankingCycle(user.monthlyCycleKey, user.lastMonthlyRewardCycle, user.monthlyGames)) {
+            user.monthlyCycleKey = monthlyCycleKey;
+            user.monthlyStars = 0;
+            user.monthlyGames = 0;
+        }
+    }
+
+    private boolean canMoveToNewRankingCycle(String cycleKey, String lastRewardCycle, int cycleGames) {
+        return TextUtils.isEmpty(cycleKey) || cycleGames <= 0 || cycleKey.equals(lastRewardCycle);
+    }
+
+    private void resetDailyMissionsIfNeeded(User user) {
+        String today = currentDailyRewardDate();
+        if (today.equals(user.dailyMissionDate)) {
+            return;
+        }
+        user.dailyMissionDate = today;
+        user.dailyMissionWinMatch = false;
+        user.dailyMissionSendChat = false;
+        user.dailyMissionPlayFriendly = false;
+        user.dailyMissionWinTournament = false;
+        user.dailyMissionBonusClaimed = false;
+    }
+
+    private String currentWeeklyCycleKey() {
+        LocalDate today = LocalDate.now();
+        WeekFields weekFields = WeekFields.ISO;
+        return today.getYear() + "-W" + String.format(Locale.US, "%02d", today.get(weekFields.weekOfWeekBasedYear()));
+    }
+
+    private String currentMonthlyCycleKey() {
+        return new SimpleDateFormat("yyyy-MM", Locale.US).format(new Date());
+    }
+
+    private String formatCycleRange(LocalDate start, LocalDate end) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.US);
+        return start.format(formatter) + " - " + end.format(formatter);
+    }
+
+    private String currentFirebaseUserIdOrEmpty() {
+        return FirebaseAuth.getInstance().getCurrentUser() == null
+                ? ""
+                : FirebaseAuth.getInstance().getCurrentUser().getUid();
+    }
     private String todayKey() {
         return LocalDate.now().toString();
     }

@@ -61,6 +61,9 @@ public class NotificationHelper {
         } else {
             intent = new Intent(context, HomeActivity.class);
             intent.putExtra("TARGET_SECTION", getTargetSectionByType(type));
+            if ("RANKING".equalsIgnoreCase(type) || "REWARD".equalsIgnoreCase(type)) {
+                intent.putExtra(HomeActivity.EXTRA_SHOW_REWARD_DIALOG, true);
+            }
         }
         intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
 

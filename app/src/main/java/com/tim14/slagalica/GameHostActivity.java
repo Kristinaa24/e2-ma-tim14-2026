@@ -1,15 +1,22 @@
 package com.tim14.slagalica;
 
+import android.animation.AnimatorSet;
+import android.animation.ObjectAnimator;
+import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.firebase.auth.FirebaseAuth;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.google.firebase.firestore.ListenerRegistration;
@@ -35,8 +42,11 @@ import com.tim14.slagalica.repository.ChallengeRepository;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
 import com.tim14.slagalica.repository.SharedMatchRepository;
+import com.tim14.slagalica.service.ProfileService;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class GameHostActivity extends AppCompatActivity implements GameNavigator {
@@ -64,6 +74,16 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     private TextView tvStatusStars;
     private TextView tvStatusLeague;
     private Button btnQuitMatch;
+    private View matchPlayersHeader;
+    private View matchPhaseHeader;
+    private View matchContentArea;
+    private View tournamentMatchingPanel;
+    private TextView tournamentMatchingTitle;
+    private TextView tournamentMatchingStatus;
+    private TextView tournamentMatchingSubtitle;
+    private ImageView[] tournamentSlotAvatars;
+    private TextView[] tournamentSlotNames;
+    private TextView[] tournamentSlotLeagues;
 
     private int playerOneScore;
     private int playerTwoScore;
@@ -88,6 +108,8 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     private ListenerRegistration unreadChatListener;
     private boolean challengeMode;
     private String challengeId;
+    private boolean tournamentStartAnimationRunning;
+    private final ProfileService profileService = new ProfileService();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,6 +131,14 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         tvStatusStars = findViewById(R.id.tvStatusStars);
         tvStatusLeague = findViewById(R.id.tvStatusLeague);
         btnQuitMatch = findViewById(R.id.btnQuitMatch);
+        matchPlayersHeader = findViewById(R.id.matchPlayersHeader);
+        matchPhaseHeader = findViewById(R.id.matchPhaseHeader);
+        matchContentArea = findViewById(R.id.matchContentArea);
+        tournamentMatchingPanel = findViewById(R.id.tournamentMatchingPanel);
+        tournamentMatchingTitle = findViewById(R.id.tournamentMatchingTitle);
+        tournamentMatchingStatus = findViewById(R.id.tournamentMatchingStatus);
+        tournamentMatchingSubtitle = findViewById(R.id.tournamentMatchingSubtitle);
+        setupTournamentMatchingSlots();
         firestoreRepository = new FirestoreRepository();
         challengeRepository = new ChallengeRepository();
         sharedMatchRepository = new SharedMatchRepository();
@@ -275,15 +305,11 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         if (remoteMatchMode) {
             matchResultRecorded = true;
 
-            if (isFriendlyMatch()) {
-                firestoreRepository.clearCurrentUserMatch();
-                loadUserStatus();
-                return;
-            }
 
             sharedMatchRepository.finalizeMatchIfNeeded(remoteMatchId, new FirebaseCallback<SharedMatchRepository.MatchFinalizationResult>() {
                 @Override
                 public void onSuccess(SharedMatchRepository.MatchFinalizationResult result) {
+                    completeMatchMissions(result);
                     loadUserStatus();
                 }
 
@@ -349,6 +375,12 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         finish();
     }
 
+    public void finishMatchAndReturnHome() {
+        finishMatch();
+        Intent intent = new Intent(this, HomeActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        startActivity(intent);
+    }
     private void loadUserStatus() {
         firestoreRepository.getCurrentUser(new FirebaseCallback<User>() {
             @Override
@@ -592,6 +624,12 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
 
         matchResultRecorded = true;
         firestoreRepository.updateMatchStatistics(won, lost);
+        if (won) {
+            completeDailyMission(FirestoreRepository.MISSION_WIN_MATCH);
+        }
+        if (friendlyMatch) {
+            completeDailyMission(FirestoreRepository.MISSION_PLAY_FRIENDLY);
+        }
 
         if (!awardStars) {
             return;
@@ -614,6 +652,107 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         });
     }
 
+    public void openTournamentFinalMatch() {
+        if (sharedMatchState == null || TextUtils.isEmpty(sharedMatchState.finalMatchId)) {
+            Toast.makeText(this, "Waiting for the other semifinal to finish.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        openTournamentFinalMatch(sharedMatchState.finalMatchId, getTournamentFinalPlayerNumber());
+    }
+
+    private int getTournamentFinalPlayerNumber() {
+        if (sharedMatchState == null) {
+            return 1;
+        }
+        if ("SEMI".equals(sharedMatchState.tournamentStage)) {
+            return sharedMatchState.tournamentSemiNumber == 2 ? 2 : 1;
+        }
+        if (FirebaseAuth.getInstance().getCurrentUser() == null) {
+            return 1;
+        }
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        return currentUserId.equals(sharedMatchState.playerTwoId) ? 2 : 1;
+    }
+
+    private void openTournamentFinalMatch(String finalMatchId, int finalPlayerNumber) {
+        Intent intent = new Intent(GameHostActivity.this, GameHostActivity.class);
+        intent.putExtra("IS_GUEST", false);
+        intent.putExtra(EXTRA_REMOTE_MATCH, true);
+        intent.putExtra(EXTRA_FRIENDLY_MATCH, false);
+        intent.putExtra(EXTRA_REMOTE_MATCH_ID, finalMatchId);
+        intent.putExtra(EXTRA_LOCAL_PLAYER_NUMBER, finalPlayerNumber);
+        intent.putExtra(EXTRA_START_ROUND, GameRound.MOJ_BROJ);
+        startActivity(intent);
+        finish();
+    }
+    private boolean isCurrentUserMatchWinner(SharedMatchRepository.MatchFinalizationResult result) {
+        return result != null
+                && FirebaseAuth.getInstance().getCurrentUser() != null
+                && !TextUtils.isEmpty(result.winnerId)
+                && result.winnerId.equals(FirebaseAuth.getInstance().getCurrentUser().getUid());
+    }
+    private void completeMatchMissions(SharedMatchRepository.MatchFinalizationResult result) {
+        if (isGuest || sharedMatchState == null || result == null) {
+            return;
+        }
+        if (result.friendlyMatch || isFriendlyMatch()) {
+            return;
+        }
+
+        String currentUserId = FirebaseAuth.getInstance().getCurrentUser() == null
+                ? ""
+                : FirebaseAuth.getInstance().getCurrentUser().getUid();
+        boolean localWon = !TextUtils.isEmpty(result.winnerId) && result.winnerId.equals(currentUserId);
+        if (!localWon) {
+            return;
+        }
+        if (SharedMatchState.MATCH_TYPE_TOURNAMENT.equals(sharedMatchState.matchType)) {
+            completeDailyMission(FirestoreRepository.MISSION_WIN_TOURNAMENT);
+        } else {
+            completeDailyMission(FirestoreRepository.MISSION_WIN_MATCH);
+        }
+    }
+
+    private void completeFriendlyMatchMissions() {
+        if (isLocalWinner()) {
+            completeDailyMission(
+                    FirestoreRepository.MISSION_WIN_MATCH,
+                    () -> completeDailyMission(FirestoreRepository.MISSION_PLAY_FRIENDLY)
+            );
+            return;
+        }
+        completeDailyMission(FirestoreRepository.MISSION_PLAY_FRIENDLY);
+    }
+
+    private boolean isLocalWinner() {
+        return (localPlayerNumber == 1 && playerOneScore > playerTwoScore)
+                || (localPlayerNumber == 2 && playerTwoScore > playerOneScore)
+                || hasOpponentForfeited();
+    }
+
+    private void completeDailyMission(String mission) {
+        completeDailyMission(mission, null);
+    }
+
+    private void completeDailyMission(String mission, Runnable afterSuccess) {
+        firestoreRepository.completeDailyMission(mission, new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                loadUserStatus();
+                if (afterSuccess != null) {
+                    afterSuccess.run();
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                if (afterSuccess != null) {
+                    afterSuccess.run();
+                }
+                // Daily missions should not interrupt match flow.
+            }
+        });
+    }
     private void showLeagueChangeDialog(int previousLeague, int currentLeague) {
         boolean promoted = currentLeague > previousLeague;
         String message = promoted
@@ -840,6 +979,8 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
             return;
         }
 
+        syncLocalTournamentWaitingPlayerNumber(state);
+
         if (state.playerOneName != null && !state.playerOneName.trim().isEmpty()) {
             tvPlayerOneName.setText(state.playerOneName);
         }
@@ -857,6 +998,18 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         tvMatchMeta.setText(getString(R.string.shared_match_you_are_player_format, localPlayerNumber));
         maybeRefreshStatusAfterRemoteMatchStart(state);
         updatePendingInviteActionUi(state);
+
+        if (isTournamentWaiting(state)) {
+            showTournamentMatchingPanel(state);
+            return;
+        }
+
+        if (shouldAnimateTournamentStart(state)) {
+            showTournamentStartAnimation(state);
+            return;
+        }
+
+        hideTournamentMatchingPanel();
 
         if (state.updatedAt == lastAppliedRemoteUpdatedAt && currentRound != null) {
             return;
@@ -886,6 +1039,215 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         btnQuitMatch.setText(R.string.quit_game);
     }
 
+    private void setupTournamentMatchingSlots() {
+        View[] slots = new View[]{
+                findViewById(R.id.tournamentSlotOne),
+                findViewById(R.id.tournamentSlotTwo),
+                findViewById(R.id.tournamentSlotThree),
+                findViewById(R.id.tournamentSlotFour)
+        };
+        tournamentSlotAvatars = new ImageView[slots.length];
+        tournamentSlotNames = new TextView[slots.length];
+        tournamentSlotLeagues = new TextView[slots.length];
+        for (int index = 0; index < slots.length; index++) {
+            tournamentSlotAvatars[index] = slots[index].findViewById(R.id.tournamentSlotAvatar);
+            tournamentSlotNames[index] = slots[index].findViewById(R.id.tournamentSlotName);
+            tournamentSlotLeagues[index] = slots[index].findViewById(R.id.tournamentSlotLeague);
+        }
+    }
+
+    private void syncLocalTournamentWaitingPlayerNumber(SharedMatchState state) {
+        if (!isTournamentWaiting(state) || com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser() == null) {
+            return;
+        }
+        String currentUserId = com.google.firebase.auth.FirebaseAuth.getInstance().getCurrentUser().getUid();
+        if (currentUserId.equals(state.playerOneId)) {
+            localPlayerNumber = 1;
+        } else if (currentUserId.equals(state.playerTwoId)) {
+            localPlayerNumber = 2;
+        }
+    }
+    private boolean isTournamentWaiting(SharedMatchState state) {
+        return state != null
+                && SharedMatchState.MATCH_TYPE_TOURNAMENT.equals(state.matchType)
+                && SharedMatchState.STATUS_WAITING.equals(state.status);
+    }
+
+    private boolean shouldAnimateTournamentStart(SharedMatchState state) {
+        return state != null
+                && SharedMatchState.MATCH_TYPE_TOURNAMENT.equals(state.matchType)
+                && SharedMatchState.STATUS_ACTIVE.equals(state.status)
+                && tournamentMatchingPanel != null
+                && tournamentMatchingPanel.getVisibility() == View.VISIBLE
+                && !tournamentStartAnimationRunning;
+    }
+
+    private void showTournamentMatchingPanel(SharedMatchState state) {
+        matchPlayersHeader.setVisibility(View.GONE);
+        matchPhaseHeader.setVisibility(View.GONE);
+        matchContentArea.setVisibility(View.GONE);
+        tournamentMatchingPanel.setVisibility(View.VISIBLE);
+        tournamentMatchingPanel.setAlpha(1f);
+        tournamentMatchingTitle.setText("Tournament matching");
+        tournamentMatchingSubtitle.setText("Players will be paired into two semifinals.");
+        renderTournamentSlots(state, null);
+        if (!TextUtils.isEmpty(state.siblingMatchId)) {
+            sharedMatchRepository.getMatchState(state.siblingMatchId, new FirebaseCallback<SharedMatchState>() {
+                @Override
+                public void onSuccess(SharedMatchState siblingState) {
+                    if (sharedMatchState != null && isTournamentWaiting(sharedMatchState)) {
+                        renderTournamentSlots(sharedMatchState, siblingState);
+                    }
+                }
+
+                @Override
+                public void onError(String error) {
+                    // The sibling semifinal may not exist yet while the tournament is filling.
+                }
+            });
+        }
+    }
+
+    private void renderTournamentSlots(SharedMatchState current, SharedMatchState sibling) {
+        List<TournamentPlayerSlot> players = new ArrayList<>();
+        SharedMatchState firstSemi = current;
+        SharedMatchState secondSemi = sibling;
+        if (current != null && current.tournamentSemiNumber == 2) {
+            firstSemi = sibling;
+            secondSemi = current;
+        }
+        appendTournamentPlayers(players, firstSemi);
+        appendTournamentPlayers(players, secondSemi);
+        while (players.size() < 4) {
+            players.add(new TournamentPlayerSlot("", "Waiting"));
+        }
+        int filled = 0;
+        for (TournamentPlayerSlot player : players) {
+            if (!TextUtils.isEmpty(player.userId)) {
+                filled++;
+            }
+        }
+        tournamentMatchingStatus.setText("Waiting for players: " + filled + "/4");
+        for (int index = 0; index < 4; index++) {
+            bindTournamentSlot(index, players.get(index));
+        }
+    }
+
+    private void appendTournamentPlayers(List<TournamentPlayerSlot> players, SharedMatchState state) {
+        if (state == null) {
+            return;
+        }
+        players.add(new TournamentPlayerSlot(state.playerOneId, state.playerOneName));
+        if (!TextUtils.isEmpty(state.playerTwoId)) {
+            players.add(new TournamentPlayerSlot(state.playerTwoId, state.playerTwoName));
+        }
+    }
+
+    private void bindTournamentSlot(int index, TournamentPlayerSlot player) {
+        if (index < 0 || index >= tournamentSlotNames.length) {
+            return;
+        }
+
+        if (player == null || TextUtils.isEmpty(player.userId)) {
+            tournamentSlotNames[index].setText("Waiting");
+            tournamentSlotLeagues[index].setText("Empty slot");
+            tournamentSlotAvatars[index].setBackgroundResource(R.drawable.bg_match_avatar_frame);
+            tournamentSlotAvatars[index].setPadding(dpToPx(7), dpToPx(7), dpToPx(7), dpToPx(7));
+            tournamentSlotAvatars[index].setScaleType(ImageView.ScaleType.CENTER);
+            tournamentSlotAvatars[index].setImageResource(R.drawable.baseline_person_24);
+            tournamentSlotAvatars[index].setColorFilter(ContextCompat.getColor(this, R.color.slagalica_dark_blue));
+            return;
+        }
+
+        tournamentSlotNames[index].setText(TextUtils.isEmpty(player.name) ? "Player" : player.name);
+        tournamentSlotLeagues[index].setText("Loading league...");
+        tournamentSlotAvatars[index].clearColorFilter();
+
+        firestoreRepository.getUserById(player.userId, new FirebaseCallback<User>() {
+            @Override
+            public void onSuccess(User user) {
+                int avatarResId = profileService.getAvatarResource(
+                        TextUtils.isEmpty(user.avatar) ? "avatar_1" : user.avatar
+                );
+
+                tournamentSlotAvatars[index].clearColorFilter();
+                tournamentSlotAvatars[index].setBackgroundResource(R.drawable.bg_avatar_circle);
+                tournamentSlotAvatars[index].setPadding(dpToPx(2), dpToPx(2), dpToPx(2), dpToPx(2));
+                tournamentSlotAvatars[index].setScaleType(ImageView.ScaleType.CENTER_CROP);
+                tournamentSlotAvatars[index].setImageResource(avatarResId);
+
+                tournamentSlotLeagues[index].setText(
+                        LeagueUtils.getLeagueIcon(user.league) + " " + LeagueUtils.getLeagueName(user.league)
+                );
+
+                if (!TextUtils.isEmpty(user.username)) {
+                    tournamentSlotNames[index].setText(user.username);
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                tournamentSlotLeagues[index].setText("No League");
+                tournamentSlotAvatars[index].setBackgroundResource(R.drawable.bg_match_avatar_frame);
+                tournamentSlotAvatars[index].setPadding(dpToPx(7), dpToPx(7), dpToPx(7), dpToPx(7));
+                tournamentSlotAvatars[index].setScaleType(ImageView.ScaleType.CENTER);
+                tournamentSlotAvatars[index].setImageResource(R.drawable.baseline_person_24);
+                tournamentSlotAvatars[index].setColorFilter(ContextCompat.getColor(
+                        GameHostActivity.this,
+                        R.color.slagalica_dark_blue
+                ));
+            }
+        });
+    }
+    private void showTournamentStartAnimation(SharedMatchState state) {
+        tournamentStartAnimationRunning = true;
+        tournamentMatchingTitle.setText("Semifinals starting");
+        tournamentMatchingStatus.setText("4/4 players ready");
+        tournamentMatchingSubtitle.setText("Good luck in your semifinal match.");
+        AnimatorSet set = new AnimatorSet();
+        set.playTogether(
+                ObjectAnimator.ofFloat(tournamentMatchingPanel, View.SCALE_X, 0.96f, 1.04f, 1f),
+                ObjectAnimator.ofFloat(tournamentMatchingPanel, View.SCALE_Y, 0.96f, 1.04f, 1f),
+                ObjectAnimator.ofFloat(tournamentMatchingTitle, View.ALPHA, 0.35f, 1f)
+        );
+        set.setDuration(900);
+        set.start();
+        tournamentMatchingPanel.postDelayed(() -> {
+            tournamentStartAnimationRunning = false;
+            hideTournamentMatchingPanel();
+            applyRemoteMatchState(state);
+        }, 1100);
+    }
+
+    private void hideTournamentMatchingPanel() {
+        if (tournamentMatchingPanel != null) {
+            tournamentMatchingPanel.setVisibility(View.GONE);
+        }
+        if (matchPlayersHeader != null) {
+            matchPlayersHeader.setVisibility(View.VISIBLE);
+        }
+        if (matchPhaseHeader != null) {
+            matchPhaseHeader.setVisibility(View.VISIBLE);
+        }
+        if (matchContentArea != null) {
+            matchContentArea.setVisibility(View.VISIBLE);
+        }
+    }
+
+
+    private int dpToPx(int dpValue) {
+        float density = getResources().getDisplayMetrics().density;
+        return Math.round(dpValue * density);
+    }
+    private static final class TournamentPlayerSlot {
+        final String userId;
+        final String name;
+
+        TournamentPlayerSlot(String userId, String name) {
+            this.userId = userId == null ? "" : userId;
+            this.name = name == null ? "" : name;
+        }
+    }
     private void applyForfeitUi(SharedMatchState state) {
         if (state == null || state.forfeitedPlayer == 0) {
             lastObservedForfeitedPlayer = 0;
@@ -1077,6 +1439,9 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
 
         if (isFriendlyMatch()) {
             sharedMatchRepository.cancelPendingFriendlyInvite(remoteMatchId);
+        } else if (sharedMatchState != null
+                && SharedMatchState.MATCH_TYPE_TOURNAMENT.equals(sharedMatchState.matchType)) {
+            sharedMatchRepository.leaveTournamentWaitingMatch(remoteMatchId);
         } else {
             sharedMatchRepository.cancelWaitingCompetitiveMatch(remoteMatchId);
         }
