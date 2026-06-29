@@ -182,8 +182,8 @@ public class HomeActivity extends AppCompatActivity {
         configureGuestMode();
         setupHomeLists();
         if (!isGuest) {
-            loadUserStatus();
             refreshRankingRewards();
+            loadUserStatus();
             loadDailyMissions();
             startRankingAutoRefresh();
             startPlayableUsersListener();
@@ -1144,8 +1144,8 @@ public class HomeActivity extends AppCompatActivity {
             firestoreRepository.markCurrentUserLoggedIn();
             firestoreRepository.markCurrentUserInApp(true);
             firestoreRepository.clearCurrentUserMatch();
-            loadUserStatus();
             refreshRankingRewards();
+            loadUserStatus();
             loadDailyMissions();
             startRankingAutoRefresh();
             startPlayableUsersListener();

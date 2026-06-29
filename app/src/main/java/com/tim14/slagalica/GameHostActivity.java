@@ -1147,23 +1147,39 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         if (index < 0 || index >= tournamentSlotNames.length) {
             return;
         }
+
         if (player == null || TextUtils.isEmpty(player.userId)) {
             tournamentSlotNames[index].setText("Waiting");
             tournamentSlotLeagues[index].setText("Empty slot");
+            tournamentSlotAvatars[index].setBackgroundResource(R.drawable.bg_match_avatar_frame);
+            tournamentSlotAvatars[index].setPadding(dpToPx(7), dpToPx(7), dpToPx(7), dpToPx(7));
+            tournamentSlotAvatars[index].setScaleType(ImageView.ScaleType.CENTER);
             tournamentSlotAvatars[index].setImageResource(R.drawable.baseline_person_24);
             tournamentSlotAvatars[index].setColorFilter(ContextCompat.getColor(this, R.color.slagalica_dark_blue));
             return;
         }
+
         tournamentSlotNames[index].setText(TextUtils.isEmpty(player.name) ? "Player" : player.name);
         tournamentSlotLeagues[index].setText("Loading league...");
         tournamentSlotAvatars[index].clearColorFilter();
+
         firestoreRepository.getUserById(player.userId, new FirebaseCallback<User>() {
             @Override
             public void onSuccess(User user) {
-                tournamentSlotAvatars[index].setImageResource(profileService.getAvatarResource(user.avatar));
+                int avatarResId = profileService.getAvatarResource(
+                        TextUtils.isEmpty(user.avatar) ? "avatar_1" : user.avatar
+                );
+
+                tournamentSlotAvatars[index].clearColorFilter();
+                tournamentSlotAvatars[index].setBackgroundResource(R.drawable.bg_avatar_circle);
+                tournamentSlotAvatars[index].setPadding(dpToPx(2), dpToPx(2), dpToPx(2), dpToPx(2));
+                tournamentSlotAvatars[index].setScaleType(ImageView.ScaleType.CENTER_CROP);
+                tournamentSlotAvatars[index].setImageResource(avatarResId);
+
                 tournamentSlotLeagues[index].setText(
                         LeagueUtils.getLeagueIcon(user.league) + " " + LeagueUtils.getLeagueName(user.league)
                 );
+
                 if (!TextUtils.isEmpty(user.username)) {
                     tournamentSlotNames[index].setText(user.username);
                 }
@@ -1172,10 +1188,17 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
             @Override
             public void onError(String error) {
                 tournamentSlotLeagues[index].setText("No League");
+                tournamentSlotAvatars[index].setBackgroundResource(R.drawable.bg_match_avatar_frame);
+                tournamentSlotAvatars[index].setPadding(dpToPx(7), dpToPx(7), dpToPx(7), dpToPx(7));
+                tournamentSlotAvatars[index].setScaleType(ImageView.ScaleType.CENTER);
+                tournamentSlotAvatars[index].setImageResource(R.drawable.baseline_person_24);
+                tournamentSlotAvatars[index].setColorFilter(ContextCompat.getColor(
+                        GameHostActivity.this,
+                        R.color.slagalica_dark_blue
+                ));
             }
         });
     }
-
     private void showTournamentStartAnimation(SharedMatchState state) {
         tournamentStartAnimationRunning = true;
         tournamentMatchingTitle.setText("Semifinals starting");
@@ -1211,6 +1234,11 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         }
     }
 
+
+    private int dpToPx(int dpValue) {
+        float density = getResources().getDisplayMetrics().density;
+        return Math.round(dpValue * density);
+    }
     private static final class TournamentPlayerSlot {
         final String userId;
         final String name;

@@ -1130,6 +1130,7 @@ public class SharedMatchRepository {
         return new HashMap<String, Object>() {{
             put("playerTwoId", playerTwoId);
             put("playerTwoName", playerTwoName);
+            put("playerTwoEntryPaid", true);
             put("status", SharedMatchState.STATUS_WAITING);
             put("phase", SharedMatchState.PHASE_WAITING);
             put("phaseMessage", "Waiting for two more tournament players...");
@@ -1145,6 +1146,7 @@ public class SharedMatchRepository {
         Map<String, Object> updates = buildTournamentStartUpdates(message);
         updates.put("playerTwoId", playerTwoId);
         updates.put("playerTwoName", playerTwoName);
+        updates.put("playerTwoEntryPaid", true);
         return updates;
     }
 
@@ -1208,24 +1210,42 @@ public class SharedMatchRepository {
             FirebaseCallback<MatchJoinResult> callback
     ) {
         DocumentReference reference = db.collection(MATCHES_COLLECTION).document();
-        SharedMatchState state = buildInitialState(
-                reference.getId(),
-                user.id,
-                safeUserName(user),
-                SharedMatchState.MATCH_TYPE_TOURNAMENT
-        );
-        state.phaseMessage = "Waiting for three more tournament players...";
-        state.tournamentId = reference.getId();
-        state.tournamentStage = "SEMI";
-        state.tournamentSemiNumber = 1;
+        DocumentReference userReference = db.collection(USERS_COLLECTION).document(user.id);
 
-        reference.set(state)
-                .addOnSuccessListener(unused -> callback.onSuccess(
-                        new MatchJoinResult(reference.getId(), 1, state.roomCode, true, false)
-                ))
+        db.runTransaction((Transaction.Function<MatchJoinResult>) transaction -> {
+            User currentUser = transaction.get(userReference).toObject(User.class);
+            if (currentUser == null) {
+                throw new IllegalStateException("Player data could not be loaded.");
+            }
+
+            ensureUserDefaultsForTransaction(currentUser, user.id);
+            applyDailyTokenGrantForTransaction(currentUser);
+            if (currentUser.tokens < 3) {
+                throw new IllegalStateException("You need 3 tokens to enter a tournament.");
+            }
+
+            currentUser.tokens -= 3;
+            currentUser.currentMatchId = reference.getId();
+            currentUser.lastSeenAt = System.currentTimeMillis();
+
+            SharedMatchState state = buildInitialState(
+                    reference.getId(),
+                    user.id,
+                    safeUserName(currentUser),
+                    SharedMatchState.MATCH_TYPE_TOURNAMENT
+            );
+            state.phaseMessage = "Waiting for three more tournament players...";
+            state.tournamentId = reference.getId();
+            state.tournamentStage = "SEMI";
+            state.tournamentSemiNumber = 1;
+            state.playerOneEntryPaid = true;
+
+            transaction.set(userReference, currentUser);
+            transaction.set(reference, state);
+            return new MatchJoinResult(reference.getId(), 1, state.roomCode, true, false);
+        }).addOnSuccessListener(callback::onSuccess)
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
-
     private void joinTournamentWaitingMatch(
             DocumentSnapshot waitingSnapshot,
             User joiningUser,
@@ -1262,7 +1282,10 @@ public class SharedMatchRepository {
             applyDailyTokenGrantForTransaction(waitingPlayer);
             applyDailyTokenGrantForTransaction(currentJoiningPlayer);
 
-            if (waitingPlayer.tokens < 3 || currentJoiningPlayer.tokens < 3) {
+            boolean chargeWaitingPlayer = !latestState.playerOneEntryPaid;
+            boolean chargeJoiningPlayer = !latestState.playerTwoEntryPaid;
+            if ((chargeWaitingPlayer && waitingPlayer.tokens < 3)
+                    || (chargeJoiningPlayer && currentJoiningPlayer.tokens < 3)) {
                 throw new IllegalStateException("Both players need 3 tokens for a tournament.");
             }
 
@@ -1279,8 +1302,12 @@ public class SharedMatchRepository {
                 }
             }
 
-            waitingPlayer.tokens -= 3;
-            currentJoiningPlayer.tokens -= 3;
+            if (chargeWaitingPlayer) {
+                waitingPlayer.tokens -= 3;
+            }
+            if (chargeJoiningPlayer) {
+                currentJoiningPlayer.tokens -= 3;
+            }
             waitingPlayer.currentMatchId = latestMatchSnapshot.getId();
             currentJoiningPlayer.currentMatchId = latestMatchSnapshot.getId();
             waitingPlayer.lastSeenAt = System.currentTimeMillis();
@@ -1342,6 +1369,7 @@ public class SharedMatchRepository {
                 throw new IllegalStateException("You need 3 tokens to enter a tournament.");
             }
 
+            currentUser.tokens -= 3;
             currentUser.currentMatchId = secondReference.getId();
             currentUser.lastSeenAt = System.currentTimeMillis();
 
@@ -1355,6 +1383,7 @@ public class SharedMatchRepository {
             secondState.tournamentId = latestFirstState.tournamentId;
             secondState.tournamentStage = "SEMI";
             secondState.tournamentSemiNumber = 2;
+            secondState.playerOneEntryPaid = true;
             secondState.siblingMatchId = latestFirstSnapshot.getId();
 
             Map<String, Object> firstUpdates = new HashMap<>();
@@ -1582,8 +1611,8 @@ public class SharedMatchRepository {
             user.currentMatchId = "";
         }
 
-        user.weeklyGames = Math.max(user.weeklyGames, user.weeklyStars > 0 ? 1 : 0);
-        user.monthlyGames = Math.max(user.monthlyGames, user.monthlyStars > 0 ? 1 : 0);
+        user.weeklyGames = Math.max(0, user.weeklyGames);
+        user.monthlyGames = Math.max(0, user.monthlyGames);
     }
 
     private int calculateStarDelta(

@@ -285,7 +285,8 @@ public class FirestoreRepository {
                                 ? cycleKey.equals(user.monthlyCycleKey)
                                 : cycleKey.equals(user.weeklyCycleKey);
                         int cycleStars = RANKING_MONTHLY.equals(type) ? user.monthlyStars : user.weeklyStars;
-                        if (inCycle && cycleStars > 0) {
+                        int cycleGames = RANKING_MONTHLY.equals(type) ? user.monthlyGames : user.weeklyGames;
+                        if (inCycle && cycleGames > 0) {
                             users.add(user);
                         }
                     }
@@ -910,8 +911,8 @@ public class FirestoreRepository {
         user.stars = Math.max(0, user.stars);
         user.weeklyStars = Math.max(0, user.weeklyStars);
         user.monthlyStars = Math.max(0, user.monthlyStars);
-        user.weeklyGames = Math.max(user.weeklyGames, user.weeklyStars > 0 ? 1 : 0);
-        user.monthlyGames = Math.max(user.monthlyGames, user.monthlyStars > 0 ? 1 : 0);
+        user.weeklyGames = Math.max(0, user.weeklyGames);
+        user.monthlyGames = Math.max(0, user.monthlyGames);
         ensureUserCycleKeys(user);
         resetDailyMissionsIfNeeded(user);
         user.league = LeagueUtils.calculateLeague(user.stars);
@@ -2487,11 +2488,7 @@ public class FirestoreRepository {
                 user.id = document.getId();
             }
             String userCycleKey = RANKING_MONTHLY.equals(type) ? user.monthlyCycleKey : user.weeklyCycleKey;
-            int cycleStars = RANKING_MONTHLY.equals(type) ? user.monthlyStars : user.weeklyStars;
             int cycleGames = RANKING_MONTHLY.equals(type) ? user.monthlyGames : user.weeklyGames;
-            if (cycleGames <= 0 && cycleStars > 0) {
-                cycleGames = 1;
-            }
             String lastRewardCycle = RANKING_MONTHLY.equals(type) ? user.lastMonthlyRewardCycle : user.lastWeeklyRewardCycle;
             boolean alreadyRewarded = !TextUtils.isEmpty(userCycleKey) && userCycleKey.equals(lastRewardCycle);
             if (!TextUtils.isEmpty(userCycleKey)
@@ -2531,12 +2528,11 @@ public class FirestoreRepository {
                 user.stars = Math.max(0, user.stars);
                 user.weeklyStars = Math.max(0, user.weeklyStars);
                 user.monthlyStars = Math.max(0, user.monthlyStars);
-                user.weeklyGames = Math.max(user.weeklyGames, user.weeklyStars > 0 ? 1 : 0);
-                user.monthlyGames = Math.max(user.monthlyGames, user.monthlyStars > 0 ? 1 : 0);
+                user.weeklyGames = Math.max(0, user.weeklyGames);
+                user.monthlyGames = Math.max(0, user.monthlyGames);
 
                 int rewardTokens = rankingRewardTokens(index + 1, type);
                 if (rewardTokens > 0) {
-                    user.tokens += rewardTokens;
                     String title = RANKING_MONTHLY.equals(type) ? "Monthly ranking reward" : "Weekly ranking reward";
                     String message = "You placed #" + (index + 1) + " and earned " + rewardTokens + " tokens.";
                     batch.set(
@@ -2548,18 +2544,22 @@ public class FirestoreRepository {
                     }
                 }
 
-                if (RANKING_MONTHLY.equals(type)) {
-                    user.monthlyStars = 0;
-                    user.monthlyGames = 0;
-                    user.monthlyCycleKey = currentCycleKey;
-                    user.lastMonthlyRewardCycle = entry.getKey();
-                } else {
-                    user.weeklyStars = 0;
-                    user.weeklyGames = 0;
-                    user.weeklyCycleKey = currentCycleKey;
-                    user.lastWeeklyRewardCycle = entry.getKey();
+                Map<String, Object> userUpdates = new HashMap<>();
+                if (rewardTokens > 0) {
+                    userUpdates.put("tokens", FieldValue.increment(rewardTokens));
                 }
-                batch.set(db.collection(USERS_COLLECTION).document(document.getId()), user, SetOptions.merge());
+                if (RANKING_MONTHLY.equals(type)) {
+                    userUpdates.put("monthlyStars", 0);
+                    userUpdates.put("monthlyGames", 0);
+                    userUpdates.put("monthlyCycleKey", currentCycleKey);
+                    userUpdates.put("lastMonthlyRewardCycle", entry.getKey());
+                } else {
+                    userUpdates.put("weeklyStars", 0);
+                    userUpdates.put("weeklyGames", 0);
+                    userUpdates.put("weeklyCycleKey", currentCycleKey);
+                    userUpdates.put("lastWeeklyRewardCycle", entry.getKey());
+                }
+                batch.set(db.collection(USERS_COLLECTION).document(document.getId()), userUpdates, SetOptions.merge());
             }
         }
     }
@@ -2610,16 +2610,22 @@ public class FirestoreRepository {
     private void ensureUserCycleKeys(User user) {
         String weeklyCycleKey = currentWeeklyCycleKey();
         String monthlyCycleKey = currentMonthlyCycleKey();
-        if (!weeklyCycleKey.equals(user.weeklyCycleKey)) {
+        if (!weeklyCycleKey.equals(user.weeklyCycleKey)
+                && canMoveToNewRankingCycle(user.weeklyCycleKey, user.lastWeeklyRewardCycle, user.weeklyGames)) {
             user.weeklyCycleKey = weeklyCycleKey;
             user.weeklyStars = 0;
             user.weeklyGames = 0;
         }
-        if (!monthlyCycleKey.equals(user.monthlyCycleKey)) {
+        if (!monthlyCycleKey.equals(user.monthlyCycleKey)
+                && canMoveToNewRankingCycle(user.monthlyCycleKey, user.lastMonthlyRewardCycle, user.monthlyGames)) {
             user.monthlyCycleKey = monthlyCycleKey;
             user.monthlyStars = 0;
             user.monthlyGames = 0;
         }
+    }
+
+    private boolean canMoveToNewRankingCycle(String cycleKey, String lastRewardCycle, int cycleGames) {
+        return TextUtils.isEmpty(cycleKey) || cycleGames <= 0 || cycleKey.equals(lastRewardCycle);
     }
 
     private void resetDailyMissionsIfNeeded(User user) {

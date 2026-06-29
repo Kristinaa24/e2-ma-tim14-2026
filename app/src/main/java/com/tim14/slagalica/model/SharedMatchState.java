@@ -64,6 +64,8 @@ public class SharedMatchState {
     public String tournamentId;
     public String tournamentStage;
     public int tournamentSemiNumber;
+    public boolean playerOneEntryPaid;
+    public boolean playerTwoEntryPaid;
     public String siblingMatchId;
     public String finalMatchId;
     public String winnerId;
@@ -91,6 +93,8 @@ public class SharedMatchState {
         tournamentId = "";
         tournamentStage = "";
         tournamentSemiNumber = 0;
+        playerOneEntryPaid = false;
+        playerTwoEntryPaid = false;
         siblingMatchId = "";
         finalMatchId = "";
         winnerId = "";

@@ -7,6 +7,7 @@ import android.os.Bundle;
 import com.tim14.slagalica.service.ChatNotificationWatcher;
 import com.tim14.slagalica.service.InviteNotificationWatcher;
 import com.tim14.slagalica.service.NotificationHelper;
+import com.tim14.slagalica.service.RankingRewardScheduler;
 
 public class SlagalicaApp extends Application {
 
@@ -16,6 +17,7 @@ public class SlagalicaApp extends Application {
     public void onCreate() {
         super.onCreate();
         NotificationHelper.createNotificationChannels(this);
+        RankingRewardScheduler.getInstance().ensureStarted(this);
         registerActivityLifecycleCallbacks(new ActivityLifecycleCallbacks() {
             @Override
             public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
