@@ -38,6 +38,7 @@ import com.tim14.slagalica.model.SharedMojBrojRound;
 import com.tim14.slagalica.model.SharedSkockoRound;
 import com.tim14.slagalica.model.SharedSpojniceRound;
 import com.tim14.slagalica.model.User;
+import com.tim14.slagalica.repository.ChallengeRepository;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
 import com.tim14.slagalica.repository.SharedMatchRepository;
@@ -55,6 +56,8 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     public static final String EXTRA_REMOTE_MATCH_ID = "remote_match_id";
     public static final String EXTRA_LOCAL_PLAYER_NUMBER = "local_player_number";
     public static final String EXTRA_FRIENDLY_MATCH = "friendly_match";
+    public static final String EXTRA_CHALLENGE_MODE = "challenge_mode";
+    public static final String EXTRA_CHALLENGE_ID = "challenge_id";
 
     private TextView tvRoundTimer;
     private TextView tvPhaseText;
@@ -89,6 +92,7 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     private boolean friendlyMatch;
     private boolean matchResultRecorded;
     private FirestoreRepository firestoreRepository;
+    private ChallengeRepository challengeRepository;
     private SharedMatchRepository sharedMatchRepository;
     private ListenerRegistration sharedMatchListener;
     private SharedMatchState sharedMatchState;
@@ -102,6 +106,8 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     private String opponentRegion = "";
     private int unreadChatCount;
     private ListenerRegistration unreadChatListener;
+    private boolean challengeMode;
+    private String challengeId;
     private boolean tournamentStartAnimationRunning;
     private final ProfileService profileService = new ProfileService();
 
@@ -134,12 +140,15 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         tournamentMatchingSubtitle = findViewById(R.id.tournamentMatchingSubtitle);
         setupTournamentMatchingSlots();
         firestoreRepository = new FirestoreRepository();
+        challengeRepository = new ChallengeRepository();
         sharedMatchRepository = new SharedMatchRepository();
         isGuest = getIntent().getBooleanExtra("IS_GUEST", false);
         friendlyMatch = getIntent().getBooleanExtra(EXTRA_FRIENDLY_MATCH, false);
         remoteMatchMode = getIntent().getBooleanExtra(EXTRA_REMOTE_MATCH, false);
         remoteMatchId = getIntent().getStringExtra(EXTRA_REMOTE_MATCH_ID);
         localPlayerNumber = getIntent().getIntExtra(EXTRA_LOCAL_PLAYER_NUMBER, 1);
+        challengeMode = getIntent().getBooleanExtra(EXTRA_CHALLENGE_MODE, false);
+        challengeId = getIntent().getStringExtra(EXTRA_CHALLENGE_ID);
 
         btnQuitMatch.setOnClickListener(v -> surrenderMatch());
         tvPlayerOneChatBubble.setOnClickListener(v -> openRegionalChat());
@@ -156,7 +165,11 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         setScores(0, 0);
         setTimerValue(0);
         setPhaseText(getString(R.string.phase_waiting_for_round));
-        tvMatchMeta.setText("");
+        tvMatchMeta.setText(challengeMode ? getString(R.string.challenge_match_meta) : "");
+        if (challengeMode) {
+            tvPlayerOneName.setText(R.string.challenge_player_label);
+            tvPlayerTwoName.setText(R.string.challenge_opponent_label);
+        }
 
         if (!isGuest) {
             loadUserStatus();
@@ -172,7 +185,7 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
                     (GameRound) getIntent().getSerializableExtra(EXTRA_START_ROUND);
 
             if (startRound == null) {
-                startRound = GameRound.MOJ_BROJ;
+                startRound = challengeMode ? GameRound.KO_ZNA_ZNA : GameRound.MOJ_BROJ;
             }
 
             goToRound(startRound, null);
@@ -284,6 +297,11 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
             return;
         }
 
+        if (challengeMode) {
+            submitChallengeScore(false);
+            return;
+        }
+
         if (remoteMatchMode) {
             matchResultRecorded = true;
 
@@ -313,6 +331,11 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
 
     @Override
     public void restartMatch() {
+        if (challengeMode) {
+            finishMatch();
+            return;
+        }
+
         if (remoteMatchMode) {
             restartRemoteMatch();
             return;
@@ -366,6 +389,13 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
                 tvStatusStars.setText(String.valueOf(user.stars));
                 tvStatusLeague.setText(LeagueUtils.getLeagueName(user.league));
                 currentUserRegion = FirestoreRepository.canonicalRegionName(user.region);
+                if (challengeMode) {
+                    tvPlayerOneName.setText(TextUtils.isEmpty(user.username)
+                            ? getString(R.string.challenge_player_label)
+                            : user.username);
+                    tvPlayerTwoName.setText(R.string.challenge_opponent_label);
+                    tvMatchMeta.setText(getString(R.string.challenge_match_meta));
+                }
                 resolveOpponentRegion();
             }
 
@@ -398,6 +428,14 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     }
 
     private void bindLocalPlayerChatBubble() {
+        if (challengeMode) {
+            tvPlayerOneChatBubble.setVisibility(View.GONE);
+            tvPlayerTwoChatBubble.setVisibility(View.GONE);
+            tvPlayerOneChatBadge.setVisibility(View.GONE);
+            tvPlayerTwoChatBadge.setVisibility(View.GONE);
+            return;
+        }
+
         boolean showPlayerTwoBubble = remoteMatchMode && localPlayerNumber == 2;
         tvPlayerOneChatBubble.setVisibility(showPlayerTwoBubble ? View.GONE : View.VISIBLE);
         tvPlayerTwoChatBubble.setVisibility(showPlayerTwoBubble ? View.VISIBLE : View.GONE);
@@ -505,10 +543,28 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     }
 
     private void surrenderMatch() {
+        boolean cancelingPendingInvite = !challengeMode && isWaitingForFriendlyInvite();
+        int titleRes = cancelingPendingInvite
+                ? R.string.cancel_invite_confirmation_title
+                : R.string.quit_confirmation_title;
+        int messageRes = cancelingPendingInvite
+                ? R.string.cancel_invite_confirmation_message
+                : (challengeMode
+                ? R.string.challenge_quit_confirmation_message
+                : R.string.quit_confirmation_message);
+        int positiveActionRes = cancelingPendingInvite
+                ? R.string.cancel_invite_action
+                : R.string.yes;
+
         new AlertDialog.Builder(this)
-                .setTitle(R.string.quit_confirmation_title)
-                .setMessage(R.string.quit_confirmation_message)
-                .setPositiveButton(R.string.yes, (dialog, which) -> {
+                .setTitle(titleRes)
+                .setMessage(messageRes)
+                .setPositiveButton(positiveActionRes, (dialog, which) -> {
+                    if (challengeMode) {
+                        submitChallengeScore(true);
+                        return;
+                    }
+
                     if (remoteMatchMode) {
                         if (sharedMatchState != null
                                 && SharedMatchState.STATUS_WAITING.equals(sharedMatchState.status)) {
@@ -526,6 +582,39 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
                 })
                 .setNegativeButton(R.string.no, null)
                 .show();
+    }
+
+    private void submitChallengeScore(boolean finishAfterSubmit) {
+        if (matchResultRecorded || isGuest) {
+            if (finishAfterSubmit) {
+                finishMatch();
+            }
+            return;
+        }
+
+        if (TextUtils.isEmpty(challengeId)) {
+            Toast.makeText(this, "Challenge was not found.", Toast.LENGTH_SHORT).show();
+            finishMatch();
+            return;
+        }
+
+        matchResultRecorded = true;
+        challengeRepository.submitChallengeScore(challengeId, playerOneScore, new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                loadUserStatus();
+                Toast.makeText(GameHostActivity.this, R.string.challenge_score_submitted_message, Toast.LENGTH_SHORT).show();
+                if (finishAfterSubmit) {
+                    finishMatch();
+                }
+            }
+
+            @Override
+            public void onError(String error) {
+                matchResultRecorded = false;
+                Toast.makeText(GameHostActivity.this, error, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void recordMatchStatistics(boolean won, boolean lost, boolean awardStars) {
@@ -707,9 +796,13 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         return remoteMatchMode;
     }
 
+    public boolean isChallengeMode() {
+        return challengeMode;
+    }
+
     @Override
     public boolean shouldPersistStatistics() {
-        return !isGuest && !isFriendlyMatch();
+        return !isGuest && !isFriendlyMatch() && !challengeMode;
     }
 
     @Override
@@ -831,6 +924,14 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         return remoteMatchId;
     }
 
+    private boolean isWaitingForFriendlyInvite() {
+        return remoteMatchMode
+                && sharedMatchState != null
+                && localPlayerNumber == 1
+                && SharedMatchState.STATUS_WAITING.equals(sharedMatchState.status)
+                && SharedMatchState.MATCH_TYPE_FRIENDLY.equals(sharedMatchState.matchType);
+    }
+
     public void updateSharedMatch(Map<String, Object> updates) {
         if (!remoteMatchMode || remoteMatchId == null || updates == null || updates.isEmpty()) {
             return;
@@ -896,6 +997,7 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         setPhaseText(buildRemotePhaseText(state));
         tvMatchMeta.setText(getString(R.string.shared_match_you_are_player_format, localPlayerNumber));
         maybeRefreshStatusAfterRemoteMatchStart(state);
+        updatePendingInviteActionUi(state);
 
         if (isTournamentWaiting(state)) {
             showTournamentMatchingPanel(state);
@@ -921,6 +1023,20 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         }
 
         goToRound(nextRound, null);
+        updatePendingInviteActionUi(state);
+    }
+
+    private void updatePendingInviteActionUi(SharedMatchState state) {
+        if (state != null
+                && SharedMatchState.STATUS_WAITING.equals(state.status)
+                && SharedMatchState.MATCH_TYPE_FRIENDLY.equals(state.matchType)
+                && localPlayerNumber == 1) {
+            btnQuitMatch.setVisibility(View.VISIBLE);
+            btnQuitMatch.setText(R.string.cancel_invite_action);
+            return;
+        }
+
+        btnQuitMatch.setText(R.string.quit_game);
     }
 
     private void setupTournamentMatchingSlots() {

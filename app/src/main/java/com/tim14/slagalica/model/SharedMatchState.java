@@ -59,6 +59,7 @@ public class SharedMatchState {
     public int rematchRequestedBy;
     public int rematchDeclinedBy;
     public long matchStartedAt;
+    public long friendlyInviteExpiresAt;
     public long updatedAt;
     public String tournamentId;
     public String tournamentStage;
@@ -86,6 +87,7 @@ public class SharedMatchState {
         rematchRequestedBy = 0;
         rematchDeclinedBy = 0;
         matchStartedAt = 0L;
+        friendlyInviteExpiresAt = 0L;
         tournamentId = "";
         tournamentStage = "";
         tournamentSemiNumber = 0;

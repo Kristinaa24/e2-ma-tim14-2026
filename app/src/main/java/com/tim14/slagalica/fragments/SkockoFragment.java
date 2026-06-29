@@ -122,11 +122,11 @@ public class SkockoFragment extends BaseGameFragment {
         isOpponentTurn = false;
         clearCurrentAttempt();
         clearBoard();
-        host().setPhaseText(
-                getString(R.string.round_counter_format, currentRound)
-                        + " - Player "
-                        + (currentRound == 1 ? "1" : "2")
-        );
+        host().setPhaseText(isChallengeMode()
+                ? getString(R.string.challenge_skocko_round_phase_format, currentRound)
+                : getString(R.string.round_counter_format, currentRound)
+                + " - Player "
+                + (currentRound == 1 ? "1" : "2"));
         startRoundTimer(30, this::handleTimeout);
         palette.setVisibility(View.VISIBLE);
         btnSubmit.setEnabled(true);
@@ -199,7 +199,12 @@ public class SkockoFragment extends BaseGameFragment {
         if (result.isWin) {
             handleWin();
         } else if (skockoService.isFinished()) {
-            startOpponentChance();
+            if (isChallengeMode()) {
+                revealSolution(skockoService.getSecretCombination());
+                finishRoundAfterDelay();
+            } else {
+                startOpponentChance();
+            }
         }
     }
 
@@ -243,7 +248,7 @@ public class SkockoFragment extends BaseGameFragment {
     }
 
     private void handleTimeout() {
-        if (!isOpponentTurn) {
+        if (!isOpponentTurn && !isChallengeMode()) {
             startOpponentChance();
         } else {
             revealSolution(skockoService.getSecretCombination());
@@ -264,7 +269,7 @@ public class SkockoFragment extends BaseGameFragment {
 
     private void finishRoundAfterDelay() {
         handler.postDelayed(() -> {
-            if (currentRound == 1) {
+            if (currentRound == 1 && !isChallengeMode()) {
                 currentRound = 2;
                 startNewRound();
             } else {

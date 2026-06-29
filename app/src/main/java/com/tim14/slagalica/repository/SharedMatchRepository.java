@@ -1,6 +1,8 @@
 package com.tim14.slagalica.repository;
 
 import android.text.TextUtils;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.annotation.NonNull;
 
@@ -37,8 +39,9 @@ public class SharedMatchRepository {
     private static final String MATCHES_COLLECTION = "sharedMatches";
     private static final String USERS_COLLECTION = "users";
     private static final String STATISTICS_COLLECTION = "statistics";
-    private static final long FRIENDLY_INVITE_EXPIRATION_MS = 24L * 60L * 60L * 1000L;
+    private static final long FRIENDLY_INVITE_EXPIRATION_MS = 10L * 1000L;
     private static final long TOURNAMENT_WAITING_EXPIRATION_MS = 10L * 60L * 1000L;
+
 
     private final FirebaseFirestore db;
     private final FirestoreRepository firestoreRepository;
@@ -208,13 +211,24 @@ public class SharedMatchRepository {
 
                         reference.set(state)
                                 .addOnSuccessListener(unused -> {
+                                    long now = System.currentTimeMillis();
+                                    long expiresAt = now + FRIENDLY_INVITE_EXPIRATION_MS;
+
+                                    Map<String, Object> inviteTimingUpdates = new HashMap<>();
+                                    inviteTimingUpdates.put("friendlyInviteExpiresAt", expiresAt);
+                                    inviteTimingUpdates.put("phaseStartedAt", now);
+                                    inviteTimingUpdates.put("phaseDurationSeconds", 10);
+                                    inviteTimingUpdates.put("updatedAt", now);
+
+                                    reference.update(inviteTimingUpdates)
+                                            .addOnSuccessListener(timingUpdated -> {
                                     Map<String, Object> extras = new HashMap<>();
                                     extras.put("senderId", currentUserId);
                                     extras.put("senderName", safeUserName(sender));
                                     extras.put("relatedMatchId", reference.getId());
                                     extras.put("invitationStatus", "PENDING");
                                     extras.put("friendlyMatch", true);
-                                    extras.put("expiresAt", System.currentTimeMillis() + FRIENDLY_INVITE_EXPIRATION_MS);
+                                    extras.put("expiresAt", expiresAt);
 
                                     firestoreRepository.saveNotificationForUser(
                                             targetUserId,
@@ -223,6 +237,7 @@ public class SharedMatchRepository {
                                             "INVITE",
                                             extras
                                     );
+                                    schedulePendingFriendlyInviteExpiration(reference.getId(), expiresAt);
 
                                     callback.onSuccess(new MatchJoinResult(
                                             reference.getId(),
@@ -231,6 +246,8 @@ public class SharedMatchRepository {
                                             true,
                                             true
                                     ));
+                                            })
+                                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
                                 })
                                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
                     }
@@ -284,7 +301,10 @@ public class SharedMatchRepository {
                 throw new IllegalStateException("This invite has already expired.");
             }
 
-            if (notification.expiresAt > 0 && System.currentTimeMillis() > notification.expiresAt) {
+            long effectiveExpiresAt = notification.expiresAt > 0
+                    ? notification.expiresAt
+                    : state.friendlyInviteExpiresAt;
+            if (effectiveExpiresAt > 0 && System.currentTimeMillis() > effectiveExpiresAt) {
                 transaction.update(matchReference, buildCanceledUpdates(
                         SharedMatchState.STATUS_DECLINED,
                         "The invite expired before it was accepted."
@@ -356,7 +376,70 @@ public class SharedMatchRepository {
                 .update(buildCanceledUpdates(
                         SharedMatchState.STATUS_CANCELED,
                         "The friendly match invite was canceled."
-                ));
+                ))
+                .addOnSuccessListener(unused -> updatePendingInviteNotifications(matchId, "CANCELED", true));
+    }
+
+    private void schedulePendingFriendlyInviteExpiration(String matchId, long expiresAt) {
+        long delayMs = Math.max(0L, expiresAt - System.currentTimeMillis());
+        new Handler(Looper.getMainLooper()).postDelayed(
+                () -> expirePendingFriendlyInvite(matchId),
+                delayMs + 250L
+        );
+    }
+
+    private void expirePendingFriendlyInvite(String matchId) {
+        if (TextUtils.isEmpty(matchId)) {
+            return;
+        }
+
+        DocumentReference matchReference = db.collection(MATCHES_COLLECTION).document(matchId);
+        db.runTransaction((Transaction.Function<Boolean>) transaction -> {
+            DocumentSnapshot snapshot = transaction.get(matchReference);
+            SharedMatchState state = snapshot.toObject(SharedMatchState.class);
+
+            if (state == null
+                    || !SharedMatchState.MATCH_TYPE_FRIENDLY.equals(state.matchType)
+                    || !SharedMatchState.STATUS_WAITING.equals(state.status)) {
+                return false;
+            }
+
+            if (state.friendlyInviteExpiresAt > 0
+                    && System.currentTimeMillis() < state.friendlyInviteExpiresAt) {
+                return false;
+            }
+
+            transaction.update(matchReference, buildCanceledUpdates(
+                    SharedMatchState.STATUS_DECLINED,
+                    "The friendly match invite expired."
+            ));
+            return true;
+        }).addOnSuccessListener(expired -> {
+            if (!expired) {
+                return;
+            }
+
+            updatePendingInviteNotifications(matchId, "EXPIRED", true);
+        });
+    }
+
+    private void updatePendingInviteNotifications(String matchId, String status, boolean read) {
+        if (TextUtils.isEmpty(matchId)) {
+            return;
+        }
+
+        db.collection("notifications")
+                .whereEqualTo("relatedMatchId", matchId)
+                .whereEqualTo("invitationStatus", "PENDING")
+                .get()
+                .addOnSuccessListener(snapshot -> {
+                    for (DocumentSnapshot document : snapshot.getDocuments()) {
+                        document.getReference().update(new HashMap<String, Object>() {{
+                            put("invitationStatus", status);
+                            put("read", read);
+                        }});
+                    }
+                });
     }
 
     public void cancelWaitingCompetitiveMatch(String matchId) {

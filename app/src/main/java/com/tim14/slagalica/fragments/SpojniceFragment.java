@@ -1,5 +1,6 @@
 package com.tim14.slagalica.fragments;
 
+import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -11,6 +12,8 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.core.content.ContextCompat;
 
 import com.tim14.slagalica.GameHostActivity;
 import com.tim14.slagalica.R;
@@ -28,11 +31,13 @@ import java.util.List;
 public class SpojniceFragment extends BaseGameFragment {
 
     private static final String TAG = "SpojniceFragment";
+    private static final long WRONG_PAIR_FEEDBACK_MS = 650L;
 
     private TextView roundText;
     private TextView currentPlayerText;
     private TextView selectedPairText;
     private TextView secondChanceInfoText;
+    private TextView ruleText;
 
     private Button left1Button;
     private Button left2Button;
@@ -77,6 +82,7 @@ public class SpojniceFragment extends BaseGameFragment {
         currentPlayerText = view.findViewById(R.id.currentPlayerText);
         selectedPairText = view.findViewById(R.id.selectedPairText);
         secondChanceInfoText = view.findViewById(R.id.secondChanceInfoText);
+        ruleText = view.findViewById(R.id.ruleText);
 
         left1Button = view.findViewById(R.id.left1Button);
         left2Button = view.findViewById(R.id.left2Button);
@@ -124,7 +130,8 @@ public class SpojniceFragment extends BaseGameFragment {
                     return;
                 }
 
-                if (result == null || result.size() < 2) {
+                int requiredRounds = isChallengeMode() ? 1 : 2;
+                if (result == null || result.size() < requiredRounds) {
                     secondChanceInfoText.setText(getString(R.string.not_enough_spojnice_rounds));
                     Toast.makeText(requireContext(),
                             R.string.need_at_least_2_spojnice_rounds,
@@ -158,7 +165,14 @@ public class SpojniceFragment extends BaseGameFragment {
         setRoundItems();
         enableAllPairButtons();
         confirmConnectionButton.setEnabled(true);
-        secondChanceInfoText.setText(getString(R.string.spojnice_start_info));
+        if (isChallengeMode()) {
+            secondChanceInfoText.setVisibility(View.GONE);
+            ruleText.setVisibility(View.VISIBLE);
+        } else {
+            secondChanceInfoText.setVisibility(View.VISIBLE);
+            ruleText.setVisibility(View.VISIBLE);
+            secondChanceInfoText.setText(getString(R.string.spojnice_start_info));
+        }
 
         updateHeader();
         updateScores();
@@ -209,7 +223,9 @@ public class SpojniceFragment extends BaseGameFragment {
                 roundTimer = null;
                 host().setTimerValue(0);
 
-                if (!spojniceService.isSecondChance()
+                if (isChallengeMode() && spojniceService.getRemainingPairsCount() > 0) {
+                    prepareNextRoundOrEnd();
+                } else if (!spojniceService.isSecondChance()
                         && spojniceService.getRemainingPairsCount() > 0) {
                     switchToSecondPlayer();
                 } else {
@@ -260,9 +276,11 @@ public class SpojniceFragment extends BaseGameFragment {
 
         if (result.getType() == SpojniceService.ConnectionType.CORRECT
                 || result.getType() == SpojniceService.ConnectionType.ROUND_SOLVED) {
+            showPairFeedback(result.getSelectedLeft(), result.getSelectedRight(), true);
             disableSolvedPair(result.getSelectedLeft(), result.getSelectedRight());
             Toast.makeText(requireContext(), R.string.correct_connection_points, Toast.LENGTH_SHORT).show();
         } else {
+            showPairFeedback(result.getSelectedLeft(), result.getSelectedRight(), false);
             Toast.makeText(requireContext(), R.string.wrong_connection, Toast.LENGTH_SHORT).show();
         }
 
@@ -282,7 +300,11 @@ public class SpojniceFragment extends BaseGameFragment {
         if (spojniceService.shouldSwitchToSecondChance()) {
             handler.postDelayed(() -> {
                 if (isAdded()) {
-                    switchToSecondPlayer();
+                    if (isChallengeMode()) {
+                        prepareNextRoundOrEnd();
+                    } else {
+                        switchToSecondPlayer();
+                    }
                 }
             }, 900);
             return;
@@ -332,7 +354,7 @@ public class SpojniceFragment extends BaseGameFragment {
         spojniceService.finishRound();
         confirmConnectionButton.setEnabled(false);
 
-        if (round == 1) {
+        if (round == 1 && !isChallengeMode()) {
             Toast.makeText(requireContext(), R.string.round_one_finished, Toast.LENGTH_LONG).show();
             handler.postDelayed(() -> {
                 if (isAdded()) {
@@ -373,11 +395,13 @@ public class SpojniceFragment extends BaseGameFragment {
 
     private void enableAllPairButtons() {
         for (Button button : getLeftButtons()) {
+            clearButtonFeedback(button);
             button.setEnabled(true);
             button.setAlpha(1f);
         }
 
         for (Button button : getRightButtons()) {
+            clearButtonFeedback(button);
             button.setEnabled(true);
             button.setAlpha(1f);
         }
@@ -391,6 +415,72 @@ public class SpojniceFragment extends BaseGameFragment {
         for (Button button : getRightButtons()) {
             button.setEnabled(false);
         }
+    }
+
+    private void showPairFeedback(String left, String right, boolean correct) {
+        Button leftButton = findLeftButton(left);
+        Button rightButton = findRightButton(right);
+        int color = ContextCompat.getColor(
+                requireContext(),
+                correct ? R.color.slagalica_yellow : R.color.slagalica_red
+        );
+        int textColor = ContextCompat.getColor(
+                requireContext(),
+                correct ? R.color.slagalica_dark_blue : R.color.white
+        );
+
+        tintButton(leftButton, color, textColor);
+        tintButton(rightButton, color, textColor);
+
+        if (!correct) {
+            handler.postDelayed(() -> {
+                if (!isAdded()) {
+                    return;
+                }
+                clearButtonFeedback(leftButton);
+                clearButtonFeedback(rightButton);
+            }, WRONG_PAIR_FEEDBACK_MS);
+        }
+    }
+
+    private void tintButton(Button button, int color, int textColor) {
+        if (button == null) {
+            return;
+        }
+
+        button.setBackgroundTintList(ColorStateList.valueOf(color));
+        button.setTextColor(textColor);
+    }
+
+    private void clearButtonFeedback(Button button) {
+        if (button == null) {
+            return;
+        }
+
+        button.setBackgroundTintList(ColorStateList.valueOf(
+                ContextCompat.getColor(requireContext(), R.color.slagalica_card)
+        ));
+        button.setTextColor(ContextCompat.getColor(requireContext(), R.color.slagalica_dark_blue));
+    }
+
+    private Button findLeftButton(String left) {
+        for (Button button : getLeftButtons()) {
+            if (left != null && left.equals(button.getText().toString())) {
+                return button;
+            }
+        }
+
+        return null;
+    }
+
+    private Button findRightButton(String right) {
+        for (Button button : getRightButtons()) {
+            if (right != null && right.equals(button.getText().toString())) {
+                return button;
+            }
+        }
+
+        return null;
     }
 
     private void endGame() {
@@ -422,7 +512,9 @@ public class SpojniceFragment extends BaseGameFragment {
         host().setPhaseText(getString(R.string.phase_spojnice_finished));
 
         Toast.makeText(requireContext(),
-                getString(
+                isChallengeMode()
+                        ? getString(R.string.challenge_result_score_format, spojniceService.getPlayerOneScore())
+                        : getString(
                         R.string.spojnice_end_format,
                         spojniceService.getPlayerOneScore(),
                         spojniceService.getPlayerTwoScore()
@@ -437,6 +529,12 @@ public class SpojniceFragment extends BaseGameFragment {
     }
 
     private void updateHeader() {
+        if (isChallengeMode()) {
+            roundText.setText(getString(R.string.challenge_spojnice_round_label_format, round));
+            currentPlayerText.setText(R.string.challenge_spojnice_current_player);
+            return;
+        }
+
         roundText.setText(getString(R.string.round_counter_format, round));
         currentPlayerText.setText(
                 getString(R.string.current_player_format, spojniceService.getCurrentPlayer())
@@ -595,6 +693,15 @@ public class SpojniceFragment extends BaseGameFragment {
                 updateRemoteSelectedText();
             } : null);
             button.setAlpha(solved ? 0.45f : 1f);
+            if (solved) {
+                tintButton(
+                        button,
+                        ContextCompat.getColor(requireContext(), R.color.slagalica_yellow),
+                        ContextCompat.getColor(requireContext(), R.color.slagalica_dark_blue)
+                );
+            } else {
+                clearButtonFeedback(button);
+            }
         }
 
         for (Button button : getRightButtons()) {
@@ -606,6 +713,15 @@ public class SpojniceFragment extends BaseGameFragment {
                 updateRemoteSelectedText();
             } : null);
             button.setAlpha(solved ? 0.45f : 1f);
+            if (solved) {
+                tintButton(
+                        button,
+                        ContextCompat.getColor(requireContext(), R.color.slagalica_yellow),
+                        ContextCompat.getColor(requireContext(), R.color.slagalica_dark_blue)
+                );
+            } else {
+                clearButtonFeedback(button);
+            }
         }
     }
 
@@ -613,11 +729,25 @@ public class SpojniceFragment extends BaseGameFragment {
         for (Button button : getLeftButtons()) {
             boolean solved = roundState.solvedLeftItems.contains(button.getText().toString());
             button.setAlpha(solved ? 0.45f : 1f);
+            if (solved) {
+                tintButton(
+                        button,
+                        ContextCompat.getColor(requireContext(), R.color.slagalica_yellow),
+                        ContextCompat.getColor(requireContext(), R.color.slagalica_dark_blue)
+                );
+            }
         }
 
         for (Button button : getRightButtons()) {
             boolean solved = roundState.solvedRightItems.contains(button.getText().toString());
             button.setAlpha(solved ? 0.45f : 1f);
+            if (solved) {
+                tintButton(
+                        button,
+                        ContextCompat.getColor(requireContext(), R.color.slagalica_yellow),
+                        ContextCompat.getColor(requireContext(), R.color.slagalica_dark_blue)
+                );
+            }
         }
     }
 
@@ -649,14 +779,18 @@ public class SpojniceFragment extends BaseGameFragment {
 
         SharedSpojniceRound updatedRound = copyRound(currentRound);
         updatedRound.attemptsInTurn += 1;
-        boolean correct = isCorrectPair(updatedRound, remoteSelectedLeft, remoteSelectedRight);
+        String confirmedLeft = remoteSelectedLeft;
+        String confirmedRight = remoteSelectedRight;
+        boolean correct = isCorrectPair(updatedRound, confirmedLeft, confirmedRight);
 
         int playerOneScore = state.playerOneScore;
         int playerTwoScore = state.playerTwoScore;
 
-        if (correct && !updatedRound.solvedLeftItems.contains(remoteSelectedLeft)) {
-            updatedRound.solvedLeftItems.add(remoteSelectedLeft);
-            updatedRound.solvedRightItems.add(remoteSelectedRight);
+        showPairFeedback(confirmedLeft, confirmedRight, correct);
+
+        if (correct && !updatedRound.solvedLeftItems.contains(confirmedLeft)) {
+            updatedRound.solvedLeftItems.add(confirmedLeft);
+            updatedRound.solvedRightItems.add(confirmedRight);
             updatedRound.solvedByPlayers.add(state.activePlayer);
 
             if (state.activePlayer == 1) {

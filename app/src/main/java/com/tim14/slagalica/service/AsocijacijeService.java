@@ -105,6 +105,11 @@ public class AsocijacijeService {
         hasOpenedFieldThisTurn = false;
     }
 
+    public void resetSoloTurn() {
+        currentPlayer = 1;
+        hasOpenedFieldThisTurn = false;
+    }
+
     public String getClue(int col, int row) {
         switch (col) {
             case 0: return roundData.columnA_clues.get(row);

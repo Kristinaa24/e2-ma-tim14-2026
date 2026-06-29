@@ -6,6 +6,8 @@ import android.view.ViewGroup;
 
 import androidx.fragment.app.Fragment;
 
+import com.tim14.slagalica.GameHostActivity;
+
 public abstract class BaseGameFragment extends Fragment {
 
     protected interface RoundTimerTickListener {
@@ -16,6 +18,11 @@ public abstract class BaseGameFragment extends Fragment {
 
     protected GameNavigator host() {
         return (GameNavigator) requireActivity();
+    }
+
+    protected boolean isChallengeMode() {
+        return requireActivity() instanceof GameHostActivity
+                && ((GameHostActivity) requireActivity()).isChallengeMode();
     }
 
     protected void startRoundTimer(int totalSeconds, Runnable onFinished) {

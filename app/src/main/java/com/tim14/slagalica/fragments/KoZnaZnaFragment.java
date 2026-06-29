@@ -1,5 +1,6 @@
 package com.tim14.slagalica.fragments;
 
+import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -11,6 +12,8 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.core.content.ContextCompat;
 
 import com.tim14.slagalica.GameHostActivity;
 import com.tim14.slagalica.R;
@@ -90,6 +93,10 @@ public class KoZnaZnaFragment extends BaseGameFragment {
             playerTwoAnswerButton.setVisibility(View.GONE);
             renderRemoteQuestion();
             return;
+        }
+
+        if (isChallengeMode()) {
+            playerTwoAnswerButton.setVisibility(View.GONE);
         }
 
         host().setTimerValue(25);
@@ -228,6 +235,7 @@ public class KoZnaZnaFragment extends BaseGameFragment {
 
         disableAnswerButtons();
         cancelQuestionTimer();
+        showAnswerFeedback(selectedIndex, koZnaZnaService.getCurrentQuestion().correctIndex);
 
         if (result.getType() == KoZnaZnaService.AnswerType.CORRECT) {
             Toast.makeText(requireContext(), R.string.correct_points_message, Toast.LENGTH_SHORT).show();
@@ -304,7 +312,9 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         host().setPhaseText(getString(R.string.phase_ko_zna_zna_finished));
 
         Toast.makeText(requireContext(),
-                getString(
+                isChallengeMode()
+                        ? getString(R.string.challenge_result_score_format, koZnaZnaService.getPlayerOneScore())
+                        : getString(
                         R.string.ko_zna_zna_end_format,
                         koZnaZnaService.getPlayerOneScore(),
                         koZnaZnaService.getPlayerTwoScore()
@@ -340,7 +350,14 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         answerBButton.setText(question.answers.get(1));
         answerCButton.setText(question.answers.get(2));
         answerDButton.setText(question.answers.get(3));
-        ruleInfoText.setText(getString(R.string.shared_match_kzz_phase_format, questionNumber, totalQuestions));
+        clearAnswerFeedback();
+        ruleInfoText.setText(getString(
+                isChallengeMode()
+                        ? R.string.challenge_kzz_phase_format
+                        : R.string.shared_match_kzz_phase_format,
+                questionNumber,
+                totalQuestions
+        ));
     }
 
     private void renderRemoteQuestion() {
@@ -376,6 +393,7 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         if (SharedMatchState.PHASE_KZZ_REVEAL.equals(state.phase)) {
             questionTimerText.setText(getString(R.string.question_time_format, 0));
             disableAnswerButtons();
+            showRemoteRevealFeedback(question, state);
             scheduleRemoteAdvanceIfCoordinator(state);
             return;
         }
@@ -425,6 +443,14 @@ public class KoZnaZnaFragment extends BaseGameFragment {
                     public void onSuccess(SharedMatchRepository.KoZnaZnaAnswerOutcome outcome) {
                         if (!outcome.accepted || !isAdded()) {
                             return;
+                        }
+
+                        SharedMatchState latestState = activity.getSharedMatchState();
+                        KoZnaZnaQuestion currentQuestion = latestState == null
+                                ? null
+                                : activity.getSharedQuizQuestion(latestState.currentTurnIndex);
+                        if (currentQuestion != null) {
+                            showAnswerFeedback(selectedIndex, currentQuestion.correctIndex);
                         }
 
                         if (host().shouldPersistStatistics()) {
@@ -532,6 +558,7 @@ public class KoZnaZnaFragment extends BaseGameFragment {
     }
 
     private void enableAnswerButtons() {
+        clearAnswerFeedback();
         answerAButton.setEnabled(true);
         answerBButton.setEnabled(true);
         answerCButton.setEnabled(true);
@@ -547,6 +574,64 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         answerCButton.setEnabled(false);
         answerDButton.setEnabled(false);
         playerTwoAnswerButton.setEnabled(false);
+    }
+
+    private void showRemoteRevealFeedback(KoZnaZnaQuestion question, SharedMatchState state) {
+        if (question == null || state == null) {
+            return;
+        }
+
+        showAnswerFeedback(state.selectedAnswerIndex, question.correctIndex);
+    }
+
+    private void showAnswerFeedback(int selectedIndex, int correctIndex) {
+        clearAnswerFeedback();
+
+        Button selectedButton = getAnswerButton(selectedIndex);
+        Button correctButton = getAnswerButton(correctIndex);
+
+        if (selectedButton != null && selectedIndex != correctIndex) {
+            tintAnswerButton(
+                    selectedButton,
+                    ContextCompat.getColor(requireContext(), R.color.slagalica_red),
+                    ContextCompat.getColor(requireContext(), R.color.white)
+            );
+        }
+
+        if (correctButton != null) {
+            tintAnswerButton(
+                    correctButton,
+                    ContextCompat.getColor(requireContext(), R.color.slagalica_yellow),
+                    ContextCompat.getColor(requireContext(), R.color.slagalica_dark_blue)
+            );
+        }
+    }
+
+    private void clearAnswerFeedback() {
+        for (Button button : getAnswerButtons()) {
+            button.setBackgroundTintList(ColorStateList.valueOf(
+                    ContextCompat.getColor(requireContext(), R.color.slagalica_card)
+            ));
+            button.setTextColor(ContextCompat.getColor(requireContext(), R.color.slagalica_dark_blue));
+        }
+    }
+
+    private void tintAnswerButton(Button button, int color, int textColor) {
+        button.setBackgroundTintList(ColorStateList.valueOf(color));
+        button.setTextColor(textColor);
+    }
+
+    private Button getAnswerButton(int index) {
+        Button[] buttons = getAnswerButtons();
+        if (index < 0 || index >= buttons.length) {
+            return null;
+        }
+
+        return buttons[index];
+    }
+
+    private Button[] getAnswerButtons() {
+        return new Button[]{answerAButton, answerBButton, answerCButton, answerDButton};
     }
 
     private void cancelGameTimer() {
