@@ -607,7 +607,7 @@ public class FirestoreRepository {
             public void onSuccess(List<Region> regions) {
                 regions.sort((left, right) -> Integer.compare(right.monthlyStars, left.monthlyStars));
 
-                if (regions.isEmpty() || regions.get(0).monthlyStars <= 0) {
+                if (regions.isEmpty()) {
                     callback.onSuccess(null);
                     return;
                 }
@@ -615,7 +615,7 @@ public class FirestoreRepository {
                 WriteBatch batch = db.batch();
                 for (int index = 0; index < regions.size(); index++) {
                     Region region = regions.get(index);
-                    int rank = index < 3 ? index + 1 : 0;
+                    int rank = index < 3 && region.monthlyStars > 0 ? index + 1 : 0;
                     Map<String, Object> updates = new HashMap<>();
                     updates.put("previousMonthlyRank", rank);
                     updates.put("monthlyStars", 0);
@@ -771,17 +771,16 @@ public class FirestoreRepository {
 
                             ensureRegionDefaults(region, documentSnapshot.getId());
                             String frame = frameForPreviousRank(region.previousMonthlyRank);
-                            if (frame == null
-                                    || frame.equals(user.avatarFrame)
-                                    || framePriority(user.avatarFrame) >= framePriority(frame)) {
+                            String desiredFrame = frame == null ? "None" : frame;
+                            if (desiredFrame.equals(user.avatarFrame)) {
                                 callback.onSuccess(user);
                                 return;
                             }
 
-                            user.avatarFrame = frame;
+                            user.avatarFrame = desiredFrame;
                             db.collection(USERS_COLLECTION)
                                     .document(user.id)
-                                    .update("avatarFrame", frame)
+                                    .update("avatarFrame", desiredFrame)
                                     .addOnSuccessListener(unused -> callback.onSuccess(user))
                                     .addOnFailureListener(e -> callback.onError(e.getMessage()));
                         })
@@ -1030,7 +1029,7 @@ public class FirestoreRepository {
             return false;
         }
 
-        user.tokens += (int) (daysBetween * LeagueUtils.BASE_DAILY_TOKENS);
+        user.tokens += (int) (daysBetween * LeagueUtils.getDailyTokenGrant(user.league));
         user.lastTokenGrantDate = today.toString();
         user.lastDailyTokenRewardDate = currentDailyRewardDate();
         return true;
@@ -1199,29 +1198,6 @@ public class FirestoreRepository {
             return "Bronze";
         }
         return null;
-    }
-
-    private int framePriority(String avatarFrame) {
-        if (avatarFrame == null) {
-            return 0;
-        }
-
-        switch (avatarFrame.toLowerCase(Locale.US)) {
-            case "bronze":
-                return 1;
-            case "silver":
-                return 2;
-            case "gold":
-                return 3;
-            case "platinum":
-                return 4;
-            case "diamond":
-                return 5;
-            case "master":
-                return 6;
-            default:
-                return 0;
-        }
     }
 
     public void getStatistics(FirebaseCallback<PlayerStatistics> callback) {

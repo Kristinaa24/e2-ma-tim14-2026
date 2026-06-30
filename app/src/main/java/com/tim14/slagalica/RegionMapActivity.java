@@ -837,17 +837,17 @@ public class RegionMapActivity extends AppCompatActivity {
     private String iconForRegion(String regionName) {
         switch (regionName) {
             case "Belgrade":
-                return "BG";
+                return "\uD83C\uDFD9";
             case "Vojvodina":
-                return "VO";
+                return "\uD83C\uDF3E";
             case "Sumadija and Western Serbia":
-                return "SW";
+                return "\uD83C\uDF32";
             case "Southern and Eastern Serbia":
-                return "SE";
+                return "\u26F0";
             case "Kosovo i Metohija":
-                return "KM";
+                return "\uD83C\uDFFB";
             default:
-                return "--";
+                return "RS";
         }
     }
 

@@ -2,11 +2,8 @@
     <string name="app_name">Slagalica</string>
 
     <string name="profile">Profile</string>
-    <string name="profile_info_placeholder">Profile info</string>
     <string name="loading_profile">Loading profile...</string>
     <string name="profile_load_failed">Profile could not be loaded.</string>
-    <string name="avatar_change_placeholder">Avatar change screen placeholder.</string>
-    <string name="profile_info_format">Username: %1$s\nEmail: %2$s\nRegion: %3$s\nTokens: %4$d\nStars: %5$d\nLeague: %6$s\nAvatar frame: %7$s\nQR code: %8$s</string>
     <string name="change_avatar">Change avatar</string>
     <string name="choose_avatar">Choose avatar</string>
     <string name="profile_loading_message">Profile is still loading.</string>
@@ -14,8 +11,6 @@
     <string name="logout">Logout</string>
     <string name="silver_league">Silver League</string>
     <string name="qr_code">QR CODE</string>
-    <string name="league_icon">League icon: &#129352;</string>
-    <string name="avatar_frame">Avatar frame: Silver</string>
     <string name="view_statistics">View statistics</string>
     <string name="player_statistics">Player statistics</string>
     <string name="statistics_loading_runtime">Loading statistics...</string>
@@ -23,7 +18,6 @@
     <string name="statistics_load_failed">Statistics could not be loaded.</string>
     <string name="statistics_summary_format">Summary\nGames played: %1$d\nWins: %2$d\nLosses: %3$d\n\nQuiz\nCorrect answers: %4$d\nWrong answers: %5$d\nSuccess: %6$d%%\nTotal score: %7$d\n\nPairs\nCorrect pairs: %8$d\nTotal pairs: %9$d\nSuccess: %10$d%%\nTotal score: %11$d\n\nStep by Step\nSolved rounds: %12$d\nBest solved step: %13$s\nTotal score: %14$d\n\nMy Number\nExact hits: %15$d\nClose hits: %16$d\nTotal score: %17$d</string>
     <string name="avatar_icon">&#128100;</string>
-    <string name="silver_medal_icon">&#129352;</string>
     <string name="region_reward_loading">Region reward: ...</string>
     <string name="region_reward_format">Region reward: %1$s Frame</string>
     <string name="no_avatar_frame">None</string>
@@ -34,15 +28,11 @@
     <string name="profile_username_label">Username</string>
     <string name="profile_region_label">Region</string>
     <string name="profile_email_label">Email</string>
-    <string name="profile_default_username">Test User</string>
-    <string name="profile_default_email">test@example.com</string>
-    <string name="profile_default_region">Serbia</string>
     <string name="player_id_label">Player ID</string>
     <string name="scan_code_to_add_friend">Scan this code to add friend</string>
     <string name="no_league">No League</string>
     <string name="bronze_league">Bronze League</string>
     <string name="gold_league">Gold League</string>
-    <string name="platinum_league">Platinum League</string>
     <string name="diamond_league">Diamond League</string>
     <string name="master_league">Master League</string>
     <string name="league_promoted_title">New league</string>
@@ -631,7 +621,6 @@
     <string name="regions_load_failed">Region map could not be loaded.</string>
     <string name="regions_loaded_format">Players shown on map: %1$d</string>
     <string name="regions_selected_empty">Select a region on the map.</string>
-    <string name="regions_selected_format">%1$s%2$s\nRegistered players in region: %3$d</string>
     <string name="regions_your_region_suffix"> - your region</string>
     <string name="regions_summary_title">Registered players by region</string>
     <string name="regions_open_chat">Open regional chat</string>
