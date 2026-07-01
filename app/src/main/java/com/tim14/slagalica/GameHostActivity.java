@@ -309,6 +309,10 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
             sharedMatchRepository.finalizeMatchIfNeeded(remoteMatchId, new FirebaseCallback<SharedMatchRepository.MatchFinalizationResult>() {
                 @Override
                 public void onSuccess(SharedMatchRepository.MatchFinalizationResult result) {
+                    if (result != null && result.leagueChanged) {
+                        saveLeagueChangeAlert(result.previousLeague, result.currentLeague);
+                        showLeagueChangeDialog(result.previousLeague, result.currentLeague);
+                    }
                     completeMatchMissions(result);
                     loadUserStatus();
                 }
@@ -735,10 +739,13 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     }
 
     private void completeDailyMission(String mission, Runnable afterSuccess) {
-        firestoreRepository.completeDailyMission(mission, new FirebaseCallback<Void>() {
+        firestoreRepository.completeDailyMissionWithResult(mission, new FirebaseCallback<FirestoreRepository.DailyMissionRewardResult>() {
             @Override
-            public void onSuccess(Void result) {
+            public void onSuccess(FirestoreRepository.DailyMissionRewardResult result) {
                 loadUserStatus();
+                if (result != null && result.leagueChanged) {
+                    showLeagueChangeDialog(result.previousLeague, result.currentLeague);
+                }
                 if (afterSuccess != null) {
                     afterSuccess.run();
                 }
@@ -764,6 +771,15 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
                 .setMessage(message)
                 .setPositiveButton(android.R.string.ok, null)
                 .show();
+    }
+
+    private void saveLeagueChangeAlert(int previousLeague, int currentLeague) {
+        boolean promoted = currentLeague > previousLeague;
+        String title = promoted ? "League promotion" : "League demotion";
+        String message = promoted
+                ? "You advanced to " + LeagueUtils.getLeagueName(currentLeague) + " League."
+                : "You dropped to " + LeagueUtils.getLeagueName(currentLeague) + " League.";
+        firestoreRepository.saveNotification(title, message, "REWARD");
     }
 
     private void markCurrentUserActive() {

@@ -69,6 +69,10 @@ public class SharedMatchState {
     public String siblingMatchId;
     public String finalMatchId;
     public String winnerId;
+    public int playerOnePreviousLeague;
+    public int playerOneCurrentLeague;
+    public int playerTwoPreviousLeague;
+    public int playerTwoCurrentLeague;
     public List<KoZnaZnaQuestion> quizQuestions;
     public List<SharedSpojniceRound> spojniceRounds;
     public List<SharedSkockoRound> skockoRounds;
@@ -98,5 +102,9 @@ public class SharedMatchState {
         siblingMatchId = "";
         finalMatchId = "";
         winnerId = "";
+        playerOnePreviousLeague = 0;
+        playerOneCurrentLeague = 0;
+        playerTwoPreviousLeague = 0;
+        playerTwoCurrentLeague = 0;
     }
 }
