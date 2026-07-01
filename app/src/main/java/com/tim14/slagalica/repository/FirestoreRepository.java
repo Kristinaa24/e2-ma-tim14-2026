@@ -86,6 +86,20 @@ public class FirestoreRepository {
         }
     }
 
+    public static final class DailyMissionRewardResult {
+        public final int earnedStars;
+        public final int previousLeague;
+        public final int currentLeague;
+        public final boolean leagueChanged;
+
+        private DailyMissionRewardResult(int earnedStars, int previousLeague, int currentLeague) {
+            this.earnedStars = earnedStars;
+            this.previousLeague = previousLeague;
+            this.currentLeague = currentLeague;
+            this.leagueChanged = previousLeague != currentLeague;
+        }
+    }
+
     public FirestoreRepository() {
         this(null);
     }
@@ -350,6 +364,20 @@ public class FirestoreRepository {
     }
 
     public void completeDailyMission(String mission, FirebaseCallback<Void> callback) {
+        completeDailyMissionWithResult(mission, new FirebaseCallback<DailyMissionRewardResult>() {
+            @Override
+            public void onSuccess(DailyMissionRewardResult result) {
+                callback.onSuccess(null);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void completeDailyMissionWithResult(String mission, FirebaseCallback<DailyMissionRewardResult> callback) {
         String userId;
         try {
             userId = requireUserId();
@@ -370,6 +398,7 @@ public class FirestoreRepository {
 
                     ensureUserDefaults(user, userId);
                     resetDailyMissionsIfNeeded(user);
+                    int previousLeague = user.league;
 
                     boolean newlyCompleted = false;
                     if (MISSION_WIN_MATCH.equals(mission) && !user.dailyMissionWinMatch) {
@@ -408,11 +437,18 @@ public class FirestoreRepository {
                     if (starDelta > 0) {
                         applyPositiveStars(user, starDelta);
                     }
+                    int currentLeague = user.league;
+                    if (previousLeague != currentLeague) {
+                        addLeagueChangeNotification(userId, previousLeague, currentLeague);
+                    }
+                    final int earnedStars = starDelta;
 
                     db.collection(USERS_COLLECTION)
                             .document(userId)
                             .set(user, SetOptions.merge())
-                            .addOnSuccessListener(unused -> callback.onSuccess(null))
+                            .addOnSuccessListener(unused -> callback.onSuccess(
+                                    new DailyMissionRewardResult(earnedStars, previousLeague, currentLeague)
+                            ))
                             .addOnFailureListener(e -> callback.onError(e.getMessage()));
                 })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
@@ -1807,6 +1843,21 @@ public class FirestoreRepository {
                 db.collection(NOTIFICATIONS_COLLECTION).document(),
                 notificationData(userId, title, message, "REWARD")
         );
+        showLeagueSystemNotification(title, message, "REWARD");
+    }
+
+    private void addLeagueChangeNotification(
+            String userId,
+            int previousLeague,
+            int currentLeague
+    ) {
+        boolean promoted = currentLeague > previousLeague;
+        String title = promoted ? "League promotion" : "League demotion";
+        String message = promoted
+                ? "You advanced to " + LeagueUtils.getLeagueName(currentLeague) + " League."
+                : "You dropped to " + LeagueUtils.getLeagueName(currentLeague) + " League.";
+
+        saveNotificationForUser(userId, title, message, "REWARD", null);
         showLeagueSystemNotification(title, message, "REWARD");
     }
 

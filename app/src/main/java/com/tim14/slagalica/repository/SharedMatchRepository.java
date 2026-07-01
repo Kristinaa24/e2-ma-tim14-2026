@@ -39,7 +39,8 @@ public class SharedMatchRepository {
     private static final String MATCHES_COLLECTION = "sharedMatches";
     private static final String USERS_COLLECTION = "users";
     private static final String STATISTICS_COLLECTION = "statistics";
-    private static final long FRIENDLY_INVITE_EXPIRATION_MS = 10L * 1000L;
+    private static final long FRIENDLY_INVITE_EXPIRATION_MS = 15L * 1000L;
+    private static final long COMPETITIVE_WAITING_EXPIRATION_MS = 2L * 60L * 1000L;
     private static final long TOURNAMENT_WAITING_EXPIRATION_MS = 10L * 60L * 1000L;
 
 
@@ -73,16 +74,21 @@ public class SharedMatchRepository {
                 db.collection(MATCHES_COLLECTION)
                         .whereEqualTo("status", SharedMatchState.STATUS_WAITING)
                         .whereEqualTo("matchType", SharedMatchState.MATCH_TYPE_COMPETITIVE)
-                        .limit(10)
+                        .limit(25)
                         .get()
                         .addOnSuccessListener(querySnapshot -> {
-                            for (DocumentSnapshot snapshot : querySnapshot.getDocuments()) {
+                            List<DocumentSnapshot> waitingMatches = new ArrayList<>(querySnapshot.getDocuments());
+                            waitingMatches.sort((left, right) ->
+                                    Long.compare(readUpdatedAt(right), readUpdatedAt(left)));
+
+                            for (DocumentSnapshot snapshot : waitingMatches) {
                                 SharedMatchState state = snapshot.toObject(SharedMatchState.class);
                                 if (state == null) {
                                     continue;
                                 }
 
-                                if (userId.equals(state.playerOneId)
+                                if (!isFreshCompetitiveWaitingState(state)
+                                        || userId.equals(state.playerOneId)
                                         || !TextUtils.isEmpty(state.playerTwoId)) {
                                     continue;
                                 }
@@ -217,7 +223,7 @@ public class SharedMatchRepository {
                                     Map<String, Object> inviteTimingUpdates = new HashMap<>();
                                     inviteTimingUpdates.put("friendlyInviteExpiresAt", expiresAt);
                                     inviteTimingUpdates.put("phaseStartedAt", now);
-                                    inviteTimingUpdates.put("phaseDurationSeconds", 10);
+                                    inviteTimingUpdates.put("phaseDurationSeconds", 15);
                                     inviteTimingUpdates.put("updatedAt", now);
 
                                     reference.update(inviteTimingUpdates)
@@ -542,6 +548,14 @@ public class SharedMatchRepository {
             String matchId,
             FirebaseCallback<MatchFinalizationResult> callback
     ) {
+        String currentUserId;
+        try {
+            currentUserId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
         if (TextUtils.isEmpty(matchId)) {
             callback.onError("Match was not found.");
             return;
@@ -558,7 +572,7 @@ public class SharedMatchRepository {
             }
 
             if (state.resultApplied) {
-                return new MatchFinalizationResult(false, SharedMatchState.MATCH_TYPE_FRIENDLY.equals(state.matchType), state.finalMatchId, state.winnerId);
+                return buildFinalizationResult(false, state, currentUserId);
             }
 
             if (SharedMatchState.MATCH_TYPE_FRIENDLY.equals(state.matchType)) {
@@ -574,6 +588,8 @@ public class SharedMatchRepository {
 
                 ensureUserDefaultsForTransaction(playerOne, state.playerOneId);
                 ensureUserDefaultsForTransaction(playerTwo, state.playerTwoId);
+                int playerOnePreviousLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerOne.stars);
+                int playerTwoPreviousLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerTwo.stars);
 
                 boolean playerOneWon = state.playerOneScore > state.playerTwoScore;
                 boolean playerTwoWon = state.playerTwoScore > state.playerOneScore;
@@ -594,6 +610,8 @@ public class SharedMatchRepository {
                 }
 
                 String winnerId = playerOneWon ? state.playerOneId : (playerTwoWon ? state.playerTwoId : "");
+                int playerOneCurrentLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerOne.stars);
+                int playerTwoCurrentLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerTwo.stars);
                 playerOne.currentMatchId = "";
                 playerTwo.currentMatchId = "";
                 transaction.set(playerOneUserReference, playerOne);
@@ -601,8 +619,34 @@ public class SharedMatchRepository {
                 transaction.update(matchReference, new HashMap<String, Object>() {{
                     put("resultApplied", true);
                     put("winnerId", winnerId);
+                    put("playerOnePreviousLeague", playerOnePreviousLeague);
+                    put("playerOneCurrentLeague", playerOneCurrentLeague);
+                    put("playerTwoPreviousLeague", playerTwoPreviousLeague);
+                    put("playerTwoCurrentLeague", playerTwoCurrentLeague);
                     put("updatedAt", System.currentTimeMillis());
                 }});
+                if (currentUserId.equals(state.playerOneId)) {
+                    return new MatchFinalizationResult(
+                            true,
+                            true,
+                            "",
+                            winnerId,
+                            playerOnePreviousLeague,
+                            playerOneCurrentLeague
+                    );
+                }
+
+                if (currentUserId.equals(state.playerTwoId)) {
+                    return new MatchFinalizationResult(
+                            true,
+                            true,
+                            "",
+                            winnerId,
+                            playerTwoPreviousLeague,
+                            playerTwoCurrentLeague
+                    );
+                }
+
                 return new MatchFinalizationResult(true, true, "", winnerId);
             }
             DocumentReference playerOneUserReference =
@@ -629,6 +673,8 @@ public class SharedMatchRepository {
             ensureUserDefaultsForTransaction(playerTwo, state.playerTwoId);
             applyDailyTokenGrantForTransaction(playerOne);
             applyDailyTokenGrantForTransaction(playerTwo);
+            int playerOnePreviousLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerOne.stars);
+            int playerTwoPreviousLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerTwo.stars);
 
             if (playerOneStatistics == null) {
                 playerOneStatistics = new PlayerStatistics(state.playerOneId);
@@ -715,9 +761,15 @@ public class SharedMatchRepository {
             }
             String winnerId = playerOneWon ? state.playerOneId : (playerTwoWon ? state.playerTwoId : "");
             String finalMatchId = "";
+            int playerOneCurrentLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerOne.stars);
+            int playerTwoCurrentLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerTwo.stars);
             Map<String, Object> resultUpdates = new HashMap<>();
             resultUpdates.put("resultApplied", true);
             resultUpdates.put("winnerId", winnerId);
+            resultUpdates.put("playerOnePreviousLeague", playerOnePreviousLeague);
+            resultUpdates.put("playerOneCurrentLeague", playerOneCurrentLeague);
+            resultUpdates.put("playerTwoPreviousLeague", playerTwoPreviousLeague);
+            resultUpdates.put("playerTwoCurrentLeague", playerTwoCurrentLeague);
             resultUpdates.put("updatedAt", System.currentTimeMillis());
             if (tournamentMatch && "SEMI".equals(state.tournamentStage) && !TextUtils.isEmpty(winnerId)) {
                 finalMatchId = createTournamentFinalIfReady(transaction, matchReference, state, winnerId);
@@ -736,6 +788,28 @@ public class SharedMatchRepository {
             transaction.set(playerOneStatsReference, playerOneStatistics);
             transaction.set(playerTwoStatsReference, playerTwoStatistics);
             transaction.update(matchReference, resultUpdates);
+
+            if (currentUserId.equals(state.playerOneId)) {
+                return new MatchFinalizationResult(
+                        true,
+                        false,
+                        finalMatchId,
+                        winnerId,
+                        playerOnePreviousLeague,
+                        playerOneCurrentLeague
+                );
+            }
+
+            if (currentUserId.equals(state.playerTwoId)) {
+                return new MatchFinalizationResult(
+                        true,
+                        false,
+                        finalMatchId,
+                        winnerId,
+                        playerTwoPreviousLeague,
+                        playerTwoCurrentLeague
+                );
+            }
 
             return new MatchFinalizationResult(true, false, finalMatchId, winnerId);
         }).addOnSuccessListener(callback::onSuccess)
@@ -1205,6 +1279,19 @@ public class SharedMatchRepository {
         }
         return System.currentTimeMillis() - state.updatedAt <= TOURNAMENT_WAITING_EXPIRATION_MS;
     }
+
+    private boolean isFreshCompetitiveWaitingState(SharedMatchState state) {
+        if (state == null || state.updatedAt <= 0L) {
+            return false;
+        }
+        return System.currentTimeMillis() - state.updatedAt <= COMPETITIVE_WAITING_EXPIRATION_MS;
+    }
+
+    private long readUpdatedAt(DocumentSnapshot snapshot) {
+        Long updatedAt = snapshot == null ? null : snapshot.getLong("updatedAt");
+        return updatedAt == null ? 0L : updatedAt;
+    }
+
     private void createTournamentWaitingMatch(
             User user,
             FirebaseCallback<MatchJoinResult> callback
@@ -1437,6 +1524,7 @@ public class SharedMatchRepository {
             if (latestState == null
                     || !SharedMatchState.STATUS_WAITING.equals(latestState.status)
                     || !SharedMatchState.MATCH_TYPE_COMPETITIVE.equals(latestState.matchType)
+                    || !isFreshCompetitiveWaitingState(latestState)
                     || !TextUtils.isEmpty(latestState.playerTwoId)
                     || joiningUserId.equals(latestState.playerOneId)) {
                 throw new IllegalStateException("That ranked match is no longer available.");
@@ -1759,7 +1847,7 @@ public class SharedMatchRepository {
             java.time.LocalDate today = java.time.LocalDate.now();
             long dayDiff = java.time.temporal.ChronoUnit.DAYS.between(lastGrantDate, today);
             if (dayDiff > 0) {
-                user.tokens += (int) (dayDiff * 5);
+                user.tokens += (int) (dayDiff * com.tim14.slagalica.LeagueUtils.getDailyTokenGrant(user.league));
                 user.lastTokenGrantDate = today.toString();
             }
         } catch (Exception ignored) {
@@ -1772,6 +1860,47 @@ public class SharedMatchRepository {
             throw new IllegalStateException("User is not logged in.");
         }
         return FirebaseAuth.getInstance().getCurrentUser().getUid();
+    }
+
+    private MatchFinalizationResult buildFinalizationResult(
+            boolean applied,
+            SharedMatchState state,
+            String currentUserId
+    ) {
+        boolean friendlyMatch = state != null
+                && SharedMatchState.MATCH_TYPE_FRIENDLY.equals(state.matchType);
+        if (state == null) {
+            return new MatchFinalizationResult(applied, friendlyMatch, "", "");
+        }
+
+        if (currentUserId.equals(state.playerOneId)) {
+            return new MatchFinalizationResult(
+                    applied,
+                    friendlyMatch,
+                    state.finalMatchId,
+                    state.winnerId,
+                    state.playerOnePreviousLeague,
+                    state.playerOneCurrentLeague
+            );
+        }
+
+        if (currentUserId.equals(state.playerTwoId)) {
+            return new MatchFinalizationResult(
+                    applied,
+                    friendlyMatch,
+                    state.finalMatchId,
+                    state.winnerId,
+                    state.playerTwoPreviousLeague,
+                    state.playerTwoCurrentLeague
+            );
+        }
+
+        return new MatchFinalizationResult(
+                applied,
+                friendlyMatch,
+                state.finalMatchId,
+                state.winnerId
+        );
     }
 
     private String safeUserName(User user) {
@@ -1820,12 +1949,29 @@ public class SharedMatchRepository {
         public final boolean friendlyMatch;
         public final String finalMatchId;
         public final String winnerId;
+        public final int previousLeague;
+        public final int currentLeague;
+        public final boolean leagueChanged;
 
         public MatchFinalizationResult(boolean applied, boolean friendlyMatch, String finalMatchId, String winnerId) {
+            this(applied, friendlyMatch, finalMatchId, winnerId, 0, 0);
+        }
+
+        public MatchFinalizationResult(
+                boolean applied,
+                boolean friendlyMatch,
+                String finalMatchId,
+                String winnerId,
+                int previousLeague,
+                int currentLeague
+        ) {
             this.applied = applied;
             this.friendlyMatch = friendlyMatch;
             this.finalMatchId = finalMatchId == null ? "" : finalMatchId;
             this.winnerId = winnerId == null ? "" : winnerId;
+            this.previousLeague = previousLeague;
+            this.currentLeague = currentLeague;
+            this.leagueChanged = previousLeague != currentLeague;
         }
     }
 }
