@@ -97,6 +97,7 @@ public class HomeActivity extends AppCompatActivity {
     private ScrollView homeScrollView;
     private View startSection;
     private View rankingSection;
+    private View dailyMissionsPanel;
     private View friendsSection;
     private ListView rankingListView;
     private ListView monthlyRankingListView;
@@ -137,6 +138,7 @@ public class HomeActivity extends AppCompatActivity {
         homeScrollView = findViewById(R.id.homeScrollView);
         startSection = findViewById(R.id.startSection);
         rankingSection = findViewById(R.id.rankingSection);
+        dailyMissionsPanel = findViewById(R.id.dailyMissionsPanel);
         friendsSection = findViewById(R.id.friendsSection);
 
         startGameButton = findViewById(R.id.startGameButton);
@@ -195,10 +197,16 @@ public class HomeActivity extends AppCompatActivity {
         checkTargetSection(getIntent());
 
         playTabButton.setOnClickListener(v -> scrollToSection(startSection));
-        inviteFriendsTabButton.setOnClickListener(v -> scrollToSection(friendsSection));
+        inviteFriendsTabButton.setOnClickListener(v -> {
+            if (isGuest) {
+                redirectGuestToLogin();
+            } else {
+                scrollToSection(friendsSection);
+            }
+        });
         buyTokensTabButton.setOnClickListener(v -> {
             if (isGuest) {
-                scrollToSection(guestProgressCard);
+                redirectGuestToLogin();
             } else {
                 scrollToSection(startSection);
             }
@@ -228,7 +236,13 @@ public class HomeActivity extends AppCompatActivity {
         tvProfile.setOnClickListener(v -> openProfile());
 
         tvStatistics.setOnClickListener(v -> openStatistics());
-        tvFriends.setOnClickListener(v -> scrollToSection(friendsSection));
+        tvFriends.setOnClickListener(v -> {
+            if (isGuest) {
+                redirectGuestToLogin();
+            } else {
+                scrollToSection(friendsSection);
+            }
+        });
         tvRegions.setOnClickListener(v -> openRegions());
 
         notificationsMenuButton.setOnClickListener(v -> openNotifications());
@@ -476,8 +490,12 @@ public class HomeActivity extends AppCompatActivity {
         guestProgressCard.setVisibility(isGuest ? View.VISIBLE : View.GONE);
 
         rankingSection.setVisibility(View.GONE);
-        friendsSection.setVisibility(View.VISIBLE);
+        dailyMissionsPanel.setVisibility(isGuest ? View.GONE : View.VISIBLE);
+        friendsSection.setVisibility(isGuest ? View.GONE : View.VISIBLE);
+        inviteFriendsTabButton.setVisibility(isGuest ? View.GONE : View.VISIBLE);
+        tvFriends.setVisibility(isGuest ? View.GONE : View.VISIBLE);
         buyTokensButton.setVisibility(View.VISIBLE);
+        startTournamentButton.setVisibility(View.VISIBLE);
         buyTokensButton.setText(isGuest
                 ? R.string.guest_buy_tokens_cta
                 : R.string.home_buy_tokens_cta
@@ -1018,7 +1036,11 @@ public class HomeActivity extends AppCompatActivity {
                     openProfile();
                     break;
                 case "friends":
-                    scrollToSection(friendsSection);
+                    if (isGuest) {
+                        redirectGuestToLogin();
+                    } else {
+                        scrollToSection(friendsSection);
+                    }
                     break;
                 case "chat":
                     openRegionalChat();
