@@ -3,6 +3,7 @@ package com.tim14.slagalica.service;
 import com.tim14.slagalica.model.KorakPoKorakRound;
 import com.tim14.slagalica.repository.LocalGameRepository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class KorakPoKorakService {
@@ -93,7 +94,16 @@ public class KorakPoKorakService {
     }
 
     public void startMatch() {
-        matchRounds = localGameRepository.getKorakPoKorakMatchRounds();
+        startMatch(null);
+    }
+
+    public void startMatch(List<KorakPoKorakRound> rounds) {
+        if (rounds == null || rounds.isEmpty()) {
+            matchRounds = localGameRepository.getKorakPoKorakMatchRounds();
+            return;
+        }
+
+        matchRounds = new ArrayList<>(rounds);
     }
 
     public void startTurn(int turnIndex) {

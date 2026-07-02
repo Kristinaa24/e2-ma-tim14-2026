@@ -293,7 +293,7 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
 
     @Override
     public void recordMatchResult() {
-        if (matchResultRecorded || isGuest) {
+        if (matchResultRecorded || (isGuest && !remoteMatchMode && !challengeMode)) {
             return;
         }
 
@@ -314,7 +314,9 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
                         showLeagueChangeDialog(result.previousLeague, result.currentLeague);
                     }
                     completeMatchMissions(result);
-                    loadUserStatus();
+                    if (!isGuest) {
+                        loadUserStatus();
+                    }
                 }
 
                 @Override
@@ -627,8 +629,10 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         }
 
         matchResultRecorded = true;
-        firestoreRepository.updateMatchStatistics(won, lost);
-        if (won) {
+        if (!friendlyMatch) {
+            firestoreRepository.updateMatchStatistics(won, lost);
+        }
+        if (won && !friendlyMatch) {
             completeDailyMission(FirestoreRepository.MISSION_WIN_MATCH);
         }
         if (friendlyMatch) {
@@ -718,13 +722,6 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
     }
 
     private void completeFriendlyMatchMissions() {
-        if (isLocalWinner()) {
-            completeDailyMission(
-                    FirestoreRepository.MISSION_WIN_MATCH,
-                    () -> completeDailyMission(FirestoreRepository.MISSION_PLAY_FRIENDLY)
-            );
-            return;
-        }
         completeDailyMission(FirestoreRepository.MISSION_PLAY_FRIENDLY);
     }
 
@@ -1036,6 +1033,16 @@ public class GameHostActivity extends AppCompatActivity implements GameNavigator
         GameRound nextRound = parseRemoteRound(state.currentRound);
         if (nextRound == null) {
             nextRound = GameRound.KO_ZNA_ZNA;
+        }
+
+        if (nextRound == currentRound && nextRound == GameRound.MOJ_BROJ) {
+            androidx.fragment.app.Fragment currentFragment =
+                    getSupportFragmentManager().findFragmentById(R.id.gameContentContainer);
+            if (currentFragment instanceof MojBrojFragment) {
+                ((MojBrojFragment) currentFragment).onRemoteMatchStateChanged();
+                updatePendingInviteActionUi(state);
+                return;
+            }
         }
 
         goToRound(nextRound, null);

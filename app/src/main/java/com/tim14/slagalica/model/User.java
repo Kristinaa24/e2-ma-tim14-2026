@@ -2,6 +2,7 @@ package com.tim14.slagalica.model;
 
 public class User {
     public String id;
+    public boolean guest;
     public String username;
     public String email;
     public String region;
@@ -40,6 +41,7 @@ public class User {
     }
 
     public User(String username, String email, String region, int tokens, int stars, int league) {
+        this.guest = false;
         this.username = username;
         this.email = email;
         this.region = region;
@@ -72,6 +74,7 @@ public class User {
     public User(String id, String username, String email, String region,
                 int tokens, int stars, int league, String avatarFrame, String qrCode) {
         this.id = id;
+        this.guest = false;
         this.username = username;
         this.email = email;
         this.region = region;

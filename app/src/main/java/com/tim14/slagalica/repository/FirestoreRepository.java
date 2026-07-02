@@ -19,6 +19,7 @@ import com.tim14.slagalica.model.ChatMessage;
 import com.tim14.slagalica.model.DailyMissionStatus;
 import com.tim14.slagalica.model.HomeRankingItem;
 import com.tim14.slagalica.model.RankingCycleInfo;
+import com.tim14.slagalica.model.KorakPoKorakRound;
 import com.tim14.slagalica.model.KoZnaZnaQuestion;
 import com.tim14.slagalica.model.Notification;
 import com.tim14.slagalica.model.PlayerStatistics;
@@ -48,6 +49,7 @@ public class FirestoreRepository {
     private static final String KO_ZNA_ZNA_COLLECTION = "koZnaZnaQuestions";
     private static final String SPOJNICE_COLLECTION = "spojniceRounds";
     private static final String ASOCIJACIJE_COLLECTION = "asocijacijeRounds";
+    private static final String KORAK_PO_KORAK_COLLECTION = "korakPoKorakRounds";
     private static final String NOTIFICATIONS_COLLECTION = "notifications";
     private static final String REGION_CHAT_COLLECTION = "regionChats";
     private static final String REGIONS_COLLECTION = "regions";
@@ -159,6 +161,72 @@ public class FirestoreRepository {
                                         incrementRegionRegisteredPlayers(user.region, callback))
                                 .addOnFailureListener(e -> callback.onError(e.getMessage()))
                 )
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void ensureGuestProfile(FirebaseCallback<User> callback) {
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    User existingUser = documentSnapshot.toObject(User.class);
+                    if (existingUser != null) {
+                        ensureUserDefaults(existingUser, userId);
+                        existingUser.guest = true;
+                        existingUser.region = "";
+                        existingUser.email = "";
+                        existingUser.loggedIn = false;
+                        existingUser.inApp = false;
+                        existingUser.currentMatchId = "";
+                        existingUser.lastSeenAt = System.currentTimeMillis();
+
+                        db.collection(USERS_COLLECTION)
+                                .document(userId)
+                                .set(existingUser, SetOptions.merge())
+                                .addOnSuccessListener(unused -> callback.onSuccess(existingUser))
+                                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                        return;
+                    }
+
+                    User guestUser = new User(
+                            userId,
+                            guestUsernameForId(userId),
+                            "",
+                            "",
+                            0,
+                            0,
+                            0,
+                            "None",
+                            ""
+                    );
+                    guestUser.guest = true;
+                    guestUser.avatar = "avatar_1";
+                    guestUser.lastTokenGrantDate = todayKey();
+                    guestUser.earnedStarsSinceLastToken = 0;
+                    guestUser.lastDailyTokenRewardDate = currentDailyRewardDate();
+                    guestUser.loggedIn = false;
+                    guestUser.inApp = false;
+                    guestUser.currentMatchId = "";
+                    guestUser.lastSeenAt = System.currentTimeMillis();
+                    guestUser.lastActiveAt = 0L;
+
+                    PlayerStatistics statistics = new PlayerStatistics(userId);
+                    WriteBatch batch = db.batch();
+                    batch.set(db.collection(USERS_COLLECTION).document(userId), guestUser);
+                    batch.set(db.collection(STATISTICS_COLLECTION).document(userId), statistics);
+                    batch.commit()
+                            .addOnSuccessListener(unused -> callback.onSuccess(guestUser))
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
@@ -893,7 +961,7 @@ public class FirestoreRepository {
         }
 
         if (TextUtils.isEmpty(user.username)) {
-            user.username = "Player";
+            user.username = user.guest ? guestUsernameForId(userId) : "Player";
         }
 
         if (TextUtils.isEmpty(user.email)) {
@@ -901,7 +969,7 @@ public class FirestoreRepository {
         }
 
         if (TextUtils.isEmpty(user.region)) {
-            user.region = "Serbia";
+            user.region = user.guest ? "" : "Serbia";
         } else {
             user.region = canonicalRegionName(user.region);
         }
@@ -968,6 +1036,9 @@ public class FirestoreRepository {
             }
 
             ensureUserDefaults(user, document.getId());
+            if (user.guest) {
+                continue;
+            }
             users.add(user);
         }
 
@@ -992,6 +1063,9 @@ public class FirestoreRepository {
             }
 
             ensureUserDefaults(user, document.getId());
+            if (user.guest) {
+                continue;
+            }
             Integer monthlyRank = monthlyRanks.get(document.getId());
             user.currentMonthlyRank = monthlyRank != null ? monthlyRank : 0;
             users.add(user);
@@ -1048,6 +1122,10 @@ public class FirestoreRepository {
     }
 
     private boolean applyDailyTokenGrant(User user) {
+        if (user == null || user.guest) {
+            return false;
+        }
+
         LocalDate today = LocalDate.now();
         LocalDate lastGrantDate;
 
@@ -1660,6 +1738,15 @@ public class FirestoreRepository {
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
+    public void getKorakPoKorakRounds(FirebaseCallback<List<KorakPoKorakRound>> callback) {
+        db.collection(KORAK_PO_KORAK_COLLECTION)
+                .limit(10)
+                .get()
+                .addOnSuccessListener(querySnapshot ->
+                        callback.onSuccess(querySnapshot.toObjects(KorakPoKorakRound.class)))
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
     // ── Notifications ─────────────────────────────────────────────────────────
 
     public void saveNotification(String title, String message, String type) {
@@ -1962,6 +2049,15 @@ public class FirestoreRepository {
             return text(R.string.chat_player_fallback, "Player");
         }
         return user.username.trim();
+    }
+
+    private String guestUsernameForId(String userId) {
+        if (TextUtils.isEmpty(userId)) {
+            return "Guest";
+        }
+
+        String suffix = userId.substring(0, Math.min(6, userId.length())).toUpperCase(Locale.US);
+        return "Guest-" + suffix;
     }
 
     public void getNotifications(FirebaseCallback<List<Notification>> callback) {

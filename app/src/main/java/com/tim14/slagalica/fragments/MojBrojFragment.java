@@ -1014,6 +1014,14 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
         super.onDestroyView();
     }
 
+    public void onRemoteMatchStateChanged() {
+        if (!remoteMode || !isAdded()) {
+            return;
+        }
+
+        renderRemoteRound();
+    }
+
     private void renderRemoteRound() {
         stopRoundTimer();
         stopRollingCallbacks();
@@ -1080,6 +1088,19 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
                 finalizeRemoteExpressionRound(state, round, null,
                         state.playerOneExpression == null ? "" : state.playerOneExpression,
                         state.playerTwoExpression == null ? "" : state.playerTwoExpression);
+                return;
+            }
+
+            if (activity.hasOpponentForfeited()
+                    && activity.isRemoteProgressCoordinator()
+                    && hasContinuingPlayerSubmittedExpression(activity, state)) {
+                finalizeRemoteExpressionRound(
+                        state,
+                        round,
+                        null,
+                        state.playerOneExpression == null ? "" : state.playerOneExpression,
+                        state.playerTwoExpression == null ? "" : state.playerTwoExpression
+                );
                 return;
             }
 
@@ -1168,12 +1189,36 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
             }
         }
 
-        if (!TextUtils.equals(playerOneExpressionInput.getText(), playerOneExpression)) {
-            playerOneExpressionInput.setText(playerOneExpression);
+        bindRemoteExpressionInput(
+                playerOneExpressionInput,
+                playerOneExpression,
+                SharedMatchState.PHASE_MB_ENTRY.equals(state.phase) && localPlayer == 1
+        );
+        bindRemoteExpressionInput(
+                playerTwoExpressionInput,
+                playerTwoExpression,
+                SharedMatchState.PHASE_MB_ENTRY.equals(state.phase) && localPlayer == 2
+        );
+    }
+
+    private void bindRemoteExpressionInput(
+            EditText input,
+            String remoteExpression,
+            boolean preserveLocalDraft
+    ) {
+        String safeRemoteExpression = remoteExpression == null ? "" : remoteExpression;
+        String localExpression = input.getText() == null ? "" : input.getText().toString();
+
+        // Another device can update shared state before this player submits.
+        // Keep the local draft until the server has a real value for this field.
+        if (preserveLocalDraft
+                && TextUtils.isEmpty(safeRemoteExpression)
+                && !TextUtils.isEmpty(localExpression)) {
+            return;
         }
 
-        if (!TextUtils.equals(playerTwoExpressionInput.getText(), playerTwoExpression)) {
-            playerTwoExpressionInput.setText(playerTwoExpression);
+        if (!TextUtils.equals(localExpression, safeRemoteExpression)) {
+            input.setText(safeRemoteExpression);
         }
     }
 
@@ -1369,6 +1414,11 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
         updates.put("playerOneExpression", playerOneExpression);
         updates.put("playerTwoExpression", playerTwoExpression);
 
+        if (activity.hasOpponentForfeited() && activity.isRemoteProgressCoordinator()) {
+            finalizeRemoteExpressionRound(state, round, updates, playerOneExpression, playerTwoExpression);
+            return;
+        }
+
         boolean bothSubmitted = !TextUtils.isEmpty(playerOneExpression)
                 && !TextUtils.isEmpty(playerTwoExpression);
 
@@ -1514,6 +1564,26 @@ public class MojBrojFragment extends BaseGameFragment implements SensorEventList
         return state != null
                 && !TextUtils.isEmpty(state.playerOneExpression)
                 && !TextUtils.isEmpty(state.playerTwoExpression);
+    }
+
+    private boolean hasContinuingPlayerSubmittedExpression(
+            GameHostActivity activity,
+            SharedMatchState state
+    ) {
+        if (state == null || !activity.hasOpponentForfeited()) {
+            return false;
+        }
+
+        int continuingPlayer = activity.getRemainingRemotePlayerNumber();
+        if (continuingPlayer == 1) {
+            return !TextUtils.isEmpty(state.playerOneExpression);
+        }
+
+        if (continuingPlayer == 2) {
+            return !TextUtils.isEmpty(state.playerTwoExpression);
+        }
+
+        return false;
     }
 
     private void finalizeRemoteExpressionRound(

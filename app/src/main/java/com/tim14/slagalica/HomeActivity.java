@@ -32,6 +32,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.firestore.ListenerRegistration;
 import com.tim14.slagalica.game.GameRound;
 import com.tim14.slagalica.model.HomeFriendItem;
@@ -40,6 +41,7 @@ import com.tim14.slagalica.model.HomeRankingItem;
 import com.tim14.slagalica.model.RankingCycleInfo;
 import com.tim14.slagalica.model.Notification;
 import com.tim14.slagalica.model.User;
+import com.tim14.slagalica.repository.AuthRepository;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
 import com.tim14.slagalica.repository.SharedMatchRepository;
@@ -103,11 +105,13 @@ public class HomeActivity extends AppCompatActivity {
     private boolean isGuest;
     private boolean onlineFilterEnabled;
     private boolean rewardDialogShown;
+    private boolean guestMatchSetupInProgress;
     private FirestoreRepository firestoreRepository;
     private ListenerRegistration friendsListener;
     private HomeRankingAdapter rankingAdapter;
     private HomeRankingAdapter monthlyRankingAdapter;
     private HomeFriendAdapter friendAdapter;
+    private final AuthRepository authRepository = new AuthRepository();
     private final List<HomeRankingItem> rankingItems = new ArrayList<>();
     private final List<HomeRankingItem> monthlyRankingItems = new ArrayList<>();
     private final Handler rankingRefreshHandler = new Handler(Looper.getMainLooper());
@@ -301,19 +305,11 @@ public class HomeActivity extends AppCompatActivity {
 
     private void openMatch() {
         if (isGuest) {
-            startLocalMatch();
+            startGuestCompetitiveMatchmaking();
             return;
         }
 
         startCompetitiveMatchmaking();
-    }
-
-    private void startLocalMatch() {
-        Intent intent = new Intent(HomeActivity.this, GameHostActivity.class);
-        intent.putExtra("IS_GUEST", isGuest);
-        intent.putExtra(GameHostActivity.EXTRA_FRIENDLY_MATCH, false);
-        intent.putExtra(GameHostActivity.EXTRA_START_ROUND, GameRound.MOJ_BROJ);
-        startActivity(intent);
     }
 
     private void createSharedMatch() {
@@ -375,8 +371,12 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void openSharedMatch(String matchId, int localPlayerNumber, boolean friendly) {
+        openSharedMatch(matchId, localPlayerNumber, friendly, false);
+    }
+
+    private void openSharedMatch(String matchId, int localPlayerNumber, boolean friendly, boolean guestMode) {
         Intent intent = new Intent(HomeActivity.this, GameHostActivity.class);
-        intent.putExtra("IS_GUEST", false);
+        intent.putExtra("IS_GUEST", guestMode);
         intent.putExtra(GameHostActivity.EXTRA_REMOTE_MATCH, true);
         intent.putExtra(GameHostActivity.EXTRA_FRIENDLY_MATCH, friendly);
         intent.putExtra(GameHostActivity.EXTRA_REMOTE_MATCH_ID, matchId);
@@ -412,6 +412,59 @@ public class HomeActivity extends AppCompatActivity {
     private void redirectGuestToLogin() {
         Toast.makeText(this, R.string.guest_login_required_message, Toast.LENGTH_SHORT).show();
         startActivity(new Intent(HomeActivity.this, LoginActivity.class));
+    }
+
+    private void startGuestCompetitiveMatchmaking() {
+        if (guestMatchSetupInProgress) {
+            return;
+        }
+
+        guestMatchSetupInProgress = true;
+        startGameButton.setEnabled(false);
+
+        FirebaseUser currentUser = authRepository.getCurrentUser();
+        if (currentUser != null && currentUser.isAnonymous()) {
+            ensureGuestProfileAndStartMatchmaking();
+            return;
+        }
+
+        authRepository.signInAnonymously(new FirebaseCallback<FirebaseUser>() {
+            @Override
+            public void onSuccess(FirebaseUser result) {
+                ensureGuestProfileAndStartMatchmaking();
+            }
+
+            @Override
+            public void onError(String error) {
+                finishGuestMatchSetup(error);
+            }
+        });
+    }
+
+    private void ensureGuestProfileAndStartMatchmaking() {
+        firestoreRepository.ensureGuestProfile(new FirebaseCallback<User>() {
+            @Override
+            public void onSuccess(User result) {
+                startCompetitiveMatchmaking();
+            }
+
+            @Override
+            public void onError(String error) {
+                finishGuestMatchSetup(error);
+            }
+        });
+    }
+
+    private void finishGuestMatchSetup(String error) {
+        guestMatchSetupInProgress = false;
+        startGameButton.setEnabled(true);
+        if (!TextUtils.isEmpty(error)) {
+            Toast.makeText(this, error, Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void finishGuestMatchSetup() {
+        finishGuestMatchSetup(null);
     }
 
     private void configureGuestMode() {
@@ -739,6 +792,9 @@ public class HomeActivity extends AppCompatActivity {
         repository.startCompetitiveMatchmaking(new FirebaseCallback<SharedMatchRepository.MatchJoinResult>() {
             @Override
             public void onSuccess(SharedMatchRepository.MatchJoinResult result) {
+                if (isGuest) {
+                    finishGuestMatchSetup();
+                }
                 if (result.waitingForOpponent) {
                     Toast.makeText(
                             HomeActivity.this,
@@ -747,11 +803,14 @@ public class HomeActivity extends AppCompatActivity {
                     ).show();
                 }
 
-                openSharedMatch(result.matchId, result.localPlayerNumber);
+                openSharedMatch(result.matchId, result.localPlayerNumber, false, isGuest);
             }
 
             @Override
             public void onError(String error) {
+                if (isGuest) {
+                    finishGuestMatchSetup();
+                }
                 Toast.makeText(HomeActivity.this, error, Toast.LENGTH_LONG).show();
             }
         });
