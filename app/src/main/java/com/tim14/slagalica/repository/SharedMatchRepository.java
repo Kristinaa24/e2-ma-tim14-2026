@@ -29,6 +29,7 @@ import com.tim14.slagalica.model.User;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -39,7 +40,7 @@ public class SharedMatchRepository {
     private static final String MATCHES_COLLECTION = "sharedMatches";
     private static final String USERS_COLLECTION = "users";
     private static final String STATISTICS_COLLECTION = "statistics";
-    private static final long FRIENDLY_INVITE_EXPIRATION_MS = 15L * 1000L;
+    private static final long FRIENDLY_INVITE_EXPIRATION_MS = 10L * 1000L;
     private static final long COMPETITIVE_WAITING_EXPIRATION_MS = 2L * 60L * 1000L;
     private static final long TOURNAMENT_WAITING_EXPIRATION_MS = 10L * 60L * 1000L;
 
@@ -54,6 +55,65 @@ public class SharedMatchRepository {
         localGameRepository = new LocalGameRepository();
     }
 
+    private void loadKorakPoKorakMatchRounds(FirebaseCallback<List<KorakPoKorakRound>> callback) {
+        firestoreRepository.getKorakPoKorakRounds(new FirebaseCallback<List<KorakPoKorakRound>>() {
+            @Override
+            public void onSuccess(List<KorakPoKorakRound> result) {
+                callback.onSuccess(selectKorakPoKorakMatchRounds(result));
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onSuccess(localGameRepository.getKorakPoKorakMatchRounds());
+            }
+        });
+    }
+
+    private List<KorakPoKorakRound> selectKorakPoKorakMatchRounds(List<KorakPoKorakRound> sourceRounds) {
+        List<KorakPoKorakRound> availableRounds = createKorakPoKorakRoundCopies(sourceRounds);
+        if (availableRounds.size() < 2) {
+            return localGameRepository.getKorakPoKorakMatchRounds();
+        }
+
+        Collections.shuffle(availableRounds);
+        return new ArrayList<>(availableRounds.subList(0, 2));
+    }
+
+    private List<KorakPoKorakRound> createKorakPoKorakRoundCopies(List<KorakPoKorakRound> sourceRounds) {
+        List<KorakPoKorakRound> copies = new ArrayList<>();
+        if (sourceRounds == null) {
+            return copies;
+        }
+
+        for (KorakPoKorakRound round : sourceRounds) {
+            if (round == null
+                    || TextUtils.isEmpty(round.getAnswer())
+                    || round.getCluesList().isEmpty()) {
+                continue;
+            }
+            copies.add(new KorakPoKorakRound(round.getAnswer(), round.getCluesList()));
+        }
+        return copies;
+    }
+
+    private List<SharedKorakPoKorakRound> copySharedKorakRounds(List<SharedKorakPoKorakRound> sourceRounds) {
+        List<SharedKorakPoKorakRound> copies = new ArrayList<>();
+        if (sourceRounds == null) {
+            return copies;
+        }
+
+        for (SharedKorakPoKorakRound round : sourceRounds) {
+            if (round == null) {
+                continue;
+            }
+            copies.add(new SharedKorakPoKorakRound(
+                    round.answer,
+                    round.clues == null ? new ArrayList<>() : new ArrayList<>(round.clues)
+            ));
+        }
+        return copies;
+    }
+
     public void startCompetitiveMatchmaking(FirebaseCallback<MatchJoinResult> callback) {
         String userId;
         try {
@@ -66,7 +126,7 @@ public class SharedMatchRepository {
         firestoreRepository.getCurrentUser(new FirebaseCallback<User>() {
             @Override
             public void onSuccess(User user) {
-                if (user.tokens <= 0) {
+                if (!isGuestUser(user) && user.tokens <= 0) {
                     callback.onError("You do not have enough tokens for a ranked match.");
                     return;
                 }
@@ -204,58 +264,72 @@ public class SharedMatchRepository {
                             return;
                         }
 
-                        DocumentReference reference = db.collection(MATCHES_COLLECTION).document();
-                        SharedMatchState state = buildInitialState(
-                                reference.getId(),
-                                currentUserId,
-                                safeUserName(sender),
-                                SharedMatchState.MATCH_TYPE_FRIENDLY
-                        );
-                        state.playerTwoId = targetUserId;
-                        state.playerTwoName = safeUserName(targetUser);
-                        state.phaseMessage = "Waiting for your friend to accept the invite.";
+                        loadKorakPoKorakMatchRounds(new FirebaseCallback<List<KorakPoKorakRound>>() {
+                            @Override
+                            public void onSuccess(List<KorakPoKorakRound> korakRounds) {
+                                DocumentReference reference = db.collection(MATCHES_COLLECTION).document();
+                                SharedMatchState state = buildInitialState(
+                                        reference.getId(),
+                                        currentUserId,
+                                        safeUserName(sender),
+                                        SharedMatchState.MATCH_TYPE_FRIENDLY,
+                                        korakRounds
+                                );
+                                state.playerTwoId = targetUserId;
+                                state.playerTwoName = safeUserName(targetUser);
+                                state.phaseMessage = "Waiting for your friend to accept the invite.";
 
-                        reference.set(state)
-                                .addOnSuccessListener(unused -> {
-                                    long now = System.currentTimeMillis();
-                                    long expiresAt = now + FRIENDLY_INVITE_EXPIRATION_MS;
+                                reference.set(state)
+                                        .addOnSuccessListener(unused -> {
+                                            long now = System.currentTimeMillis();
+                                            long expiresAt = now + FRIENDLY_INVITE_EXPIRATION_MS;
 
-                                    Map<String, Object> inviteTimingUpdates = new HashMap<>();
-                                    inviteTimingUpdates.put("friendlyInviteExpiresAt", expiresAt);
-                                    inviteTimingUpdates.put("phaseStartedAt", now);
-                                    inviteTimingUpdates.put("phaseDurationSeconds", 15);
-                                    inviteTimingUpdates.put("updatedAt", now);
+                                            Map<String, Object> inviteTimingUpdates = new HashMap<>();
+                                            inviteTimingUpdates.put("friendlyInviteExpiresAt", expiresAt);
+                                            inviteTimingUpdates.put("phaseStartedAt", now);
+                                            inviteTimingUpdates.put(
+                                                    "phaseDurationSeconds",
+                                                    (int) (FRIENDLY_INVITE_EXPIRATION_MS / 1000L)
+                                            );
+                                            inviteTimingUpdates.put("updatedAt", now);
 
-                                    reference.update(inviteTimingUpdates)
-                                            .addOnSuccessListener(timingUpdated -> {
-                                    Map<String, Object> extras = new HashMap<>();
-                                    extras.put("senderId", currentUserId);
-                                    extras.put("senderName", safeUserName(sender));
-                                    extras.put("relatedMatchId", reference.getId());
-                                    extras.put("invitationStatus", "PENDING");
-                                    extras.put("friendlyMatch", true);
-                                    extras.put("expiresAt", expiresAt);
+                                            reference.update(inviteTimingUpdates)
+                                                    .addOnSuccessListener(timingUpdated -> {
+                                                        Map<String, Object> extras = new HashMap<>();
+                                                        extras.put("senderId", currentUserId);
+                                                        extras.put("senderName", safeUserName(sender));
+                                                        extras.put("relatedMatchId", reference.getId());
+                                                        extras.put("invitationStatus", "PENDING");
+                                                        extras.put("friendlyMatch", true);
+                                                        extras.put("expiresAt", expiresAt);
 
-                                    firestoreRepository.saveNotificationForUser(
-                                            targetUserId,
-                                            "Friendly match invite",
-                                            safeUserName(sender) + " invited you to a friendly match.",
-                                            "INVITE",
-                                            extras
-                                    );
-                                    schedulePendingFriendlyInviteExpiration(reference.getId(), expiresAt);
+                                                        firestoreRepository.saveNotificationForUser(
+                                                                targetUserId,
+                                                                "Friendly match invite",
+                                                                safeUserName(sender) + " invited you to a friendly match.",
+                                                                "INVITE",
+                                                                extras
+                                                        );
+                                                        schedulePendingFriendlyInviteExpiration(reference.getId(), expiresAt);
 
-                                    callback.onSuccess(new MatchJoinResult(
-                                            reference.getId(),
-                                            1,
-                                            state.roomCode,
-                                            true,
-                                            true
-                                    ));
-                                            })
-                                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
-                                })
-                                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                                                        callback.onSuccess(new MatchJoinResult(
+                                                                reference.getId(),
+                                                                1,
+                                                                state.roomCode,
+                                                                true,
+                                                                true
+                                                        ));
+                                                    })
+                                                    .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                                        })
+                                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                            }
+
+                            @Override
+                            public void onError(String error) {
+                                callback.onError(error);
+                            }
+                        });
                     }
 
                     @Override
@@ -603,11 +677,6 @@ public class SharedMatchRepository {
 
                 completeDailyMissionForTransaction(playerOne, FirestoreRepository.MISSION_PLAY_FRIENDLY);
                 completeDailyMissionForTransaction(playerTwo, FirestoreRepository.MISSION_PLAY_FRIENDLY);
-                if (playerOneWon) {
-                    completeDailyMissionForTransaction(playerOne, FirestoreRepository.MISSION_WIN_MATCH);
-                } else if (playerTwoWon) {
-                    completeDailyMissionForTransaction(playerTwo, FirestoreRepository.MISSION_WIN_MATCH);
-                }
 
                 String winnerId = playerOneWon ? state.playerOneId : (playerTwoWon ? state.playerTwoId : "");
                 int playerOneCurrentLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerOne.stars);
@@ -671,10 +740,20 @@ public class SharedMatchRepository {
 
             ensureUserDefaultsForTransaction(playerOne, state.playerOneId);
             ensureUserDefaultsForTransaction(playerTwo, state.playerTwoId);
-            applyDailyTokenGrantForTransaction(playerOne);
-            applyDailyTokenGrantForTransaction(playerTwo);
-            int playerOnePreviousLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerOne.stars);
-            int playerTwoPreviousLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerTwo.stars);
+            boolean playerOneGuest = isGuestUser(playerOne);
+            boolean playerTwoGuest = isGuestUser(playerTwo);
+            if (!playerOneGuest) {
+                applyDailyTokenGrantForTransaction(playerOne);
+            }
+            if (!playerTwoGuest) {
+                applyDailyTokenGrantForTransaction(playerTwo);
+            }
+            int playerOnePreviousLeague = playerOneGuest
+                    ? 0
+                    : com.tim14.slagalica.LeagueUtils.calculateLeague(playerOne.stars);
+            int playerTwoPreviousLeague = playerTwoGuest
+                    ? 0
+                    : com.tim14.slagalica.LeagueUtils.calculateLeague(playerTwo.stars);
 
             if (playerOneStatistics == null) {
                 playerOneStatistics = new PlayerStatistics(state.playerOneId);
@@ -697,8 +776,12 @@ public class SharedMatchRepository {
 
             boolean draw = !playerOneWon && !playerTwoWon;
             boolean tournamentMatch = SharedMatchState.MATCH_TYPE_TOURNAMENT.equals(state.matchType);
-            markRankingGamePlayedForTransaction(playerOne);
-            markRankingGamePlayedForTransaction(playerTwo);
+            if (!playerOneGuest) {
+                markRankingGamePlayedForTransaction(playerOne);
+            }
+            if (!playerTwoGuest) {
+                markRankingGamePlayedForTransaction(playerTwo);
+            }
 
             int playerOneStarDelta = calculateStarDelta(
                     state.playerOneScore,
@@ -717,52 +800,88 @@ public class SharedMatchRepository {
                 boolean finalMatch = "FINAL".equals(state.tournamentStage);
                 if (finalMatch) {
                     if (playerOneWon) {
-                        applyTournamentFinalWinnerOutcome(playerOne, playerOneStarDelta);
-                        completeTournamentWinMissionsForTransaction(playerOne);
-                        applyCompetitiveOutcome(playerTwo, playerTwoStarDelta);
-                        playerOneStatistics.wins++;
-                        playerTwoStatistics.losses++;
+                        if (!playerOneGuest) {
+                            applyTournamentFinalWinnerOutcome(playerOne, playerOneStarDelta);
+                            completeTournamentWinMissionsForTransaction(playerOne);
+                            playerOneStatistics.wins++;
+                        }
+                        if (!playerTwoGuest) {
+                            applyCompetitiveOutcome(playerTwo, playerTwoStarDelta);
+                            playerTwoStatistics.losses++;
+                        }
                     } else if (playerTwoWon) {
-                        applyTournamentFinalWinnerOutcome(playerTwo, playerTwoStarDelta);
-                        completeTournamentWinMissionsForTransaction(playerTwo);
-                        applyCompetitiveOutcome(playerOne, playerOneStarDelta);
-                        playerTwoStatistics.wins++;
-                        playerOneStatistics.losses++;
+                        if (!playerTwoGuest) {
+                            applyTournamentFinalWinnerOutcome(playerTwo, playerTwoStarDelta);
+                            completeTournamentWinMissionsForTransaction(playerTwo);
+                            playerTwoStatistics.wins++;
+                        }
+                        if (!playerOneGuest) {
+                            applyCompetitiveOutcome(playerOne, playerOneStarDelta);
+                            playerOneStatistics.losses++;
+                        }
                     }
                 } else if (playerOneWon) {
-                    applyTournamentSemiWinnerOutcome(playerOne, playerOneStarDelta);
-                    completeTournamentWinMissionsForTransaction(playerOne);
-                    playerOneStatistics.wins++;
-                    playerTwoStatistics.losses++;
+                    if (!playerOneGuest) {
+                        applyTournamentSemiWinnerOutcome(playerOne, playerOneStarDelta);
+                        completeTournamentWinMissionsForTransaction(playerOne);
+                        playerOneStatistics.wins++;
+                    }
+                    if (!playerTwoGuest) {
+                        playerTwoStatistics.losses++;
+                    }
                 } else if (playerTwoWon) {
-                    applyTournamentSemiWinnerOutcome(playerTwo, playerTwoStarDelta);
-                    completeTournamentWinMissionsForTransaction(playerTwo);
-                    playerTwoStatistics.wins++;
-                    playerOneStatistics.losses++;
+                    if (!playerTwoGuest) {
+                        applyTournamentSemiWinnerOutcome(playerTwo, playerTwoStarDelta);
+                        completeTournamentWinMissionsForTransaction(playerTwo);
+                        playerTwoStatistics.wins++;
+                    }
+                    if (!playerOneGuest) {
+                        playerOneStatistics.losses++;
+                    }
                 }
             } else {
-                applyCompetitiveOutcome(playerOne, playerOneStarDelta);
-                applyCompetitiveOutcome(playerTwo, playerTwoStarDelta);
+                if (!playerOneGuest) {
+                    applyCompetitiveOutcome(playerOne, playerOneStarDelta);
+                }
+                if (!playerTwoGuest) {
+                    applyCompetitiveOutcome(playerTwo, playerTwoStarDelta);
+                }
             }
             playerOne.currentMatchId = "";
             playerTwo.currentMatchId = "";
 
-            playerOneStatistics.gamesPlayed++;
-            playerTwoStatistics.gamesPlayed++;
+            if (!playerOneGuest) {
+                playerOneStatistics.gamesPlayed++;
+            }
+            if (!playerTwoGuest) {
+                playerTwoStatistics.gamesPlayed++;
+            }
 
             if (!tournamentMatch) {
                 if (playerOneWon) {
-                    playerOneStatistics.wins++;
-                    playerTwoStatistics.losses++;
+                    if (!playerOneGuest) {
+                        playerOneStatistics.wins++;
+                    }
+                    if (!playerTwoGuest) {
+                        playerTwoStatistics.losses++;
+                    }
                 } else if (playerTwoWon) {
-                    playerTwoStatistics.wins++;
-                    playerOneStatistics.losses++;
+                    if (!playerTwoGuest) {
+                        playerTwoStatistics.wins++;
+                    }
+                    if (!playerOneGuest) {
+                        playerOneStatistics.losses++;
+                    }
                 }
             }
             String winnerId = playerOneWon ? state.playerOneId : (playerTwoWon ? state.playerTwoId : "");
             String finalMatchId = "";
-            int playerOneCurrentLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerOne.stars);
-            int playerTwoCurrentLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerTwo.stars);
+            int playerOneCurrentLeague = playerOneGuest
+                    ? 0
+                    : com.tim14.slagalica.LeagueUtils.calculateLeague(playerOne.stars);
+            int playerTwoCurrentLeague = playerTwoGuest
+                    ? 0
+                    : com.tim14.slagalica.LeagueUtils.calculateLeague(playerTwo.stars);
             Map<String, Object> resultUpdates = new HashMap<>();
             resultUpdates.put("resultApplied", true);
             resultUpdates.put("winnerId", winnerId);
@@ -785,8 +904,12 @@ public class SharedMatchRepository {
 
             transaction.set(playerOneUserReference, playerOne);
             transaction.set(playerTwoUserReference, playerTwo);
-            transaction.set(playerOneStatsReference, playerOneStatistics);
-            transaction.set(playerTwoStatsReference, playerTwoStatistics);
+            if (!playerOneGuest) {
+                transaction.set(playerOneStatsReference, playerOneStatistics);
+            }
+            if (!playerTwoGuest) {
+                transaction.set(playerTwoStatsReference, playerTwoStatistics);
+            }
             transaction.update(matchReference, resultUpdates);
 
             if (currentUserId.equals(state.playerOneId)) {
@@ -828,19 +951,30 @@ public class SharedMatchRepository {
         firestoreRepository.getCurrentUser(new FirebaseCallback<User>() {
             @Override
             public void onSuccess(User user) {
-                DocumentReference reference = db.collection(MATCHES_COLLECTION).document();
-                SharedMatchState state = buildInitialState(
-                        reference.getId(),
-                        userId,
-                        safeUserName(user),
-                        SharedMatchState.MATCH_TYPE_COMPETITIVE
-                );
+                loadKorakPoKorakMatchRounds(new FirebaseCallback<List<KorakPoKorakRound>>() {
+                    @Override
+                    public void onSuccess(List<KorakPoKorakRound> korakRounds) {
+                        DocumentReference reference = db.collection(MATCHES_COLLECTION).document();
+                        SharedMatchState state = buildInitialState(
+                                reference.getId(),
+                                userId,
+                                safeUserName(user),
+                                SharedMatchState.MATCH_TYPE_COMPETITIVE,
+                                korakRounds
+                        );
 
-                reference.set(state)
-                        .addOnSuccessListener(unused -> callback.onSuccess(
-                                new MatchJoinResult(reference.getId(), 1, state.roomCode, true, false)
-                        ))
-                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                        reference.set(state)
+                                .addOnSuccessListener(unused -> callback.onSuccess(
+                                        new MatchJoinResult(reference.getId(), 1, state.roomCode, true, false)
+                                ))
+                                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        callback.onError(error);
+                    }
+                });
             }
 
             @Override
@@ -975,28 +1109,39 @@ public class SharedMatchRepository {
             return;
         }
 
-        SharedMatchState resetState = buildInitialState(
-                matchId,
-                previousState.playerOneId,
-                previousState.playerOneName,
-                previousState.matchType
-        );
+        loadKorakPoKorakMatchRounds(new FirebaseCallback<List<KorakPoKorakRound>>() {
+            @Override
+            public void onSuccess(List<KorakPoKorakRound> korakRounds) {
+                SharedMatchState resetState = buildInitialState(
+                        matchId,
+                        previousState.playerOneId,
+                        previousState.playerOneName,
+                        previousState.matchType,
+                        korakRounds
+                );
 
-        resetState.playerTwoId = previousState.playerTwoId;
-        resetState.playerTwoName = previousState.playerTwoName;
-        resetState.status = SharedMatchState.STATUS_ACTIVE;
-        resetState.currentRound = GameRound.KO_ZNA_ZNA.name();
-        resetState.phase = SharedMatchState.PHASE_KZZ_QUESTION;
-        resetState.activePlayer = 0;
-        resetState.currentTurnIndex = 0;
-        resetState.phaseStartedAt = System.currentTimeMillis();
-        resetState.phaseDurationSeconds = 5;
-        resetState.phaseMessage = "Question 1/5. Both players can answer.";
-        resetState.updatedAt = System.currentTimeMillis();
+                resetState.playerTwoId = previousState.playerTwoId;
+                resetState.playerTwoName = previousState.playerTwoName;
+                resetState.status = SharedMatchState.STATUS_ACTIVE;
+                resetState.currentRound = GameRound.KO_ZNA_ZNA.name();
+                resetState.phase = SharedMatchState.PHASE_KZZ_QUESTION;
+                resetState.activePlayer = 0;
+                resetState.currentTurnIndex = 0;
+                resetState.phaseStartedAt = System.currentTimeMillis();
+                resetState.phaseDurationSeconds = 5;
+                resetState.phaseMessage = "Question 1/5. Both players can answer.";
+                resetState.updatedAt = System.currentTimeMillis();
 
-        db.collection(MATCHES_COLLECTION)
-                .document(matchId)
-                .set(resetState);
+                db.collection(MATCHES_COLLECTION)
+                        .document(matchId)
+                        .set(resetState);
+            }
+
+            @Override
+            public void onError(String error) {
+                // Ignore reset errors here to preserve existing flow.
+            }
+        });
     }
 
     public void submitKoZnaZnaAnswer(
@@ -1093,6 +1238,22 @@ public class SharedMatchRepository {
             String playerOneName,
             String matchType
     ) {
+        return buildInitialState(
+                documentId,
+                playerOneId,
+                playerOneName,
+                matchType,
+                localGameRepository.getKorakPoKorakMatchRounds()
+        );
+    }
+
+    private SharedMatchState buildInitialState(
+            String documentId,
+            String playerOneId,
+            String playerOneName,
+            String matchType,
+            List<KorakPoKorakRound> korakPoKorakRounds
+    ) {
         SharedMatchState state = new SharedMatchState();
         state.roomCode = documentId.substring(0, Math.min(6, documentId.length())).toUpperCase(Locale.US);
         state.status = SharedMatchState.STATUS_WAITING;
@@ -1180,10 +1341,10 @@ public class SharedMatchRepository {
             state.asocijacijeRounds.add(sharedRound);
         }
 
-        for (KorakPoKorakRound round : localGameRepository.getKorakPoKorakMatchRounds()) {
+        for (KorakPoKorakRound round : selectKorakPoKorakMatchRounds(korakPoKorakRounds)) {
             state.korakRounds.add(new SharedKorakPoKorakRound(
                     round.getAnswer(),
-                    Arrays.asList(round.getClues())
+                    round.getCluesList()
             ));
         }
 
@@ -1296,42 +1457,53 @@ public class SharedMatchRepository {
             User user,
             FirebaseCallback<MatchJoinResult> callback
     ) {
-        DocumentReference reference = db.collection(MATCHES_COLLECTION).document();
-        DocumentReference userReference = db.collection(USERS_COLLECTION).document(user.id);
+        loadKorakPoKorakMatchRounds(new FirebaseCallback<List<KorakPoKorakRound>>() {
+            @Override
+            public void onSuccess(List<KorakPoKorakRound> korakRounds) {
+                DocumentReference reference = db.collection(MATCHES_COLLECTION).document();
+                DocumentReference userReference = db.collection(USERS_COLLECTION).document(user.id);
 
-        db.runTransaction((Transaction.Function<MatchJoinResult>) transaction -> {
-            User currentUser = transaction.get(userReference).toObject(User.class);
-            if (currentUser == null) {
-                throw new IllegalStateException("Player data could not be loaded.");
+                db.runTransaction((Transaction.Function<MatchJoinResult>) transaction -> {
+                    User currentUser = transaction.get(userReference).toObject(User.class);
+                    if (currentUser == null) {
+                        throw new IllegalStateException("Player data could not be loaded.");
+                    }
+
+                    ensureUserDefaultsForTransaction(currentUser, user.id);
+                    applyDailyTokenGrantForTransaction(currentUser);
+                    if (currentUser.tokens < 3) {
+                        throw new IllegalStateException("You need 3 tokens to enter a tournament.");
+                    }
+
+                    currentUser.tokens -= 3;
+                    currentUser.currentMatchId = reference.getId();
+                    currentUser.lastSeenAt = System.currentTimeMillis();
+
+                    SharedMatchState state = buildInitialState(
+                            reference.getId(),
+                            user.id,
+                            safeUserName(currentUser),
+                            SharedMatchState.MATCH_TYPE_TOURNAMENT,
+                            korakRounds
+                    );
+                    state.phaseMessage = "Waiting for three more tournament players...";
+                    state.tournamentId = reference.getId();
+                    state.tournamentStage = "SEMI";
+                    state.tournamentSemiNumber = 1;
+                    state.playerOneEntryPaid = true;
+
+                    transaction.set(userReference, currentUser);
+                    transaction.set(reference, state);
+                    return new MatchJoinResult(reference.getId(), 1, state.roomCode, true, false);
+                }).addOnSuccessListener(callback::onSuccess)
+                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
             }
 
-            ensureUserDefaultsForTransaction(currentUser, user.id);
-            applyDailyTokenGrantForTransaction(currentUser);
-            if (currentUser.tokens < 3) {
-                throw new IllegalStateException("You need 3 tokens to enter a tournament.");
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
             }
-
-            currentUser.tokens -= 3;
-            currentUser.currentMatchId = reference.getId();
-            currentUser.lastSeenAt = System.currentTimeMillis();
-
-            SharedMatchState state = buildInitialState(
-                    reference.getId(),
-                    user.id,
-                    safeUserName(currentUser),
-                    SharedMatchState.MATCH_TYPE_TOURNAMENT
-            );
-            state.phaseMessage = "Waiting for three more tournament players...";
-            state.tournamentId = reference.getId();
-            state.tournamentStage = "SEMI";
-            state.tournamentSemiNumber = 1;
-            state.playerOneEntryPaid = true;
-
-            transaction.set(userReference, currentUser);
-            transaction.set(reference, state);
-            return new MatchJoinResult(reference.getId(), 1, state.roomCode, true, false);
-        }).addOnSuccessListener(callback::onSuccess)
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+        });
     }
     private void joinTournamentWaitingMatch(
             DocumentSnapshot waitingSnapshot,
@@ -1432,77 +1604,99 @@ public class SharedMatchRepository {
             User user,
             FirebaseCallback<MatchJoinResult> callback
     ) {
-        DocumentReference secondReference = db.collection(MATCHES_COLLECTION).document();
-        DocumentReference userReference = db.collection(USERS_COLLECTION).document(user.id);
+        loadKorakPoKorakMatchRounds(new FirebaseCallback<List<KorakPoKorakRound>>() {
+            @Override
+            public void onSuccess(List<KorakPoKorakRound> korakRounds) {
+                DocumentReference secondReference = db.collection(MATCHES_COLLECTION).document();
+                DocumentReference userReference = db.collection(USERS_COLLECTION).document(user.id);
 
-        db.runTransaction((Transaction.Function<MatchJoinResult>) transaction -> {
-            DocumentSnapshot latestFirstSnapshot = transaction.get(firstSemiSnapshot.getReference());
-            SharedMatchState latestFirstState = latestFirstSnapshot.toObject(SharedMatchState.class);
-            User currentUser = transaction.get(userReference).toObject(User.class);
+                db.runTransaction((Transaction.Function<MatchJoinResult>) transaction -> {
+                    DocumentSnapshot latestFirstSnapshot = transaction.get(firstSemiSnapshot.getReference());
+                    SharedMatchState latestFirstState = latestFirstSnapshot.toObject(SharedMatchState.class);
+                    User currentUser = transaction.get(userReference).toObject(User.class);
 
-            if (latestFirstState == null
-                    || !SharedMatchState.MATCH_TYPE_TOURNAMENT.equals(latestFirstState.matchType)
-                    || !SharedMatchState.STATUS_WAITING.equals(latestFirstState.status)
-                    || latestFirstState.tournamentSemiNumber != 1
-                    || TextUtils.isEmpty(latestFirstState.playerTwoId)
-                    || !TextUtils.isEmpty(latestFirstState.siblingMatchId)
-                    || currentUser == null) {
-                throw new IllegalStateException("That tournament is no longer accepting players.");
+                    if (latestFirstState == null
+                            || !SharedMatchState.MATCH_TYPE_TOURNAMENT.equals(latestFirstState.matchType)
+                            || !SharedMatchState.STATUS_WAITING.equals(latestFirstState.status)
+                            || latestFirstState.tournamentSemiNumber != 1
+                            || TextUtils.isEmpty(latestFirstState.playerTwoId)
+                            || !TextUtils.isEmpty(latestFirstState.siblingMatchId)
+                            || currentUser == null) {
+                        throw new IllegalStateException("That tournament is no longer accepting players.");
+                    }
+
+                    ensureUserDefaultsForTransaction(currentUser, user.id);
+                    applyDailyTokenGrantForTransaction(currentUser);
+                    if (currentUser.tokens < 3) {
+                        throw new IllegalStateException("You need 3 tokens to enter a tournament.");
+                    }
+
+                    currentUser.tokens -= 3;
+                    currentUser.currentMatchId = secondReference.getId();
+                    currentUser.lastSeenAt = System.currentTimeMillis();
+
+                    SharedMatchState secondState = buildInitialState(
+                            secondReference.getId(),
+                            user.id,
+                            safeUserName(currentUser),
+                            SharedMatchState.MATCH_TYPE_TOURNAMENT,
+                            korakRounds
+                    );
+                    secondState.phaseMessage = "Waiting for one more tournament player...";
+                    secondState.tournamentId = latestFirstState.tournamentId;
+                    secondState.tournamentStage = "SEMI";
+                    secondState.tournamentSemiNumber = 2;
+                    secondState.playerOneEntryPaid = true;
+                    secondState.siblingMatchId = latestFirstSnapshot.getId();
+
+                    Map<String, Object> firstUpdates = new HashMap<>();
+                    firstUpdates.put("siblingMatchId", secondReference.getId());
+                    firstUpdates.put("updatedAt", System.currentTimeMillis());
+
+                    transaction.set(userReference, currentUser);
+                    transaction.set(secondReference, secondState);
+                    transaction.update(firstSemiSnapshot.getReference(), firstUpdates);
+
+                    return new MatchJoinResult(secondReference.getId(), 1, secondState.roomCode, true, false);
+                }).addOnSuccessListener(callback::onSuccess)
+                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
             }
 
-            ensureUserDefaultsForTransaction(currentUser, user.id);
-            applyDailyTokenGrantForTransaction(currentUser);
-            if (currentUser.tokens < 3) {
-                throw new IllegalStateException("You need 3 tokens to enter a tournament.");
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
             }
-
-            currentUser.tokens -= 3;
-            currentUser.currentMatchId = secondReference.getId();
-            currentUser.lastSeenAt = System.currentTimeMillis();
-
-            SharedMatchState secondState = buildInitialState(
-                    secondReference.getId(),
-                    user.id,
-                    safeUserName(currentUser),
-                    SharedMatchState.MATCH_TYPE_TOURNAMENT
-            );
-            secondState.phaseMessage = "Waiting for one more tournament player...";
-            secondState.tournamentId = latestFirstState.tournamentId;
-            secondState.tournamentStage = "SEMI";
-            secondState.tournamentSemiNumber = 2;
-            secondState.playerOneEntryPaid = true;
-            secondState.siblingMatchId = latestFirstSnapshot.getId();
-
-            Map<String, Object> firstUpdates = new HashMap<>();
-            firstUpdates.put("siblingMatchId", secondReference.getId());
-            firstUpdates.put("updatedAt", System.currentTimeMillis());
-
-            transaction.set(userReference, currentUser);
-            transaction.set(secondReference, secondState);
-            transaction.update(firstSemiSnapshot.getReference(), firstUpdates);
-
-            return new MatchJoinResult(secondReference.getId(), 1, secondState.roomCode, true, false);
-        }).addOnSuccessListener(callback::onSuccess)
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+        });
     }
     private void createCompetitiveWaitingMatch(
             User user,
             FirebaseCallback<MatchJoinResult> callback
     ) {
-        DocumentReference reference = db.collection(MATCHES_COLLECTION).document();
-        SharedMatchState state = buildInitialState(
-                reference.getId(),
-                user.id,
-                safeUserName(user),
-                SharedMatchState.MATCH_TYPE_COMPETITIVE
-        );
-        state.phaseMessage = "Searching for an opponent...";
+        loadKorakPoKorakMatchRounds(new FirebaseCallback<List<KorakPoKorakRound>>() {
+            @Override
+            public void onSuccess(List<KorakPoKorakRound> korakRounds) {
+                DocumentReference reference = db.collection(MATCHES_COLLECTION).document();
+                SharedMatchState state = buildInitialState(
+                        reference.getId(),
+                        user.id,
+                        safeUserName(user),
+                        SharedMatchState.MATCH_TYPE_COMPETITIVE,
+                        korakRounds
+                );
+                state.phaseMessage = "Searching for an opponent...";
 
-        reference.set(state)
-                .addOnSuccessListener(unused -> callback.onSuccess(
-                        new MatchJoinResult(reference.getId(), 1, state.roomCode, true, false)
-                ))
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                reference.set(state)
+                        .addOnSuccessListener(unused -> callback.onSuccess(
+                                new MatchJoinResult(reference.getId(), 1, state.roomCode, true, false)
+                        ))
+                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
     }
 
     private void joinCompetitiveWaitingMatch(
@@ -1539,19 +1733,27 @@ public class SharedMatchRepository {
 
             ensureUserDefaultsForTransaction(waitingPlayer, latestState.playerOneId);
             ensureUserDefaultsForTransaction(currentJoiningPlayer, joiningUserId);
-            applyDailyTokenGrantForTransaction(waitingPlayer);
-            applyDailyTokenGrantForTransaction(currentJoiningPlayer);
+            if (!isGuestUser(waitingPlayer)) {
+                applyDailyTokenGrantForTransaction(waitingPlayer);
+            }
+            if (!isGuestUser(currentJoiningPlayer)) {
+                applyDailyTokenGrantForTransaction(currentJoiningPlayer);
+            }
 
-            if (waitingPlayer.tokens <= 0) {
+            if (!isGuestUser(waitingPlayer) && waitingPlayer.tokens <= 0) {
                 throw new IllegalStateException("The opponent no longer has tokens for a ranked match.");
             }
 
-            if (currentJoiningPlayer.tokens <= 0) {
+            if (!isGuestUser(currentJoiningPlayer) && currentJoiningPlayer.tokens <= 0) {
                 throw new IllegalStateException("You do not have enough tokens for a ranked match.");
             }
 
-            waitingPlayer.tokens -= 1;
-            currentJoiningPlayer.tokens -= 1;
+            if (!isGuestUser(waitingPlayer)) {
+                waitingPlayer.tokens -= 1;
+            }
+            if (!isGuestUser(currentJoiningPlayer)) {
+                currentJoiningPlayer.tokens -= 1;
+            }
             waitingPlayer.currentMatchId = latestMatchSnapshot.getId();
             currentJoiningPlayer.currentMatchId = latestMatchSnapshot.getId();
             waitingPlayer.lastSeenAt = System.currentTimeMillis();
@@ -1623,6 +1825,9 @@ public class SharedMatchRepository {
                 firstWinnerName,
                 SharedMatchState.MATCH_TYPE_TOURNAMENT
         );
+        finalState.korakRounds = currentState.tournamentSemiNumber == 1
+                ? copySharedKorakRounds(currentState.korakRounds)
+                : copySharedKorakRounds(siblingState.korakRounds);
         finalState.playerTwoId = secondWinnerId;
         finalState.playerTwoName = secondWinnerName;
         finalState.tournamentId = TextUtils.isEmpty(currentState.tournamentId) ? currentMatchReference.getId() : currentState.tournamentId;
@@ -1672,11 +1877,11 @@ public class SharedMatchRepository {
         }
 
         if (TextUtils.isEmpty(user.username)) {
-            user.username = "Player";
+            user.username = user.guest ? guestUsernameForId(userId) : "Player";
         }
 
         if (TextUtils.isEmpty(user.region)) {
-            user.region = "Serbia";
+            user.region = user.guest ? "" : "Serbia";
         }
 
         if (TextUtils.isEmpty(user.avatar)) {
@@ -1838,7 +2043,7 @@ public class SharedMatchRepository {
     }
 
     private void applyDailyTokenGrantForTransaction(User user) {
-        if (user == null || TextUtils.isEmpty(user.lastTokenGrantDate)) {
+        if (user == null || user.guest || TextUtils.isEmpty(user.lastTokenGrantDate)) {
             return;
         }
 
@@ -1860,6 +2065,19 @@ public class SharedMatchRepository {
             throw new IllegalStateException("User is not logged in.");
         }
         return FirebaseAuth.getInstance().getCurrentUser().getUid();
+    }
+
+    private boolean isGuestUser(User user) {
+        return user != null && user.guest;
+    }
+
+    private String guestUsernameForId(String userId) {
+        if (TextUtils.isEmpty(userId)) {
+            return "Guest";
+        }
+
+        String suffix = userId.substring(0, Math.min(6, userId.length())).toUpperCase(Locale.US);
+        return "Guest-" + suffix;
     }
 
     private MatchFinalizationResult buildFinalizationResult(

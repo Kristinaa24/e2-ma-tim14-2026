@@ -646,7 +646,7 @@ public class ChallengeRepository {
             LocalDate today = LocalDate.now();
             long dayDiff = ChronoUnit.DAYS.between(lastGrantDate, today);
             if (dayDiff > 0) {
-                user.tokens += (int) (dayDiff * LeagueUtils.BASE_DAILY_TOKENS);
+                user.tokens += (int) (dayDiff * LeagueUtils.getDailyTokenGrant(user.league));
                 user.lastTokenGrantDate = today.toString();
                 user.lastDailyTokenRewardDate = today.toString();
             }

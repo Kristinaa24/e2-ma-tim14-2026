@@ -13,12 +13,17 @@ import android.widget.Toast;
 import com.tim14.slagalica.GameHostActivity;
 import com.tim14.slagalica.R;
 import com.tim14.slagalica.game.BaseGameFragment;
+import com.tim14.slagalica.model.KorakPoKorakRound;
 import com.tim14.slagalica.model.SharedKorakPoKorakRound;
 import com.tim14.slagalica.model.SharedMatchState;
+import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
 import com.tim14.slagalica.repository.LocalGameRepository;
 import com.tim14.slagalica.service.KorakPoKorakService;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -32,6 +37,7 @@ public class KorakPoKorakFragment extends BaseGameFragment {
     private FirestoreRepository firestoreRepository;
     private KorakPoKorakService korakPoKorakService;
     private boolean remoteMode;
+    private final LocalGameRepository localGameRepository = new LocalGameRepository();
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -65,9 +71,61 @@ public class KorakPoKorakFragment extends BaseGameFragment {
             return;
         }
 
-        korakPoKorakService = new KorakPoKorakService(new LocalGameRepository());
-        korakPoKorakService.startMatch();
-        startTurn(0);
+        korakPoKorakService = new KorakPoKorakService(localGameRepository);
+        loadRoundsAndStart();
+    }
+
+    private void loadRoundsAndStart() {
+        firestoreRepository.getKorakPoKorakRounds(new FirebaseCallback<List<KorakPoKorakRound>>() {
+            @Override
+            public void onSuccess(List<KorakPoKorakRound> result) {
+                if (!isAdded()) {
+                    return;
+                }
+
+                korakPoKorakService.startMatch(resolveMatchRounds(result));
+                startTurn(0);
+            }
+
+            @Override
+            public void onError(String error) {
+                if (!isAdded()) {
+                    return;
+                }
+
+                korakPoKorakService.startMatch(localGameRepository.getKorakPoKorakMatchRounds());
+                startTurn(0);
+            }
+        });
+    }
+
+    private List<KorakPoKorakRound> resolveMatchRounds(List<KorakPoKorakRound> sourceRounds) {
+        int requiredRounds = isChallengeMode() ? 1 : 2;
+        List<KorakPoKorakRound> availableRounds = createRoundCopies(sourceRounds);
+
+        if (availableRounds.size() < requiredRounds) {
+            return localGameRepository.getKorakPoKorakMatchRounds();
+        }
+
+        Collections.shuffle(availableRounds);
+        return new ArrayList<>(availableRounds.subList(0, requiredRounds));
+    }
+
+    private List<KorakPoKorakRound> createRoundCopies(List<KorakPoKorakRound> sourceRounds) {
+        List<KorakPoKorakRound> copies = new ArrayList<>();
+        if (sourceRounds == null) {
+            return copies;
+        }
+
+        for (KorakPoKorakRound round : sourceRounds) {
+            if (round == null
+                    || TextUtils.isEmpty(round.getAnswer())
+                    || round.getCluesList().isEmpty()) {
+                continue;
+            }
+            copies.add(new KorakPoKorakRound(round.getAnswer(), round.getCluesList()));
+        }
+        return copies;
     }
 
     private void startTurn(int turnIndex) {
