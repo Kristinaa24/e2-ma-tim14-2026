@@ -15,22 +15,37 @@
 
         <TextView
             android:id="@+id/friendRankText"
-            android:layout_width="32dp"
+            android:layout_width="40dp"
             android:layout_height="wrap_content"
             android:gravity="center"
             android:textColor="@color/slagalica_light_blue"
-            android:textSize="16sp"
+            android:textSize="14sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:id="@+id/friendInitialText"
+        <FrameLayout
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_marginStart="8dp"
-            android:background="@drawable/bg_avatar_circle"
-            android:gravity="center"
-            android:textColor="@color/slagalica_dark_blue"
-            android:textStyle="bold" />
+            android:layout_marginStart="8dp">
+
+            <ImageView
+                android:id="@+id/friendAvatarImage"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_avatar_circle"
+                android:contentDescription="@string/player_avatar"
+                android:padding="2dp"
+                android:scaleType="centerCrop"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/friendInitialText"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_avatar_circle"
+                android:gravity="center"
+                android:textColor="@color/slagalica_dark_blue"
+                android:textStyle="bold" />
+        </FrameLayout>
 
         <LinearLayout
             android:layout_width="0dp"
@@ -54,11 +69,29 @@
                 android:textColor="@color/slagalica_light_blue"
                 android:textSize="11sp"
                 android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/friendMonthlyRankText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/slagalica_light_blue"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/friendLeagueText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="@color/slagalica_yellow"
+                android:textSize="11sp"
+                android:textStyle="bold" />
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
 
@@ -77,6 +110,14 @@
                 android:textColor="@color/slagalica_light_blue"
                 android:textStyle="bold" />
         </LinearLayout>
+
+        <Button
+            android:id="@+id/friendInviteButton"
+            style="@style/SlagalicaConfirmButton"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:minWidth="72dp"
+            android:text="@string/friend_invite_action" />
     </LinearLayout>
 
     <LinearLayout

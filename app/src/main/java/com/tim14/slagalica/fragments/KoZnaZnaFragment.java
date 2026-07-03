@@ -1,5 +1,6 @@
 package com.tim14.slagalica.fragments;
 
+import android.content.res.ColorStateList;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.Handler;
@@ -12,11 +13,16 @@ import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.core.content.ContextCompat;
+
+import com.tim14.slagalica.GameHostActivity;
 import com.tim14.slagalica.R;
 import com.tim14.slagalica.game.BaseGameFragment;
 import com.tim14.slagalica.model.KoZnaZnaQuestion;
+import com.tim14.slagalica.model.SharedMatchState;
 import com.tim14.slagalica.repository.FirebaseCallback;
 import com.tim14.slagalica.repository.FirestoreRepository;
+import com.tim14.slagalica.repository.SharedMatchRepository;
 import com.tim14.slagalica.service.KoZnaZnaService;
 
 import java.util.List;
@@ -37,12 +43,15 @@ public class KoZnaZnaFragment extends BaseGameFragment {
     private Button playerTwoAnswerButton;
 
     private FirestoreRepository firestoreRepository;
+    private SharedMatchRepository sharedMatchRepository;
     private KoZnaZnaService koZnaZnaService;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     private CountDownTimer gameTimer;
     private CountDownTimer questionTimer;
     private boolean gameEnded;
+    private boolean remoteMode;
+    private int lastScheduledRevealIndex = -1;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -52,7 +61,9 @@ public class KoZnaZnaFragment extends BaseGameFragment {
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         firestoreRepository = new FirestoreRepository();
+        sharedMatchRepository = new SharedMatchRepository();
         koZnaZnaService = new KoZnaZnaService();
+        remoteMode = ((GameHostActivity) requireActivity()).isRemoteMatchMode();
 
         questionTimerText = view.findViewById(R.id.questionTimerText);
         questionCounterText = view.findViewById(R.id.questionCounterText);
@@ -66,21 +77,39 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         playerTwoAnswerButton = view.findViewById(R.id.playerTwoAnswerButton);
 
         host().setPhaseText(getString(R.string.phase_ko_zna_zna));
-        host().setTimerValue(25);
         host().setScores(host().getPlayerOneScore(), host().getPlayerTwoScore());
-
         ruleInfoText.setText(getString(R.string.ko_zna_zna_rules_short));
 
-        answerAButton.setOnClickListener(v -> checkPlayerOneAnswer(0));
-        answerBButton.setOnClickListener(v -> checkPlayerOneAnswer(1));
-        answerCButton.setOnClickListener(v -> checkPlayerOneAnswer(2));
-        answerDButton.setOnClickListener(v -> checkPlayerOneAnswer(3));
+        answerAButton.setOnClickListener(v -> onAnswerSelected(0));
+        answerBButton.setOnClickListener(v -> onAnswerSelected(1));
+        answerCButton.setOnClickListener(v -> onAnswerSelected(2));
+        answerDButton.setOnClickListener(v -> onAnswerSelected(3));
         playerTwoAnswerButton.setOnClickListener(v -> playerTwoAnswered());
 
         disableAnswerButtons();
         questionText.setText(getString(R.string.loading_questions));
 
+        if (remoteMode) {
+            playerTwoAnswerButton.setVisibility(View.GONE);
+            renderRemoteQuestion();
+            return;
+        }
+
+        if (isChallengeMode()) {
+            playerTwoAnswerButton.setVisibility(View.GONE);
+        }
+
+        host().setTimerValue(25);
         loadQuestionsFromFirestore();
+    }
+
+    private void onAnswerSelected(int selectedIndex) {
+        if (remoteMode) {
+            submitRemoteAnswer(selectedIndex);
+            return;
+        }
+
+        checkPlayerOneAnswer(selectedIndex);
     }
 
     private void loadQuestionsFromFirestore() {
@@ -125,11 +154,10 @@ public class KoZnaZnaFragment extends BaseGameFragment {
     private void startGameTimer() {
         cancelGameTimer();
 
-        gameTimer = new CountDownTimer(26000, 1000) {
+        gameTimer = new CountDownTimer(25000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
-                long seconds = millisUntilFinished / 1000;
-                host().setTimerValue((int) seconds);
+                host().setTimerValue((int) Math.ceil(millisUntilFinished / 1000.0));
             }
 
             @Override
@@ -146,11 +174,12 @@ public class KoZnaZnaFragment extends BaseGameFragment {
     private void startQuestionTimer() {
         cancelQuestionTimer();
 
-        questionTimer = new CountDownTimer(6000, 1000) {
+        questionTimer = new CountDownTimer(5000, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
-                long seconds = millisUntilFinished / 1000;
-                questionTimerText.setText(getString(R.string.question_time_format, seconds));
+                questionTimerText.setText(
+                        getString(R.string.question_time_format, (int) Math.ceil(millisUntilFinished / 1000.0))
+                );
             }
 
             @Override
@@ -158,8 +187,7 @@ public class KoZnaZnaFragment extends BaseGameFragment {
                 questionTimer = null;
                 questionTimerText.setText(getString(R.string.question_time_format, 0));
 
-                if (!koZnaZnaService.isQuestionAnswered()
-                        && !koZnaZnaService.isGameFinished()) {
+                if (!koZnaZnaService.isQuestionAnswered() && !koZnaZnaService.isGameFinished()) {
                     koZnaZnaService.timeoutCurrentQuestion();
                     disableAnswerButtons();
 
@@ -193,17 +221,7 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         }
 
         enableAnswerButtons();
-
-        questionCounterText.setText(
-                getString(R.string.question_counter_format, koZnaZnaService.getQuestionNumber())
-        );
-        questionText.setText(currentQuestion.question);
-
-        answerAButton.setText(currentQuestion.answers.get(0));
-        answerBButton.setText(currentQuestion.answers.get(1));
-        answerCButton.setText(currentQuestion.answers.get(2));
-        answerDButton.setText(currentQuestion.answers.get(3));
-
+        bindQuestion(currentQuestion, koZnaZnaService.getQuestionNumber(), 5);
         updateScores();
         startQuestionTimer();
     }
@@ -214,8 +232,10 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         if (result.getType() == KoZnaZnaService.AnswerType.NO_OP) {
             return;
         }
+
         disableAnswerButtons();
         cancelQuestionTimer();
+        showAnswerFeedback(selectedIndex, koZnaZnaService.getCurrentQuestion().correctIndex);
 
         if (result.getType() == KoZnaZnaService.AnswerType.CORRECT) {
             Toast.makeText(requireContext(), R.string.correct_points_message, Toast.LENGTH_SHORT).show();
@@ -228,7 +248,7 @@ public class KoZnaZnaFragment extends BaseGameFragment {
             if (isAdded()) {
                 goToNextQuestion();
             }
-        }, 900);
+        }, 1500);
     }
 
     private void playerTwoAnswered() {
@@ -247,7 +267,7 @@ public class KoZnaZnaFragment extends BaseGameFragment {
             if (isAdded()) {
                 goToNextQuestion();
             }
-        }, 900);
+        }, 1500);
     }
 
     private void goToNextQuestion() {
@@ -276,11 +296,13 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         disableAnswerButtons();
         playerTwoAnswerButton.setEnabled(false);
 
-        firestoreRepository.updateKoZnaZnaStatistics(
-                koZnaZnaService.getCorrectAnswers(),
-                koZnaZnaService.getWrongAnswers(),
-                koZnaZnaService.getTotalScore()
-        );
+        if (host().shouldPersistStatistics()) {
+            firestoreRepository.updateKoZnaZnaStatistics(
+                    koZnaZnaService.getCorrectAnswers(),
+                    koZnaZnaService.getWrongAnswers(),
+                    koZnaZnaService.getTotalScore()
+            );
+        }
 
         host().setScores(
                 koZnaZnaService.getPlayerOneScore(),
@@ -290,7 +312,9 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         host().setPhaseText(getString(R.string.phase_ko_zna_zna_finished));
 
         Toast.makeText(requireContext(),
-                getString(
+                isChallengeMode()
+                        ? getString(R.string.challenge_result_score_format, koZnaZnaService.getPlayerOneScore())
+                        : getString(
                         R.string.ko_zna_zna_end_format,
                         koZnaZnaService.getPlayerOneScore(),
                         koZnaZnaService.getPlayerTwoScore()
@@ -311,12 +335,237 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         );
     }
 
+    private void bindQuestion(KoZnaZnaQuestion question, int questionNumber, int totalQuestions) {
+        if (question == null || question.answers == null || question.answers.size() < 4) {
+            questionText.setText(getString(R.string.invalid_question_answers));
+            disableAnswerButtons();
+            return;
+        }
+
+        questionCounterText.setText(
+                getString(R.string.question_counter_format, questionNumber)
+        );
+        questionText.setText(question.question);
+        answerAButton.setText(question.answers.get(0));
+        answerBButton.setText(question.answers.get(1));
+        answerCButton.setText(question.answers.get(2));
+        answerDButton.setText(question.answers.get(3));
+        clearAnswerFeedback();
+        ruleInfoText.setText(getString(
+                isChallengeMode()
+                        ? R.string.challenge_kzz_phase_format
+                        : R.string.shared_match_kzz_phase_format,
+                questionNumber,
+                totalQuestions
+        ));
+    }
+
+    private void renderRemoteQuestion() {
+        stopRoundTimer();
+        cancelGameTimer();
+        cancelQuestionTimer();
+
+        GameHostActivity activity = (GameHostActivity) requireActivity();
+        SharedMatchState state = activity.getSharedMatchState();
+        if (state == null) {
+            disableAnswerButtons();
+            questionText.setText(getString(R.string.loading_questions));
+            return;
+        }
+
+        if (SharedMatchState.STATUS_WAITING.equals(state.status)
+                || SharedMatchState.PHASE_WAITING.equals(state.phase)) {
+            renderWaitingForOpponentState();
+            return;
+        }
+
+        KoZnaZnaQuestion question = activity.getSharedQuizQuestion(state.currentTurnIndex);
+
+        if (question == null) {
+            disableAnswerButtons();
+            questionText.setText(getString(R.string.loading_questions));
+            return;
+        }
+
+        bindQuestion(question, state.currentTurnIndex + 1, state.quizQuestions.size());
+        host().setTimerValue(getRemoteRemainingSeconds(state));
+
+        if (SharedMatchState.PHASE_KZZ_REVEAL.equals(state.phase)) {
+            questionTimerText.setText(getString(R.string.question_time_format, 0));
+            disableAnswerButtons();
+            showRemoteRevealFeedback(question, state);
+            scheduleRemoteAdvanceIfCoordinator(state);
+            return;
+        }
+
+        enableAnswerButtons();
+        questionTimerText.setText(
+                getString(R.string.question_time_format, getRemoteRemainingSeconds(state))
+        );
+        startRoundTimer(
+                getRemoteRemainingSeconds(state),
+                secondsLeft -> questionTimerText.setText(
+                        getString(R.string.question_time_format, secondsLeft)
+                ),
+                this::handleRemoteQuestionTimeout
+        );
+    }
+
+    private void renderWaitingForOpponentState() {
+        questionCounterText.setText("");
+        questionTimerText.setText(getString(R.string.question_time_format, 0));
+        questionText.setText(getString(R.string.shared_match_waiting_phase));
+        ruleInfoText.setText(getString(R.string.shared_match_wait_turn_hint));
+        answerAButton.setText("");
+        answerBButton.setText("");
+        answerCButton.setText("");
+        answerDButton.setText("");
+        disableAnswerButtons();
+    }
+
+    private void submitRemoteAnswer(int selectedIndex) {
+        GameHostActivity activity = (GameHostActivity) requireActivity();
+        SharedMatchState state = activity.getSharedMatchState();
+
+        if (state == null
+                || !SharedMatchState.PHASE_KZZ_QUESTION.equals(state.phase)
+                || activity.getRemoteMatchId() == null) {
+            return;
+        }
+
+        sharedMatchRepository.submitKoZnaZnaAnswer(
+                activity.getRemoteMatchId(),
+                state.currentTurnIndex,
+                activity.getLocalPlayerNumber(),
+                selectedIndex,
+                new FirebaseCallback<SharedMatchRepository.KoZnaZnaAnswerOutcome>() {
+                    @Override
+                    public void onSuccess(SharedMatchRepository.KoZnaZnaAnswerOutcome outcome) {
+                        if (!outcome.accepted || !isAdded()) {
+                            return;
+                        }
+
+                        SharedMatchState latestState = activity.getSharedMatchState();
+                        KoZnaZnaQuestion currentQuestion = latestState == null
+                                ? null
+                                : activity.getSharedQuizQuestion(latestState.currentTurnIndex);
+                        if (currentQuestion != null) {
+                            showAnswerFeedback(selectedIndex, currentQuestion.correctIndex);
+                        }
+
+                        if (host().shouldPersistStatistics()) {
+                            firestoreRepository.updateKoZnaZnaStatistics(
+                                    outcome.correct ? 1 : 0,
+                                    outcome.correct ? 0 : 1,
+                                    outcome.points
+                            );
+                        }
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        if (isAdded()) {
+                            Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }
+        );
+    }
+
+    private void handleRemoteQuestionTimeout() {
+        GameHostActivity activity = (GameHostActivity) requireActivity();
+        SharedMatchState state = activity.getSharedMatchState();
+
+        if (state == null
+                || !activity.isRemoteProgressCoordinator()
+                || !SharedMatchState.PHASE_KZZ_QUESTION.equals(state.phase)
+                || activity.getRemoteMatchId() == null) {
+            return;
+        }
+
+        sharedMatchRepository.resolveKoZnaZnaTimeout(
+                activity.getRemoteMatchId(),
+                state.currentTurnIndex,
+                new FirebaseCallback<Boolean>() {
+                    @Override
+                    public void onSuccess(Boolean unused) {
+                        // Listener will refresh the UI.
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        if (isAdded()) {
+                            Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                }
+        );
+    }
+
+    private void scheduleRemoteAdvanceIfCoordinator(SharedMatchState state) {
+        GameHostActivity activity = (GameHostActivity) requireActivity();
+
+        if (!activity.isRemoteProgressCoordinator() || lastScheduledRevealIndex == state.currentTurnIndex) {
+            return;
+        }
+
+        lastScheduledRevealIndex = state.currentTurnIndex;
+
+        handler.postDelayed(() -> {
+            if (!isAdded()) {
+                return;
+            }
+
+            SharedMatchState currentState = activity.getSharedMatchState();
+            if (currentState == null
+                    || currentState.currentTurnIndex != state.currentTurnIndex
+                    || !SharedMatchState.PHASE_KZZ_REVEAL.equals(currentState.phase)) {
+                return;
+            }
+
+            if (currentState.currentTurnIndex + 1 < currentState.quizQuestions.size()) {
+                activity.updateSharedMatch(new java.util.HashMap<String, Object>() {{
+                    put("currentTurnIndex", currentState.currentTurnIndex + 1);
+                    put("phase", SharedMatchState.PHASE_KZZ_QUESTION);
+                    put("activePlayer", 0);
+                    put("phaseStartedAt", System.currentTimeMillis());
+                    put("phaseDurationSeconds", 5);
+                    put("answeredByPlayer", 0);
+                    put("selectedAnswerIndex", -1);
+                    put(
+                            "phaseMessage",
+                            getString(
+                                    R.string.shared_match_kzz_phase_format,
+                                    currentState.currentTurnIndex + 2,
+                                    currentState.quizQuestions.size()
+                            )
+                    );
+                }});
+            } else {
+                host().goToNextRound();
+            }
+        }, 900L);
+    }
+
+    private int getRemoteRemainingSeconds(SharedMatchState state) {
+        if (state == null || state.phaseDurationSeconds <= 0) {
+            return 0;
+        }
+
+        long elapsedMs = System.currentTimeMillis() - state.phaseStartedAt;
+        int remaining = state.phaseDurationSeconds - (int) Math.floor(elapsedMs / 1000d);
+        return Math.max(0, remaining);
+    }
+
     private void enableAnswerButtons() {
+        clearAnswerFeedback();
         answerAButton.setEnabled(true);
         answerBButton.setEnabled(true);
         answerCButton.setEnabled(true);
         answerDButton.setEnabled(true);
-        playerTwoAnswerButton.setEnabled(true);
+        if (!remoteMode) {
+            playerTwoAnswerButton.setEnabled(true);
+        }
     }
 
     private void disableAnswerButtons() {
@@ -325,6 +574,64 @@ public class KoZnaZnaFragment extends BaseGameFragment {
         answerCButton.setEnabled(false);
         answerDButton.setEnabled(false);
         playerTwoAnswerButton.setEnabled(false);
+    }
+
+    private void showRemoteRevealFeedback(KoZnaZnaQuestion question, SharedMatchState state) {
+        if (question == null || state == null) {
+            return;
+        }
+
+        showAnswerFeedback(state.selectedAnswerIndex, question.correctIndex);
+    }
+
+    private void showAnswerFeedback(int selectedIndex, int correctIndex) {
+        clearAnswerFeedback();
+
+        Button selectedButton = getAnswerButton(selectedIndex);
+        Button correctButton = getAnswerButton(correctIndex);
+
+        if (selectedButton != null && selectedIndex != correctIndex) {
+            tintAnswerButton(
+                    selectedButton,
+                    ContextCompat.getColor(requireContext(), R.color.slagalica_red),
+                    ContextCompat.getColor(requireContext(), R.color.white)
+            );
+        }
+
+        if (correctButton != null) {
+            tintAnswerButton(
+                    correctButton,
+                    ContextCompat.getColor(requireContext(), R.color.slagalica_yellow),
+                    ContextCompat.getColor(requireContext(), R.color.slagalica_dark_blue)
+            );
+        }
+    }
+
+    private void clearAnswerFeedback() {
+        for (Button button : getAnswerButtons()) {
+            button.setBackgroundTintList(ColorStateList.valueOf(
+                    ContextCompat.getColor(requireContext(), R.color.slagalica_card)
+            ));
+            button.setTextColor(ContextCompat.getColor(requireContext(), R.color.slagalica_dark_blue));
+        }
+    }
+
+    private void tintAnswerButton(Button button, int color, int textColor) {
+        button.setBackgroundTintList(ColorStateList.valueOf(color));
+        button.setTextColor(textColor);
+    }
+
+    private Button getAnswerButton(int index) {
+        Button[] buttons = getAnswerButtons();
+        if (index < 0 || index >= buttons.length) {
+            return null;
+        }
+
+        return buttons[index];
+    }
+
+    private Button[] getAnswerButtons() {
+        return new Button[]{answerAButton, answerBButton, answerCButton, answerDButton};
     }
 
     private void cancelGameTimer() {

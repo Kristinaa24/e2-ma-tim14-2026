@@ -6,17 +6,33 @@ import android.util.Log;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.tim14.slagalica.R;
+import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.firestore.SetOptions;
+import com.google.firebase.firestore.WriteBatch;
+import com.tim14.slagalica.LeagueUtils;
+import com.tim14.slagalica.R;
 import com.tim14.slagalica.model.AsocijacijeRound;
+import com.tim14.slagalica.model.ChatMessage;
+import com.tim14.slagalica.model.DailyMissionStatus;
+import com.tim14.slagalica.model.HomeRankingItem;
+import com.tim14.slagalica.model.RankingCycleInfo;
+import com.tim14.slagalica.model.KorakPoKorakRound;
 import com.tim14.slagalica.model.KoZnaZnaQuestion;
 import com.tim14.slagalica.model.Notification;
 import com.tim14.slagalica.model.PlayerStatistics;
+import com.tim14.slagalica.model.Region;
 import com.tim14.slagalica.model.SpojniceRound;
 import com.tim14.slagalica.model.User;
+import com.tim14.slagalica.service.NotificationHelper;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.WeekFields;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -27,17 +43,64 @@ import java.util.Map;
 public class FirestoreRepository {
 
     private static final String TAG = "REZ_DB";
-    public static final String TEST_USER_ID = "test_user_1";
 
     private static final String USERS_COLLECTION = "users";
     private static final String STATISTICS_COLLECTION = "statistics";
     private static final String KO_ZNA_ZNA_COLLECTION = "koZnaZnaQuestions";
     private static final String SPOJNICE_COLLECTION = "spojniceRounds";
     private static final String ASOCIJACIJE_COLLECTION = "asocijacijeRounds";
+    private static final String KORAK_PO_KORAK_COLLECTION = "korakPoKorakRounds";
     private static final String NOTIFICATIONS_COLLECTION = "notifications";
+    private static final String REGION_CHAT_COLLECTION = "regionChats";
+    private static final String REGIONS_COLLECTION = "regions";
+    private static final String FRIENDS_COLLECTION = "friends";
+    private static final long ACTIVE_PLAYER_WINDOW_MS = 10 * 60 * 1000;
+    private static final int MONTHLY_PLAYER_RANKING_PLACES = 10;
+    public static final String RANKING_WEEKLY = "weekly";
+    public static final String RANKING_MONTHLY = "monthly";
+    public static final String MISSION_WIN_MATCH = "WIN_MATCH";
+    public static final String MISSION_SEND_CHAT = "SEND_CHAT";
+    public static final String MISSION_PLAY_FRIENDLY = "PLAY_FRIENDLY";
+    public static final String MISSION_WIN_TOURNAMENT = "WIN_TOURNAMENT";
+
+    private static final Region[] DEFAULT_REGIONS = new Region[]{
+            new Region("VO", "Vojvodina", "\uD83C\uDF3E"),
+            new Region("BG", "Belgrade", "\uD83C\uDFD9"),
+            new Region("SW", "Sumadija and Western Serbia", "\uD83C\uDF32"),
+            new Region("SE", "Southern and Eastern Serbia", "\u26F0"),
+            new Region("KM", "Kosovo i Metohija", "\uD83C\uDFFB")
+    };
 
     private final FirebaseFirestore db;
     private final Context context;
+
+    public static final class MatchRewardResult {
+        public final int earnedRegionStars;
+        public final int previousLeague;
+        public final int currentLeague;
+        public final boolean leagueChanged;
+
+        private MatchRewardResult(int earnedRegionStars, int previousLeague, int currentLeague) {
+            this.earnedRegionStars = earnedRegionStars;
+            this.previousLeague = previousLeague;
+            this.currentLeague = currentLeague;
+            this.leagueChanged = previousLeague != currentLeague;
+        }
+    }
+
+    public static final class DailyMissionRewardResult {
+        public final int earnedStars;
+        public final int previousLeague;
+        public final int currentLeague;
+        public final boolean leagueChanged;
+
+        private DailyMissionRewardResult(int earnedStars, int previousLeague, int currentLeague) {
+            this.earnedStars = earnedStars;
+            this.previousLeague = previousLeague;
+            this.currentLeague = currentLeague;
+            this.leagueChanged = previousLeague != currentLeague;
+        }
+    }
 
     public FirestoreRepository() {
         this(null);
@@ -64,8 +127,26 @@ public class FirestoreRepository {
             String region,
             FirebaseCallback<Void> callback
     ) {
-        User user = new User(uid, username, email, region, 200, 0, 0, "None", uid);
+        User user = new User(
+                uid,
+                username,
+                email,
+                canonicalRegionName(region),
+                LeagueUtils.INITIAL_REGISTRATION_TOKENS,
+                0,
+                0,
+                "None",
+                uid
+        );
         user.avatar = "avatar_1";
+        user.lastTokenGrantDate = todayKey();
+        user.earnedStarsSinceLastToken = 0;
+        user.lastDailyTokenRewardDate = currentDailyRewardDate();
+        user.loggedIn = false;
+        user.inApp = false;
+        user.currentMatchId = "";
+        user.lastSeenAt = System.currentTimeMillis();
+        user.lastActiveAt = 0L;
 
         PlayerStatistics statistics = new PlayerStatistics(uid);
 
@@ -76,9 +157,76 @@ public class FirestoreRepository {
                         db.collection(STATISTICS_COLLECTION)
                                 .document(uid)
                                 .set(statistics)
-                                .addOnSuccessListener(result -> callback.onSuccess(null))
+                                .addOnSuccessListener(result ->
+                                        incrementRegionRegisteredPlayers(user.region, callback))
                                 .addOnFailureListener(e -> callback.onError(e.getMessage()))
                 )
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void ensureGuestProfile(FirebaseCallback<User> callback) {
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    User existingUser = documentSnapshot.toObject(User.class);
+                    if (existingUser != null) {
+                        ensureUserDefaults(existingUser, userId);
+                        existingUser.guest = true;
+                        existingUser.region = "";
+                        existingUser.email = "";
+                        existingUser.loggedIn = false;
+                        existingUser.inApp = false;
+                        existingUser.currentMatchId = "";
+                        existingUser.lastSeenAt = System.currentTimeMillis();
+
+                        db.collection(USERS_COLLECTION)
+                                .document(userId)
+                                .set(existingUser, SetOptions.merge())
+                                .addOnSuccessListener(unused -> callback.onSuccess(existingUser))
+                                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                        return;
+                    }
+
+                    User guestUser = new User(
+                            userId,
+                            guestUsernameForId(userId),
+                            "",
+                            "",
+                            0,
+                            0,
+                            0,
+                            "None",
+                            ""
+                    );
+                    guestUser.guest = true;
+                    guestUser.avatar = "avatar_1";
+                    guestUser.lastTokenGrantDate = todayKey();
+                    guestUser.earnedStarsSinceLastToken = 0;
+                    guestUser.lastDailyTokenRewardDate = currentDailyRewardDate();
+                    guestUser.loggedIn = false;
+                    guestUser.inApp = false;
+                    guestUser.currentMatchId = "";
+                    guestUser.lastSeenAt = System.currentTimeMillis();
+                    guestUser.lastActiveAt = 0L;
+
+                    PlayerStatistics statistics = new PlayerStatistics(userId);
+                    WriteBatch batch = db.batch();
+                    batch.set(db.collection(USERS_COLLECTION).document(userId), guestUser);
+                    batch.set(db.collection(STATISTICS_COLLECTION).document(userId), statistics);
+                    batch.commit()
+                            .addOnSuccessListener(unused -> callback.onSuccess(guestUser))
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
@@ -107,14 +255,704 @@ public class FirestoreRepository {
                     }
 
                     ensureUserDefaults(user, userId);
+                    boolean dailyTokensApplied = applyDailyTokenGrant(user);
 
                     db.collection(USERS_COLLECTION)
                             .document(userId)
-                            .set(user, SetOptions.merge());
+                            .set(user, SetOptions.merge())
+                            .addOnFailureListener(e -> Log.w(TAG, "Error saving user defaults.", e));
+
+                    if (dailyTokensApplied) {
+                        Log.i(TAG, "Daily token grant applied for user=" + userId
+                                + ", league=" + user.league
+                                + ", tokens=" + user.tokens);
+                    }
 
                     callback.onSuccess(user);
                 })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void getAllUsers(FirebaseCallback<List<User>> callback) {
+        db.collection(USERS_COLLECTION)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<User> users = new ArrayList<>();
+                    WriteBatch batch = db.batch();
+
+                    for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                        User user = document.toObject(User.class);
+                        if (user == null) {
+                            continue;
+                        }
+
+                        ensureUserDefaults(user, document.getId());
+                        users.add(user);
+                        batch.set(
+                                db.collection(USERS_COLLECTION).document(document.getId()),
+                                user,
+                                SetOptions.merge()
+                        );
+                    }
+
+                    if (users.isEmpty()) {
+                        callback.onSuccess(users);
+                        return;
+                    }
+
+                    batch.commit()
+                            .addOnSuccessListener(unused -> callback.onSuccess(users))
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void getRegions(FirebaseCallback<List<Region>> callback) {
+        ensureDefaultRegions(new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                db.collection(REGIONS_COLLECTION)
+                        .get()
+                        .addOnSuccessListener(querySnapshot -> {
+                            List<Region> regions = new ArrayList<>();
+
+                            for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                                Region region = document.toObject(Region.class);
+                                if (region == null) {
+                                    continue;
+                                }
+
+                                ensureRegionDefaults(region, document.getId());
+                                regions.add(region);
+                            }
+
+                            callback.onSuccess(regions);
+                        })
+                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public RankingCycleInfo getCurrentRankingCycleInfo(String type) {
+        LocalDate today = LocalDate.now();
+        if (RANKING_MONTHLY.equals(type)) {
+            LocalDate start = today.withDayOfMonth(1);
+            LocalDate end = today.withDayOfMonth(today.lengthOfMonth());
+            return new RankingCycleInfo(type, currentMonthlyCycleKey(), formatCycleRange(start, end));
+        }
+
+        LocalDate start = today.minusDays(today.getDayOfWeek().getValue() - 1L);
+        LocalDate end = start.plusDays(6);
+        return new RankingCycleInfo(RANKING_WEEKLY, currentWeeklyCycleKey(), formatCycleRange(start, end));
+    }
+
+    public void getPlayerRanking(String type, FirebaseCallback<List<HomeRankingItem>> callback) {
+        String cycleKey = RANKING_MONTHLY.equals(type) ? currentMonthlyCycleKey() : currentWeeklyCycleKey();
+        db.collection(USERS_COLLECTION)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<User> users = new ArrayList<>();
+                    for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                        User user = document.toObject(User.class);
+                        if (user == null) {
+                            continue;
+                        }
+                        ensureUserDefaults(user, document.getId());
+                        boolean inCycle = RANKING_MONTHLY.equals(type)
+                                ? cycleKey.equals(user.monthlyCycleKey)
+                                : cycleKey.equals(user.weeklyCycleKey);
+                        int cycleStars = RANKING_MONTHLY.equals(type) ? user.monthlyStars : user.weeklyStars;
+                        int cycleGames = RANKING_MONTHLY.equals(type) ? user.monthlyGames : user.weeklyGames;
+                        if (inCycle && cycleGames > 0) {
+                            users.add(user);
+                        }
+                    }
+
+                    users.sort((left, right) -> Integer.compare(
+                            RANKING_MONTHLY.equals(type) ? right.monthlyStars : right.weeklyStars,
+                            RANKING_MONTHLY.equals(type) ? left.monthlyStars : left.weeklyStars
+                    ));
+
+                    List<HomeRankingItem> items = new ArrayList<>();
+                    int limit = Math.min(10, users.size());
+                    for (int index = 0; index < limit; index++) {
+                        User user = users.get(index);
+                        int cycleStars = RANKING_MONTHLY.equals(type) ? user.monthlyStars : user.weeklyStars;
+                        items.add(new HomeRankingItem(
+                                index + 1,
+                                safeUserName(user),
+                                LeagueUtils.getLeagueName(user.league),
+                                user.league,
+                                cycleStars
+                        ));
+                    }
+                    callback.onSuccess(items);
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void refreshRankingRewards(FirebaseCallback<Void> callback) {
+        db.collection(USERS_COLLECTION)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    WriteBatch batch = db.batch();
+                    List<DocumentSnapshot> documents = new ArrayList<>(querySnapshot.getDocuments());
+                    applyRankingCycleRefresh(batch, documents, RANKING_WEEKLY, currentWeeklyCycleKey());
+                    applyRankingCycleRefresh(batch, documents, RANKING_MONTHLY, currentMonthlyCycleKey());
+                    batch.commit()
+                            .addOnSuccessListener(unused -> callback.onSuccess(null))
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void getDailyMissionStatus(FirebaseCallback<DailyMissionStatus> callback) {
+        getCurrentUser(new FirebaseCallback<User>() {
+            @Override
+            public void onSuccess(User user) {
+                DailyMissionStatus status = new DailyMissionStatus();
+                status.winMatch = user.dailyMissionWinMatch;
+                status.sendChat = user.dailyMissionSendChat;
+                status.playFriendly = user.dailyMissionPlayFriendly;
+                status.winTournament = user.dailyMissionWinTournament;
+                status.bonusClaimed = user.dailyMissionBonusClaimed;
+                callback.onSuccess(status);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void completeDailyMission(String mission, FirebaseCallback<Void> callback) {
+        completeDailyMissionWithResult(mission, new FirebaseCallback<DailyMissionRewardResult>() {
+            @Override
+            public void onSuccess(DailyMissionRewardResult result) {
+                callback.onSuccess(null);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void completeDailyMissionWithResult(String mission, FirebaseCallback<DailyMissionRewardResult> callback) {
+        String userId;
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    User user = documentSnapshot.toObject(User.class);
+                    if (user == null) {
+                        callback.onError(text(R.string.firestore_error_profile_not_found, "User profile was not found."));
+                        return;
+                    }
+
+                    ensureUserDefaults(user, userId);
+                    resetDailyMissionsIfNeeded(user);
+                    int previousLeague = user.league;
+
+                    boolean newlyCompleted = false;
+                    if (MISSION_WIN_MATCH.equals(mission) && !user.dailyMissionWinMatch) {
+                        user.dailyMissionWinMatch = true;
+                        newlyCompleted = true;
+                    } else if (MISSION_SEND_CHAT.equals(mission) && !user.dailyMissionSendChat) {
+                        user.dailyMissionSendChat = true;
+                        newlyCompleted = true;
+                    } else if (MISSION_PLAY_FRIENDLY.equals(mission) && !user.dailyMissionPlayFriendly) {
+                        user.dailyMissionPlayFriendly = true;
+                        newlyCompleted = true;
+                    } else if (MISSION_WIN_TOURNAMENT.equals(mission) && !user.dailyMissionWinTournament) {
+                        user.dailyMissionWinTournament = true;
+                        newlyCompleted = true;
+                    }
+
+                    int starDelta = newlyCompleted ? 3 : 0;
+                    if (newlyCompleted
+                            && !user.dailyMissionBonusClaimed
+                            && user.dailyMissionWinMatch
+                            && user.dailyMissionSendChat
+                            && user.dailyMissionPlayFriendly
+                            && user.dailyMissionWinTournament) {
+                        user.dailyMissionBonusClaimed = true;
+                        user.tokens += 2;
+                        starDelta += 3;
+                        saveNotificationForUser(
+                                userId,
+                                "Daily missions completed",
+                                "You completed all daily missions and earned 2 tokens and 3 bonus stars.",
+                                "REWARD",
+                                null
+                        );
+                    }
+
+                    if (starDelta > 0) {
+                        applyPositiveStars(user, starDelta);
+                    }
+                    int currentLeague = user.league;
+                    if (previousLeague != currentLeague) {
+                        addLeagueChangeNotification(userId, previousLeague, currentLeague);
+                    }
+                    final int earnedStars = starDelta;
+
+                    db.collection(USERS_COLLECTION)
+                            .document(userId)
+                            .set(user, SetOptions.merge())
+                            .addOnSuccessListener(unused -> callback.onSuccess(
+                                    new DailyMissionRewardResult(earnedStars, previousLeague, currentLeague)
+                            ))
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+    public void markCurrentUserActive(FirebaseCallback<Void> callback) {
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .update(
+                        "lastActiveAt", System.currentTimeMillis(),
+                        "lastSeenAt", System.currentTimeMillis(),
+                        "loggedIn", true
+                )
+                .addOnSuccessListener(unused -> callback.onSuccess(null))
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void markCurrentUserInactive(FirebaseCallback<Void> callback) {
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .update(
+                        "lastActiveAt", 0L,
+                        "lastSeenAt", System.currentTimeMillis(),
+                        "loggedIn", false,
+                        "inApp", false,
+                        "currentMatchId", ""
+                )
+                .addOnSuccessListener(unused -> callback.onSuccess(null))
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void updateCurrentUserAfterRegularMatch(
+            int playerScore,
+            boolean won,
+            boolean lost,
+            FirebaseCallback<MatchRewardResult> callback
+    ) {
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    User user = documentSnapshot.toObject(User.class);
+                    if (user == null) {
+                        callback.onError(text(
+                                R.string.firestore_error_profile_not_found,
+                                "User profile was not found."
+                        ));
+                        return;
+                    }
+
+                    ensureUserDefaults(user, userId);
+
+                    int previousLeague = user.league;
+                    markRankingGamePlayed(user);
+                    int starDelta = calculateMatchStarDelta(playerScore, won, lost);
+                    user.stars = Math.max(0, user.stars + starDelta);
+                    if (starDelta > 0) {
+                        ensureUserCycleKeys(user);
+                        user.weeklyStars += starDelta;
+                        user.monthlyStars += starDelta;
+                    }
+                    user.league = LeagueUtils.calculateLeague(user.stars);
+                    Log.i(TAG, "Applying match rewards for user=" + userId
+                            + ", region=" + user.region
+                            + ", regionCode=" + regionCodeForName(user.region)
+                            + ", score=" + playerScore
+                            + ", won=" + won
+                            + ", lost=" + lost
+                            + ", starDelta=" + starDelta
+                            + ", newStars=" + user.stars
+                            + ", newLeague=" + user.league);
+
+                    String regionCode = regionCodeForName(user.region);
+                    int earnedRegionStars = Math.max(0, starDelta);
+                    WriteBatch batch = db.batch();
+                    batch.set(
+                            db.collection(REGIONS_COLLECTION).document(regionCode),
+                            createDefaultRegionData(regionCode, earnedRegionStars),
+                            SetOptions.merge()
+                    );
+
+                    Map<String, Object> userUpdates = new HashMap<>();
+                    userUpdates.put("stars", user.stars);
+                    userUpdates.put("weeklyStars", user.weeklyStars);
+                    userUpdates.put("monthlyStars", user.monthlyStars);
+                    userUpdates.put("weeklyGames", user.weeklyGames);
+                    userUpdates.put("monthlyGames", user.monthlyGames);
+                    userUpdates.put("weeklyCycleKey", user.weeklyCycleKey);
+                    userUpdates.put("monthlyCycleKey", user.monthlyCycleKey);
+                    userUpdates.put("league", user.league);
+                    batch.update(db.collection(USERS_COLLECTION).document(userId), userUpdates);
+
+                    if (previousLeague != user.league) {
+                        addLeagueChangeNotification(
+                                batch,
+                                userId,
+                                previousLeague,
+                                user.league
+                        );
+                    }
+
+                    batch.commit()
+                            .addOnSuccessListener(unused -> callback.onSuccess(
+                                    new MatchRewardResult(earnedRegionStars, previousLeague, user.league)
+                            ))
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void grantCurrentUserChallengeTestResources(
+            int tokenDelta,
+            int starDelta,
+            FirebaseCallback<User> callback
+    ) {
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    User user = documentSnapshot.toObject(User.class);
+                    if (user == null) {
+                        callback.onError(text(
+                                R.string.firestore_error_profile_not_found,
+                                "User profile was not found."
+                        ));
+                        return;
+                    }
+
+                    ensureUserDefaults(user, userId);
+                    applyDailyTokenGrantIfNeeded(user);
+
+                    user.tokens = Math.max(0, user.tokens + Math.max(0, tokenDelta));
+                    user.stars = Math.max(0, user.stars + Math.max(0, starDelta));
+                    user.league = LeagueUtils.calculateLeague(user.stars);
+                    user.lastSeenAt = System.currentTimeMillis();
+
+                    Map<String, Object> updates = new HashMap<>();
+                    updates.put("tokens", user.tokens);
+                    updates.put("stars", user.stars);
+                    updates.put("league", user.league);
+                    updates.put("lastTokenGrantDate", user.lastTokenGrantDate);
+                    updates.put("lastDailyTokenRewardDate", user.lastDailyTokenRewardDate);
+                    updates.put("lastSeenAt", user.lastSeenAt);
+
+                    db.collection(USERS_COLLECTION)
+                            .document(userId)
+                            .set(updates, SetOptions.merge())
+                            .addOnSuccessListener(unused -> callback.onSuccess(user))
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void resetMonthlyRegionRanking(FirebaseCallback<Void> callback) {
+        getRegions(new FirebaseCallback<List<Region>>() {
+            @Override
+            public void onSuccess(List<Region> regions) {
+                regions.sort((left, right) -> Integer.compare(right.monthlyStars, left.monthlyStars));
+
+                if (regions.isEmpty()) {
+                    callback.onSuccess(null);
+                    return;
+                }
+
+                WriteBatch batch = db.batch();
+                for (int index = 0; index < regions.size(); index++) {
+                    Region region = regions.get(index);
+                    int rank = index < 3 && region.monthlyStars > 0 ? index + 1 : 0;
+                    Map<String, Object> updates = new HashMap<>();
+                    updates.put("previousMonthlyRank", rank);
+                    updates.put("monthlyStars", 0);
+
+                    if (rank == 1) {
+                        updates.put("firstPlaces", region.firstPlaces + 1);
+                    } else if (rank == 2) {
+                        updates.put("secondPlaces", region.secondPlaces + 1);
+                    } else if (rank == 3) {
+                        updates.put("thirdPlaces", region.thirdPlaces + 1);
+                    }
+
+                    batch.set(
+                            db.collection(REGIONS_COLLECTION).document(region.code),
+                            updates,
+                            SetOptions.merge()
+                    );
+                }
+
+                batch.commit()
+                        .addOnSuccessListener(unused -> callback.onSuccess(null))
+                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void resetMonthlyPlayerRanking(FirebaseCallback<Void> callback) {
+        db.collection(USERS_COLLECTION)
+                .get()
+                .addOnSuccessListener(usersSnapshot -> {
+                    List<DocumentSnapshot> rankedUsers = new ArrayList<>(usersSnapshot.getDocuments());
+                    rankedUsers.sort((left, right) -> {
+                        User leftUser = left.toObject(User.class);
+                        User rightUser = right.toObject(User.class);
+                        int leftMonthlyStars = leftUser != null ? Math.max(0, leftUser.monthlyStars) : 0;
+                        int rightMonthlyStars = rightUser != null ? Math.max(0, rightUser.monthlyStars) : 0;
+                        return Integer.compare(rightMonthlyStars, leftMonthlyStars);
+                    });
+
+                    WriteBatch batch = db.batch();
+                    applyMonthlyPlayerRankingReset(batch, rankedUsers);
+                    batch.commit()
+                            .addOnSuccessListener(unused -> callback.onSuccess(null))
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void updateRegionPlayerCounts(
+            Map<String, Integer> registeredCountsByRegionName,
+            Map<String, Integer> activeCountsByRegionName,
+            FirebaseCallback<Void> callback
+    ) {
+        ensureDefaultRegions(new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                WriteBatch batch = db.batch();
+
+                for (Region region : DEFAULT_REGIONS) {
+                    Map<String, Object> data = createDefaultRegionData(region.code, 0);
+                    data.put("registeredPlayers", registeredCountsByRegionName.getOrDefault(region.name, 0));
+                    data.put("activePlayers", activeCountsByRegionName.getOrDefault(region.name, 0));
+                    batch.set(
+                            db.collection(REGIONS_COLLECTION).document(region.code),
+                            data,
+                            SetOptions.merge()
+                    );
+                }
+
+                batch.commit()
+                        .addOnSuccessListener(unused -> callback.onSuccess(null))
+                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void refreshRegionPlayerCounts(FirebaseCallback<Void> callback) {
+        getAllUsers(new FirebaseCallback<List<User>>() {
+            @Override
+            public void onSuccess(List<User> users) {
+                Map<String, Integer> registeredCounts = new HashMap<>();
+                Map<String, Integer> activeCounts = new HashMap<>();
+
+                for (User user : users) {
+                    String canonicalRegion = canonicalRegionName(user.region);
+                    if (TextUtils.isEmpty(canonicalRegion)) {
+                        continue;
+                    }
+
+                    registeredCounts.put(
+                            canonicalRegion,
+                            registeredCounts.getOrDefault(canonicalRegion, 0) + 1
+                    );
+
+                    if (isRecentlyActive(user)) {
+                        activeCounts.put(
+                                canonicalRegion,
+                                activeCounts.getOrDefault(canonicalRegion, 0) + 1
+                        );
+                    }
+                }
+
+                updateRegionPlayerCounts(registeredCounts, activeCounts, callback);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public static boolean isRecentlyActive(User user) {
+        return user != null
+                && user.loggedIn
+                && user.lastActiveAt > 0
+                && System.currentTimeMillis() - user.lastActiveAt <= ACTIVE_PLAYER_WINDOW_MS;
+    }
+
+    public void initializeRegions(FirebaseCallback<Void> callback) {
+        ensureDefaultRegions(callback);
+    }
+
+    public void applyPreviousCycleRegionFrame(User user, FirebaseCallback<User> callback) {
+        if (user == null || TextUtils.isEmpty(user.region)) {
+            callback.onSuccess(user);
+            return;
+        }
+
+        ensureDefaultRegions(new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                String code = regionCodeForName(user.region);
+                db.collection(REGIONS_COLLECTION)
+                        .document(code)
+                        .get()
+                        .addOnSuccessListener(documentSnapshot -> {
+                            Region region = documentSnapshot.toObject(Region.class);
+                            if (region == null) {
+                                callback.onSuccess(user);
+                                return;
+                            }
+
+                            ensureRegionDefaults(region, documentSnapshot.getId());
+                            String frame = frameForPreviousRank(region.previousMonthlyRank);
+                            String desiredFrame = frame == null ? "None" : frame;
+                            if (desiredFrame.equals(user.avatarFrame)) {
+                                callback.onSuccess(user);
+                                return;
+                            }
+
+                            user.avatarFrame = desiredFrame;
+                            db.collection(USERS_COLLECTION)
+                                    .document(user.id)
+                                    .update("avatarFrame", desiredFrame)
+                                    .addOnSuccessListener(unused -> callback.onSuccess(user))
+                                    .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                        })
+                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public static String canonicalRegionName(String regionValue) {
+        if (TextUtils.isEmpty(regionValue)) {
+            return "";
+        }
+
+        String value = regionValue.trim();
+        if ("VO".equalsIgnoreCase(value) || "Vojvodina".equalsIgnoreCase(value)) {
+            return "Vojvodina";
+        }
+        if ("BG".equalsIgnoreCase(value)
+                || "Belgrade".equalsIgnoreCase(value)
+                || "Beograd".equalsIgnoreCase(value)) {
+            return "Belgrade";
+        }
+        if ("SW".equalsIgnoreCase(value)
+                || "Sumadija and Western Serbia".equalsIgnoreCase(value)
+                || "Šumadija and Western Serbia".equalsIgnoreCase(value)
+                || "Sumadija i Zapadna Srbija".equalsIgnoreCase(value)
+                || "Šumadija i Zapadna Srbija".equalsIgnoreCase(value)) {
+            return "Sumadija and Western Serbia";
+        }
+        if ("SE".equalsIgnoreCase(value)
+                || "Southern and Eastern Serbia".equalsIgnoreCase(value)
+                || "Juzna and Eastern Serbia".equalsIgnoreCase(value)
+                || "Južna and Eastern Serbia".equalsIgnoreCase(value)
+                || "Juzna i Istocna Srbija".equalsIgnoreCase(value)
+                || "Južna i Istočna Srbija".equalsIgnoreCase(value)) {
+            return "Southern and Eastern Serbia";
+        }
+        if ("KM".equalsIgnoreCase(value)
+                || "Kosovo i Metohija".equalsIgnoreCase(value)
+                || "Kosovo and Metohija".equalsIgnoreCase(value)) {
+            return "Kosovo i Metohija";
+        }
+        return value;
+    }
+
+    public static String regionCodeForName(String regionName) {
+        String canonicalRegionName = canonicalRegionName(regionName);
+        if ("Vojvodina".equals(canonicalRegionName)) {
+            return "VO";
+        }
+        if ("Belgrade".equals(canonicalRegionName)) {
+            return "BG";
+        }
+        if ("Sumadija and Western Serbia".equals(canonicalRegionName)) {
+            return "SW";
+        }
+        if ("Southern and Eastern Serbia".equals(canonicalRegionName)) {
+            return "SE";
+        }
+        if ("Kosovo i Metohija".equals(canonicalRegionName)) {
+            return "KM";
+        }
+        return "RS";
     }
 
     private void ensureUserDefaults(User user, String userId) {
@@ -123,7 +961,7 @@ public class FirestoreRepository {
         }
 
         if (TextUtils.isEmpty(user.username)) {
-            user.username = "Player";
+            user.username = user.guest ? guestUsernameForId(userId) : "Player";
         }
 
         if (TextUtils.isEmpty(user.email)) {
@@ -131,17 +969,16 @@ public class FirestoreRepository {
         }
 
         if (TextUtils.isEmpty(user.region)) {
-            user.region = "Serbia";
+            user.region = user.guest ? "" : "Serbia";
+        } else {
+            user.region = canonicalRegionName(user.region);
         }
 
         if (TextUtils.isEmpty(user.avatar)) {
             user.avatar = "avatar_1";
         }
 
-        if (TextUtils.isEmpty(user.avatarFrame)
-                || user.avatarFrame.equalsIgnoreCase("Diamond")
-                || user.avatarFrame.equalsIgnoreCase("Platinum")
-                || user.avatarFrame.equalsIgnoreCase("Master")) {
+        if (TextUtils.isEmpty(user.avatarFrame)) {
             user.avatarFrame = "None";
         }
 
@@ -150,6 +987,331 @@ public class FirestoreRepository {
                 || user.qrCode.equals("Available for friend invite")) {
             user.qrCode = user.id;
         }
+        if (TextUtils.isEmpty(user.lastTokenGrantDate)) {
+            user.lastTokenGrantDate = todayKey();
+        }
+
+        if (user.earnedStarsSinceLastToken < 0) {
+            user.earnedStarsSinceLastToken = 0;
+        }
+
+        if (TextUtils.isEmpty(user.lastDailyTokenRewardDate)) {
+            user.lastDailyTokenRewardDate = user.lastTokenGrantDate;
+        }
+
+        if (user.currentMatchId == null) {
+            user.currentMatchId = "";
+        }
+
+        if (user.lastSeenAt < 0) {
+            user.lastSeenAt = 0L;
+        }
+
+        if (user.lastActiveAt < 0) {
+            user.lastActiveAt = 0L;
+        }
+
+        user.stars = Math.max(0, user.stars);
+        user.weeklyStars = Math.max(0, user.weeklyStars);
+        user.monthlyStars = Math.max(0, user.monthlyStars);
+        user.weeklyGames = Math.max(0, user.weeklyGames);
+        user.monthlyGames = Math.max(0, user.monthlyGames);
+        ensureUserCycleKeys(user);
+        resetDailyMissionsIfNeeded(user);
+        user.league = LeagueUtils.calculateLeague(user.stars);
+        migrateLegacyInitialTokens(user);
+    }
+
+    private List<User> extractOtherUsers(List<DocumentSnapshot> documents, String currentUserId) {
+        List<User> users = new ArrayList<>();
+
+        for (DocumentSnapshot document : documents) {
+            if (currentUserId.equals(document.getId())) {
+                continue;
+            }
+
+            User user = document.toObject(User.class);
+            if (user == null) {
+                continue;
+            }
+
+            ensureUserDefaults(user, document.getId());
+            if (user.guest) {
+                continue;
+            }
+            users.add(user);
+        }
+
+        return users;
+    }
+
+    private List<User> extractUsersByIds(
+            List<DocumentSnapshot> documents,
+            List<String> userIds,
+            Map<String, Integer> monthlyRanks
+    ) {
+        List<User> users = new ArrayList<>();
+
+        for (DocumentSnapshot document : documents) {
+            if (!userIds.contains(document.getId())) {
+                continue;
+            }
+
+            User user = document.toObject(User.class);
+            if (user == null) {
+                continue;
+            }
+
+            ensureUserDefaults(user, document.getId());
+            if (user.guest) {
+                continue;
+            }
+            Integer monthlyRank = monthlyRanks.get(document.getId());
+            user.currentMonthlyRank = monthlyRank != null ? monthlyRank : 0;
+            users.add(user);
+        }
+
+        users.sort((left, right) -> {
+            boolean leftAvailable = left.loggedIn && TextUtils.isEmpty(left.currentMatchId);
+            boolean rightAvailable = right.loggedIn && TextUtils.isEmpty(right.currentMatchId);
+
+            if (leftAvailable != rightAvailable) {
+                return leftAvailable ? -1 : 1;
+            }
+
+            int monthlyCompare = Integer.compare(right.monthlyStars, left.monthlyStars);
+            if (monthlyCompare != 0) {
+                return monthlyCompare;
+            }
+
+            return left.username.compareToIgnoreCase(right.username);
+        });
+
+        return users;
+    }
+
+    private Map<String, Integer> calculateMonthlyRanks(List<DocumentSnapshot> documents) {
+        List<DocumentSnapshot> rankedDocuments = new ArrayList<>(documents);
+        rankedDocuments.sort((left, right) -> {
+            User leftUser = left.toObject(User.class);
+            User rightUser = right.toObject(User.class);
+            int leftMonthlyStars = leftUser != null ? Math.max(0, leftUser.monthlyStars) : 0;
+            int rightMonthlyStars = rightUser != null ? Math.max(0, rightUser.monthlyStars) : 0;
+            return Integer.compare(rightMonthlyStars, leftMonthlyStars);
+        });
+
+        Map<String, Integer> ranks = new HashMap<>();
+        int rank = 1;
+        for (DocumentSnapshot document : rankedDocuments) {
+            User user = document.toObject(User.class);
+            if (user == null || user.monthlyStars <= 0) {
+                continue;
+            }
+            ranks.put(document.getId(), rank++);
+        }
+
+        return ranks;
+    }
+
+    private void migrateLegacyInitialTokens(User user) {
+        if (user.tokens >= 200 && user.stars < LeagueUtils.getRequiredStars(1)) {
+            user.tokens = LeagueUtils.INITIAL_REGISTRATION_TOKENS;
+            user.lastTokenGrantDate = todayKey();
+            user.lastDailyTokenRewardDate = currentDailyRewardDate();
+        }
+    }
+
+    private boolean applyDailyTokenGrant(User user) {
+        if (user == null || user.guest) {
+            return false;
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDate lastGrantDate;
+
+        try {
+            lastGrantDate = LocalDate.parse(user.lastTokenGrantDate);
+        } catch (Exception exception) {
+            user.lastTokenGrantDate = today.toString();
+            user.lastDailyTokenRewardDate = currentDailyRewardDate();
+            return false;
+        }
+
+        long daysBetween = ChronoUnit.DAYS.between(lastGrantDate, today);
+        if (daysBetween <= 0) {
+            user.lastDailyTokenRewardDate = currentDailyRewardDate();
+            return false;
+        }
+
+        user.tokens += (int) (daysBetween * LeagueUtils.getDailyTokenGrant(user.league));
+        user.lastTokenGrantDate = today.toString();
+        user.lastDailyTokenRewardDate = currentDailyRewardDate();
+        return true;
+    }
+
+    private String currentDailyRewardDate() {
+        return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(new Date());
+    }
+
+    private void applyMonthlyPlayerRankingReset(WriteBatch batch, List<DocumentSnapshot> rankedUsers) {
+        boolean hasMonthlyPlayerResults = false;
+        for (DocumentSnapshot document : rankedUsers) {
+            User user = document.toObject(User.class);
+            if (user != null && user.monthlyStars > 0) {
+                hasMonthlyPlayerResults = true;
+                break;
+            }
+        }
+
+        for (int index = 0; index < rankedUsers.size(); index++) {
+            DocumentSnapshot document = rankedUsers.get(index);
+            User user = document.toObject(User.class);
+            if (user == null) {
+                continue;
+            }
+
+            ensureUserDefaults(user, document.getId());
+            boolean placed = index < MONTHLY_PLAYER_RANKING_PLACES && user.monthlyStars > 0;
+            Map<String, Object> userUpdates = new HashMap<>();
+            userUpdates.put("monthlyStars", 0);
+
+            if (hasMonthlyPlayerResults && !placed) {
+                int previousStars = Math.max(0, user.stars);
+                int previousLeague = user.league;
+                int newStars = (int) Math.floor(previousStars * 0.7);
+                int newLeague = LeagueUtils.calculateLeague(newStars);
+
+                userUpdates.put("stars", newStars);
+                userUpdates.put("league", newLeague);
+
+                if (previousStars != newStars || previousLeague != newLeague) {
+                    addMonthlyRankingPenaltyNotification(
+                            batch,
+                            document.getId(),
+                            previousStars,
+                            newStars,
+                            previousLeague,
+                            newLeague
+                    );
+                }
+            }
+
+            batch.update(db.collection(USERS_COLLECTION).document(document.getId()), userUpdates);
+        }
+    }
+
+    private void ensureDefaultRegions(FirebaseCallback<Void> callback) {
+        WriteBatch batch = db.batch();
+
+        for (Region region : DEFAULT_REGIONS) {
+            batch.set(
+                    db.collection(REGIONS_COLLECTION).document(region.code),
+                    createDefaultRegionData(region.code, 0),
+                    SetOptions.merge()
+            );
+        }
+
+        batch.commit()
+                .addOnSuccessListener(unused -> callback.onSuccess(null))
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    private Map<String, Object> createDefaultRegionData(String regionCode, int monthlyStarsIncrement) {
+        Region defaultRegion = defaultRegionForCode(regionCode);
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", defaultRegion.code);
+        data.put("code", defaultRegion.code);
+        data.put("name", defaultRegion.name);
+        data.put("icon", defaultRegion.icon);
+        data.put("monthlyStars", FieldValue.increment(monthlyStarsIncrement));
+        data.put("firstPlaces", FieldValue.increment(0));
+        data.put("secondPlaces", FieldValue.increment(0));
+        data.put("thirdPlaces", FieldValue.increment(0));
+        data.put("activePlayers", FieldValue.increment(0));
+        data.put("registeredPlayers", FieldValue.increment(0));
+        data.put("previousMonthlyRank", FieldValue.increment(0));
+        return data;
+    }
+
+    private Region defaultRegionForCode(String code) {
+        for (Region region : DEFAULT_REGIONS) {
+            if (region.code.equals(code)) {
+                return region;
+            }
+        }
+        return new Region("RS", "Serbia", "RS");
+    }
+
+    private void ensureRegionDefaults(Region region, String documentId) {
+        if (TextUtils.isEmpty(region.id)) {
+            region.id = documentId;
+        }
+
+        if (TextUtils.isEmpty(region.code)) {
+            region.code = documentId;
+        }
+
+        if (TextUtils.isEmpty(region.name)) {
+            region.name = regionNameForCode(region.code);
+        }
+
+        if (TextUtils.isEmpty(region.icon)) {
+            region.icon = region.code;
+        }
+    }
+
+    private String regionNameForCode(String code) {
+        for (Region region : DEFAULT_REGIONS) {
+            if (region.code.equals(code)) {
+                return region.name;
+            }
+        }
+        return "Serbia";
+    }
+
+    private void incrementRegionRegisteredPlayers(String regionName, FirebaseCallback<Void> callback) {
+        ensureDefaultRegions(new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                db.collection(REGIONS_COLLECTION)
+                        .document(regionCodeForName(regionName))
+                        .update("registeredPlayers", FieldValue.increment(1))
+                        .addOnSuccessListener(unused -> callback.onSuccess(null))
+                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    private int calculateMatchStarDelta(int playerScore, boolean won, boolean lost) {
+        int scoreBonus = Math.max(0, playerScore) / 40;
+
+        if (won) {
+            return 10 + scoreBonus;
+        }
+
+        if (lost) {
+            return scoreBonus - 10;
+        }
+
+        return scoreBonus;
+    }
+
+    private String frameForPreviousRank(int previousMonthlyRank) {
+        if (previousMonthlyRank == 1) {
+            return "Gold";
+        }
+        if (previousMonthlyRank == 2) {
+            return "Silver";
+        }
+        if (previousMonthlyRank == 3) {
+            return "Bronze";
+        }
+        return null;
     }
 
     public void getStatistics(FirebaseCallback<PlayerStatistics> callback) {
@@ -518,6 +1680,7 @@ public class FirestoreRepository {
                     int currentVal = statistics.skockoAttemptsCount.get(attemptIndex);
                     statistics.skockoAttemptsCount.set(attemptIndex, currentVal + 1);
                 }
+                statistics.skockoTotalRounds++;
                 statistics.skockoTotalScore += score;
 
                 db.collection(STATISTICS_COLLECTION).document(userId).set(statistics);
@@ -575,6 +1738,15 @@ public class FirestoreRepository {
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
+    public void getKorakPoKorakRounds(FirebaseCallback<List<KorakPoKorakRound>> callback) {
+        db.collection(KORAK_PO_KORAK_COLLECTION)
+                .limit(10)
+                .get()
+                .addOnSuccessListener(querySnapshot ->
+                        callback.onSuccess(querySnapshot.toObjects(KorakPoKorakRound.class)))
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
     // ── Notifications ─────────────────────────────────────────────────────────
 
     public void saveNotification(String title, String message, String type) {
@@ -582,6 +1754,20 @@ public class FirestoreRepository {
         try {
             userId = requireUserId();
         } catch (IllegalStateException e) {
+            return;
+        }
+
+        saveNotificationForUser(userId, title, message, type, null);
+    }
+
+    public void saveNotificationForUser(
+            String userId,
+            String title,
+            String message,
+            String type,
+            Map<String, Object> extras
+    ) {
+        if (TextUtils.isEmpty(userId)) {
             return;
         }
 
@@ -594,9 +1780,284 @@ public class FirestoreRepository {
         data.put("read", false);
         data.put("createdAt", System.currentTimeMillis());
 
+        if (extras != null && !extras.isEmpty()) {
+            data.putAll(extras);
+        }
+
         db.collection(NOTIFICATIONS_COLLECTION)
                 .add(data)
                 .addOnFailureListener(e -> Log.w(TAG, "Error saving notification", e));
+    }
+
+    public ListenerRegistration listenToRegionalChatMessages(
+            String regionName,
+            FirebaseCallback<List<ChatMessage>> callback
+    ) {
+        String canonicalRegion = canonicalRegionName(regionName);
+        if (TextUtils.isEmpty(canonicalRegion)) {
+            callback.onError(text(
+                    R.string.chat_region_missing,
+                    "Regional chat is not available because the region is missing."
+            ));
+            return null;
+        }
+
+        return db.collection(REGION_CHAT_COLLECTION)
+                .document(regionCodeForName(canonicalRegion))
+                .collection("messages")
+                .orderBy("createdAt")
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+
+                    if (snapshot == null) {
+                        callback.onSuccess(new ArrayList<>());
+                        return;
+                    }
+
+                    List<ChatMessage> messages = new ArrayList<>();
+                    for (DocumentSnapshot document : snapshot.getDocuments()) {
+                        ChatMessage chatMessage = document.toObject(ChatMessage.class);
+                        if (chatMessage == null) {
+                            continue;
+                        }
+
+                        chatMessage.id = document.getId();
+                        if (TextUtils.isEmpty(chatMessage.regionName)) {
+                            chatMessage.regionName = canonicalRegion;
+                        }
+                        messages.add(chatMessage);
+                    }
+                    callback.onSuccess(messages);
+                });
+    }
+
+    public void sendRegionalChatMessage(
+            String regionName,
+            String messageText,
+            FirebaseCallback<Void> callback
+    ) {
+        String userId;
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        String trimmedMessage = messageText == null ? "" : messageText.trim();
+        if (trimmedMessage.isEmpty()) {
+            callback.onError(text(R.string.chat_empty_message_error, "Enter a message."));
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    User user = documentSnapshot.toObject(User.class);
+                    if (user == null) {
+                        callback.onError(text(
+                                R.string.firestore_error_profile_not_found,
+                                "User profile was not found."
+                        ));
+                        return;
+                    }
+
+                    ensureUserDefaults(user, userId);
+                    String canonicalRegion = canonicalRegionName(
+                            TextUtils.isEmpty(regionName) ? user.region : regionName
+                    );
+                    if (TextUtils.isEmpty(canonicalRegion)) {
+                        callback.onError(text(
+                                R.string.chat_region_missing,
+                                "Regional chat is not available because the region is missing."
+                        ));
+                        return;
+                    }
+
+                    Map<String, Object> data = new HashMap<>();
+                    data.put("regionCode", regionCodeForName(canonicalRegion));
+                    data.put("regionName", canonicalRegion);
+                    data.put("senderId", userId);
+                    data.put("senderName", safeUserName(user));
+                    data.put("text", trimmedMessage);
+                    data.put("createdAt", System.currentTimeMillis());
+
+                    db.collection(REGION_CHAT_COLLECTION)
+                            .document(regionCodeForName(canonicalRegion))
+                            .collection("messages")
+                            .add(data)
+                            .addOnSuccessListener(unused -> {
+                                notifyRegionalChatRecipients(
+                                        canonicalRegion,
+                                        userId,
+                                        safeUserName(user),
+                                        trimmedMessage
+                                );
+                                completeDailyMission(MISSION_SEND_CHAT, new FirebaseCallback<Void>() {
+                                    @Override
+                                    public void onSuccess(Void result) {
+                                        callback.onSuccess(null);
+                                    }
+
+                                    @Override
+                                    public void onError(String error) {
+                                        callback.onSuccess(null);
+                                    }
+                                });
+                            })
+                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    private void addLeagueChangeNotification(
+            WriteBatch batch,
+            String userId,
+            int previousLeague,
+            int currentLeague
+    ) {
+        boolean promoted = currentLeague > previousLeague;
+        String title = promoted ? "League promotion" : "League demotion";
+        String message = promoted
+                ? "You advanced to " + LeagueUtils.getLeagueName(currentLeague) + " League."
+                : "You dropped to " + LeagueUtils.getLeagueName(currentLeague) + " League.";
+
+        batch.set(
+                db.collection(NOTIFICATIONS_COLLECTION).document(),
+                notificationData(userId, title, message, "REWARD")
+        );
+        showLeagueSystemNotification(title, message, "REWARD");
+    }
+
+    private void addLeagueChangeNotification(
+            String userId,
+            int previousLeague,
+            int currentLeague
+    ) {
+        boolean promoted = currentLeague > previousLeague;
+        String title = promoted ? "League promotion" : "League demotion";
+        String message = promoted
+                ? "You advanced to " + LeagueUtils.getLeagueName(currentLeague) + " League."
+                : "You dropped to " + LeagueUtils.getLeagueName(currentLeague) + " League.";
+
+        saveNotificationForUser(userId, title, message, "REWARD", null);
+        showLeagueSystemNotification(title, message, "REWARD");
+    }
+
+    private void addMonthlyRankingPenaltyNotification(
+            WriteBatch batch,
+            String userId,
+            int previousStars,
+            int newStars,
+            int previousLeague,
+            int newLeague
+    ) {
+        String message = "You did not place in the monthly player ranking. Stars reduced from "
+                + previousStars + " to " + newStars + ".";
+        if (previousLeague != newLeague) {
+            message += " Current league: " + LeagueUtils.getLeagueName(newLeague) + " League.";
+        }
+
+        batch.set(
+                db.collection(NOTIFICATIONS_COLLECTION).document(),
+                notificationData(userId, "Monthly ranking update", message, "RANKING")
+        );
+
+        if (previousLeague != newLeague) {
+            showLeagueSystemNotification("Monthly ranking update", message, "RANKING");
+        }
+    }
+
+    private void showLeagueSystemNotification(String title, String message, String type) {
+        if (context == null) {
+            return;
+        }
+
+        NotificationHelper.createNotificationChannels(context);
+        NotificationHelper.showSystemNotification(context, title, message, type, false);
+    }
+
+    private Map<String, Object> notificationData(String userId, String title, String message, String type) {
+        Map<String, Object> data = new HashMap<>();
+        data.put("userId", userId);
+        data.put("title", title);
+        data.put("message", message);
+        data.put("typeString", type != null ? type.toUpperCase() : "OTHER");
+        data.put("timestamp", new SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(new Date()));
+        data.put("read", false);
+        data.put("createdAt", System.currentTimeMillis());
+        return data;
+    }
+
+    private void notifyRegionalChatRecipients(
+            String regionName,
+            String senderId,
+            String senderName,
+            String messageText
+    ) {
+        db.collection(USERS_COLLECTION)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                        if (senderId.equals(document.getId())) {
+                            continue;
+                        }
+
+                        User user = document.toObject(User.class);
+                        if (user == null) {
+                            continue;
+                        }
+
+                        ensureUserDefaults(user, document.getId());
+                        if (!canonicalRegionName(user.region).equals(regionName)) {
+                            continue;
+                        }
+
+                        Map<String, Object> extras = new HashMap<>();
+                        extras.put("senderId", senderId);
+                        extras.put("senderName", senderName);
+                        extras.put("regionName", regionName);
+
+                        saveNotificationForUser(
+                                document.getId(),
+                                text(R.string.chat_notification_title, "Regional chat"),
+                                senderName + ": " + notificationPreview(messageText),
+                                "CHAT",
+                                extras
+                        );
+                    }
+                })
+                .addOnFailureListener(e ->
+                        Log.w(TAG, "Error notifying regional chat recipients", e)
+                );
+    }
+
+    private String notificationPreview(String messageText) {
+        String preview = messageText == null ? "" : messageText.trim();
+        if (preview.length() <= 80) {
+            return preview;
+        }
+        return preview.substring(0, 77) + "...";
+    }
+
+    private String safeUserName(User user) {
+        if (user == null || TextUtils.isEmpty(user.username)) {
+            return text(R.string.chat_player_fallback, "Player");
+        }
+        return user.username.trim();
+    }
+
+    private String guestUsernameForId(String userId) {
+        if (TextUtils.isEmpty(userId)) {
+            return "Guest";
+        }
+
+        String suffix = userId.substring(0, Math.min(6, userId.length())).toUpperCase(Locale.US);
+        return "Guest-" + suffix;
     }
 
     public void getNotifications(FirebaseCallback<List<Notification>> callback) {
@@ -635,6 +2096,81 @@ public class FirestoreRepository {
                 .addOnFailureListener(e -> Log.w(TAG, "Error marking notification as read", e));
     }
 
+    public void markCurrentUserChatNotificationsRead() {
+        String userId;
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            return;
+        }
+
+        db.collection(NOTIFICATIONS_COLLECTION)
+                .whereEqualTo("userId", userId)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    for (DocumentSnapshot document : querySnapshot.getDocuments()) {
+                        if (!isUnreadChatNotification(document)) {
+                            continue;
+                        }
+
+                        document.getReference()
+                                .update("read", true)
+                                .addOnFailureListener(updateError ->
+                                        Log.w(TAG, "Error marking chat notification as read", updateError)
+                                );
+                    }
+                })
+                .addOnFailureListener(e ->
+                        Log.w(TAG, "Error loading chat notifications for read update", e)
+                );
+    }
+
+    public ListenerRegistration listenToUnreadChatNotificationCount(
+            FirebaseCallback<Integer> callback
+    ) {
+        String userId;
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return null;
+        }
+
+        return db.collection(NOTIFICATIONS_COLLECTION)
+                .whereEqualTo("userId", userId)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+
+                    if (snapshot == null) {
+                        callback.onSuccess(0);
+                        return;
+                    }
+
+                    int unreadCount = 0;
+                    for (DocumentSnapshot document : snapshot.getDocuments()) {
+                        if (isUnreadChatNotification(document)) {
+                            unreadCount++;
+                        }
+                    }
+
+                    callback.onSuccess(unreadCount);
+                });
+    }
+
+    private boolean isUnreadChatNotification(DocumentSnapshot document) {
+        if (document == null) {
+            return false;
+        }
+
+        String typeString = document.getString("typeString");
+        boolean isChat = "CHAT".equalsIgnoreCase(typeString);
+        boolean isRead = Boolean.TRUE.equals(document.getBoolean("read"));
+        return isChat && !isRead;
+    }
+
     private Notification notificationFromDocument(com.google.firebase.firestore.DocumentSnapshot doc) {
         Notification n = new Notification();
         n.id = doc.getId();
@@ -648,7 +2184,338 @@ public class FirestoreRepository {
         Long createdAt = doc.getLong("createdAt");
         n.createdAt = createdAt != null ? createdAt : 0L;
         n.userId = doc.getString("userId");
+        n.senderId = doc.getString("senderId");
+        n.senderName = doc.getString("senderName");
+        n.relatedMatchId = doc.getString("relatedMatchId");
+        n.invitationStatus = doc.getString("invitationStatus");
+        Boolean friendlyMatch = doc.getBoolean("friendlyMatch");
+        n.friendlyMatch = friendlyMatch != null && friendlyMatch;
+        Long expiresAt = doc.getLong("expiresAt");
+        n.expiresAt = expiresAt != null ? expiresAt : 0L;
         return n;
+    }
+
+    public void updateNotificationInviteStatus(
+            String notificationId,
+            String invitationStatus,
+            boolean read
+    ) {
+        if (TextUtils.isEmpty(notificationId)) {
+            return;
+        }
+
+        Map<String, Object> updates = new HashMap<>();
+        updates.put("invitationStatus", invitationStatus);
+        updates.put("read", read);
+
+        db.collection(NOTIFICATIONS_COLLECTION)
+                .document(notificationId)
+                .update(updates)
+                .addOnFailureListener(e -> Log.w(TAG, "Error updating notification status", e));
+    }
+
+    public void getUserById(String userId, FirebaseCallback<User> callback) {
+        if (TextUtils.isEmpty(userId)) {
+            callback.onError("User was not found.");
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    User user = documentSnapshot.toObject(User.class);
+
+                    if (user == null) {
+                        callback.onError("User was not found.");
+                        return;
+                    }
+
+                    ensureUserDefaults(user, userId);
+                    callback.onSuccess(user);
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void searchUsersByUsername(String usernameQuery, FirebaseCallback<List<User>> callback) {
+        String currentUserId;
+
+        try {
+            currentUserId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        String query = usernameQuery == null ? "" : usernameQuery.trim();
+        if (TextUtils.isEmpty(query)) {
+            callback.onError("Enter a username.");
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .orderBy("username")
+                .startAt(query)
+                .endAt(query + "\uf8ff")
+                .limit(10)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    List<User> users = extractOtherUsers(querySnapshot.getDocuments(), currentUserId);
+                    callback.onSuccess(users);
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public void addFriend(String friendUserId, FirebaseCallback<Void> callback) {
+        String currentUserId;
+
+        try {
+            currentUserId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        if (TextUtils.isEmpty(friendUserId) || currentUserId.equals(friendUserId)) {
+            callback.onError("Select a valid player.");
+            return;
+        }
+
+        getUserById(friendUserId, new FirebaseCallback<User>() {
+            @Override
+            public void onSuccess(User user) {
+                Map<String, Object> currentFriendData = new HashMap<>();
+                currentFriendData.put("friendId", friendUserId);
+                currentFriendData.put("createdAt", System.currentTimeMillis());
+
+                Map<String, Object> targetFriendData = new HashMap<>();
+                targetFriendData.put("friendId", currentUserId);
+                targetFriendData.put("createdAt", System.currentTimeMillis());
+
+                WriteBatch batch = db.batch();
+                batch.set(
+                        db.collection(USERS_COLLECTION)
+                                .document(currentUserId)
+                                .collection(FRIENDS_COLLECTION)
+                                .document(friendUserId),
+                        currentFriendData,
+                        SetOptions.merge()
+                );
+                batch.set(
+                        db.collection(USERS_COLLECTION)
+                                .document(friendUserId)
+                                .collection(FRIENDS_COLLECTION)
+                                .document(currentUserId),
+                        targetFriendData,
+                        SetOptions.merge()
+                );
+                batch.commit()
+                        .addOnSuccessListener(unused -> callback.onSuccess(null))
+                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void addFriendByQrCode(String qrCode, FirebaseCallback<User> callback) {
+        String code = qrCode == null ? "" : qrCode.trim();
+        if (TextUtils.isEmpty(code)) {
+            callback.onError("QR code is empty.");
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .whereEqualTo("qrCode", code)
+                .limit(1)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    DocumentSnapshot document = querySnapshot.isEmpty()
+                            ? null
+                            : querySnapshot.getDocuments().get(0);
+
+                    if (document == null) {
+                        document = null;
+                    }
+
+                    if (document == null && !TextUtils.isEmpty(code)) {
+                        db.collection(USERS_COLLECTION)
+                                .document(code)
+                                .get()
+                                .addOnSuccessListener(idDocument -> addFriendFromDocument(idDocument, callback))
+                                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                        return;
+                    }
+
+                    addFriendFromDocument(document, callback);
+                })
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    private void addFriendFromDocument(DocumentSnapshot document, FirebaseCallback<User> callback) {
+        if (document == null || !document.exists()) {
+            callback.onError("Player was not found.");
+            return;
+        }
+
+        User user = document.toObject(User.class);
+        if (user == null) {
+            callback.onError("Player was not found.");
+            return;
+        }
+
+        ensureUserDefaults(user, document.getId());
+        addFriend(document.getId(), new FirebaseCallback<Void>() {
+            @Override
+            public void onSuccess(Void result) {
+                callback.onSuccess(user);
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
+            }
+        });
+    }
+
+    public void getOtherUsers(FirebaseCallback<List<User>> callback) {
+        String currentUserId;
+
+        try {
+            currentUserId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return;
+        }
+
+        db.collection(USERS_COLLECTION)
+                .get()
+                .addOnSuccessListener(querySnapshot ->
+                        callback.onSuccess(extractOtherUsers(querySnapshot.getDocuments(), currentUserId))
+                )
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    public ListenerRegistration listenToOtherUsers(FirebaseCallback<List<User>> callback) {
+        String currentUserId;
+
+        try {
+            currentUserId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return null;
+        }
+
+        return db.collection(USERS_COLLECTION)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+
+                    if (snapshot == null) {
+                        callback.onSuccess(new ArrayList<>());
+                        return;
+                    }
+
+                    callback.onSuccess(extractOtherUsers(snapshot.getDocuments(), currentUserId));
+                });
+    }
+
+    public ListenerRegistration listenToFriends(FirebaseCallback<List<User>> callback) {
+        String currentUserId;
+
+        try {
+            currentUserId = requireUserId();
+        } catch (IllegalStateException e) {
+            callback.onError(e.getMessage());
+            return null;
+        }
+
+        final List<String> friendIds = new ArrayList<>();
+        final List<DocumentSnapshot> userDocuments = new ArrayList<>();
+        final boolean[] hasFriendSnapshot = {false};
+        final boolean[] hasUserSnapshot = {false};
+
+        class Emitter {
+            void emitIfReady() {
+                if (!hasFriendSnapshot[0] || !hasUserSnapshot[0]) {
+                    return;
+                }
+
+                callback.onSuccess(extractUsersByIds(
+                        userDocuments,
+                        new ArrayList<>(friendIds),
+                        calculateMonthlyRanks(userDocuments)
+                ));
+            }
+        }
+
+        Emitter emitter = new Emitter();
+
+        ListenerRegistration friendsRegistration = db.collection(USERS_COLLECTION)
+                .document(currentUserId)
+                .collection(FRIENDS_COLLECTION)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+
+                    friendIds.clear();
+                    if (snapshot != null) {
+                        for (DocumentSnapshot document : snapshot.getDocuments()) {
+                            friendIds.add(document.getId());
+                        }
+                    }
+
+                    hasFriendSnapshot[0] = true;
+                    emitter.emitIfReady();
+                });
+
+        ListenerRegistration usersRegistration = db.collection(USERS_COLLECTION)
+                .addSnapshotListener((snapshot, error) -> {
+                    if (error != null) {
+                        callback.onError(error.getMessage());
+                        return;
+                    }
+
+                    userDocuments.clear();
+                    if (snapshot != null) {
+                        userDocuments.addAll(snapshot.getDocuments());
+                    }
+
+                    hasUserSnapshot[0] = true;
+                    emitter.emitIfReady();
+                });
+
+        return () -> {
+            friendsRegistration.remove();
+            usersRegistration.remove();
+        };
+    }
+
+    public void markCurrentUserLoggedIn() {
+        updateCurrentUserPresence(Boolean.TRUE, null, null, null);
+    }
+
+    public void markCurrentUserInApp(boolean inApp) {
+        updateCurrentUserPresence(null, inApp, null, null);
+    }
+
+    public void setCurrentUserMatch(String matchId) {
+        updateCurrentUserPresence(null, null, matchId, null);
+    }
+
+    public void clearCurrentUserMatch() {
+        updateCurrentUserPresence(null, null, "", null);
+    }
+
+    public void markCurrentUserLoggedOut(FirebaseCallback<Void> callback) {
+        markCurrentUserInactive(callback);
     }
 
     private String requireUserId() {
@@ -678,5 +2545,246 @@ public class FirestoreRepository {
 
     private String text(int resId, String fallback) {
         return context != null ? context.getString(resId) : fallback;
+    }
+
+    private boolean applyDailyTokenGrantIfNeeded(User user) {
+        return applyDailyTokenGrant(user);
+    }
+
+    private void updateCurrentUserPresence(
+            Boolean loggedIn,
+            Boolean inApp,
+            String currentMatchId,
+            FirebaseCallback<Void> callback
+    ) {
+        String userId;
+
+        try {
+            userId = requireUserId();
+        } catch (IllegalStateException e) {
+            if (callback != null) {
+                callback.onError(e.getMessage());
+            }
+            return;
+        }
+
+        Map<String, Object> updates = new HashMap<>();
+        if (loggedIn != null) {
+            updates.put("loggedIn", loggedIn);
+        }
+        if (inApp != null) {
+            updates.put("inApp", inApp);
+        }
+        if (currentMatchId != null) {
+            updates.put("currentMatchId", currentMatchId);
+        }
+        updates.put("lastSeenAt", System.currentTimeMillis());
+
+        db.collection(USERS_COLLECTION)
+                .document(userId)
+                .set(updates, SetOptions.merge())
+                .addOnSuccessListener(unused -> {
+                    if (callback != null) {
+                        callback.onSuccess(null);
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    if (callback != null) {
+                        callback.onError(e.getMessage());
+                    }
+                });
+    }
+
+    private void applyRankingCycleRefresh(
+            WriteBatch batch,
+            List<DocumentSnapshot> documents,
+            String type,
+            String currentCycleKey
+    ) {
+        Map<String, List<DocumentSnapshot>> endedCycles = new HashMap<>();
+        for (DocumentSnapshot document : documents) {
+            User user = document.toObject(User.class);
+            if (user == null) {
+                continue;
+            }
+            if (TextUtils.isEmpty(user.id)) {
+                user.id = document.getId();
+            }
+            String userCycleKey = RANKING_MONTHLY.equals(type) ? user.monthlyCycleKey : user.weeklyCycleKey;
+            int cycleGames = RANKING_MONTHLY.equals(type) ? user.monthlyGames : user.weeklyGames;
+            String lastRewardCycle = RANKING_MONTHLY.equals(type) ? user.lastMonthlyRewardCycle : user.lastWeeklyRewardCycle;
+            boolean alreadyRewarded = !TextUtils.isEmpty(userCycleKey) && userCycleKey.equals(lastRewardCycle);
+            if (!TextUtils.isEmpty(userCycleKey)
+                    && !currentCycleKey.equals(userCycleKey)
+                    && cycleGames > 0
+                    && !alreadyRewarded) {
+                if (!endedCycles.containsKey(userCycleKey)) {
+                    endedCycles.put(userCycleKey, new ArrayList<>());
+                }
+                endedCycles.get(userCycleKey).add(document);
+            }
+        }
+
+        for (Map.Entry<String, List<DocumentSnapshot>> entry : endedCycles.entrySet()) {
+            List<DocumentSnapshot> rankedDocuments = entry.getValue();
+            rankedDocuments.sort((left, right) -> {
+                User leftUser = left.toObject(User.class);
+                User rightUser = right.toObject(User.class);
+                int leftStars = getCycleStars(leftUser, type);
+                int rightStars = getCycleStars(rightUser, type);
+                return Integer.compare(rightStars, leftStars);
+            });
+
+            for (int index = 0; index < rankedDocuments.size(); index++) {
+                DocumentSnapshot document = rankedDocuments.get(index);
+                User user = document.toObject(User.class);
+                if (user == null) {
+                    continue;
+                }
+                if (TextUtils.isEmpty(user.id)) {
+                    user.id = document.getId();
+                }
+                if (TextUtils.isEmpty(user.username)) {
+                    user.username = "Player";
+                }
+                user.tokens = Math.max(0, user.tokens);
+                user.stars = Math.max(0, user.stars);
+                user.weeklyStars = Math.max(0, user.weeklyStars);
+                user.monthlyStars = Math.max(0, user.monthlyStars);
+                user.weeklyGames = Math.max(0, user.weeklyGames);
+                user.monthlyGames = Math.max(0, user.monthlyGames);
+
+                int rewardTokens = rankingRewardTokens(index + 1, type);
+                if (rewardTokens > 0) {
+                    String title = RANKING_MONTHLY.equals(type) ? "Monthly ranking reward" : "Weekly ranking reward";
+                    String message = "You placed #" + (index + 1) + " and earned " + rewardTokens + " tokens.";
+                    batch.set(
+                            db.collection(NOTIFICATIONS_COLLECTION).document(),
+                            notificationData(document.getId(), title, message, "RANKING")
+                    );
+                    if (document.getId().equals(currentFirebaseUserIdOrEmpty())) {
+                        showLeagueSystemNotification(title, message, "RANKING");
+                    }
+                }
+
+                Map<String, Object> userUpdates = new HashMap<>();
+                if (rewardTokens > 0) {
+                    userUpdates.put("tokens", FieldValue.increment(rewardTokens));
+                }
+                if (RANKING_MONTHLY.equals(type)) {
+                    userUpdates.put("monthlyStars", 0);
+                    userUpdates.put("monthlyGames", 0);
+                    userUpdates.put("monthlyCycleKey", currentCycleKey);
+                    userUpdates.put("lastMonthlyRewardCycle", entry.getKey());
+                } else {
+                    userUpdates.put("weeklyStars", 0);
+                    userUpdates.put("weeklyGames", 0);
+                    userUpdates.put("weeklyCycleKey", currentCycleKey);
+                    userUpdates.put("lastWeeklyRewardCycle", entry.getKey());
+                }
+                batch.set(db.collection(USERS_COLLECTION).document(document.getId()), userUpdates, SetOptions.merge());
+            }
+        }
+    }
+
+    private int getCycleStars(User user, String type) {
+        if (user == null) {
+            return 0;
+        }
+        return RANKING_MONTHLY.equals(type) ? Math.max(0, user.monthlyStars) : Math.max(0, user.weeklyStars);
+    }
+
+    private int rankingRewardTokens(int rank, String type) {
+        if (rank <= 0 || rank > 10) {
+            return 0;
+        }
+        boolean monthly = RANKING_MONTHLY.equals(type);
+        if (rank == 1) {
+            return monthly ? 10 : 5;
+        }
+        if (rank == 2) {
+            return monthly ? 6 : 3;
+        }
+        if (rank == 3) {
+            return monthly ? 4 : 2;
+        }
+        return monthly ? 2 : 1;
+    }
+
+    private void markRankingGamePlayed(User user) {
+        if (user == null) {
+            return;
+        }
+        ensureUserCycleKeys(user);
+        user.weeklyGames++;
+        user.monthlyGames++;
+    }
+    private void applyPositiveStars(User user, int starDelta) {
+        if (user == null || starDelta <= 0) {
+            return;
+        }
+        ensureUserCycleKeys(user);
+        user.stars = Math.max(0, user.stars + starDelta);
+        user.weeklyStars += starDelta;
+        user.monthlyStars += starDelta;
+        user.league = LeagueUtils.calculateLeague(user.stars);
+    }
+
+    private void ensureUserCycleKeys(User user) {
+        String weeklyCycleKey = currentWeeklyCycleKey();
+        String monthlyCycleKey = currentMonthlyCycleKey();
+        if (!weeklyCycleKey.equals(user.weeklyCycleKey)
+                && canMoveToNewRankingCycle(user.weeklyCycleKey, user.lastWeeklyRewardCycle, user.weeklyGames)) {
+            user.weeklyCycleKey = weeklyCycleKey;
+            user.weeklyStars = 0;
+            user.weeklyGames = 0;
+        }
+        if (!monthlyCycleKey.equals(user.monthlyCycleKey)
+                && canMoveToNewRankingCycle(user.monthlyCycleKey, user.lastMonthlyRewardCycle, user.monthlyGames)) {
+            user.monthlyCycleKey = monthlyCycleKey;
+            user.monthlyStars = 0;
+            user.monthlyGames = 0;
+        }
+    }
+
+    private boolean canMoveToNewRankingCycle(String cycleKey, String lastRewardCycle, int cycleGames) {
+        return TextUtils.isEmpty(cycleKey) || cycleGames <= 0 || cycleKey.equals(lastRewardCycle);
+    }
+
+    private void resetDailyMissionsIfNeeded(User user) {
+        String today = currentDailyRewardDate();
+        if (today.equals(user.dailyMissionDate)) {
+            return;
+        }
+        user.dailyMissionDate = today;
+        user.dailyMissionWinMatch = false;
+        user.dailyMissionSendChat = false;
+        user.dailyMissionPlayFriendly = false;
+        user.dailyMissionWinTournament = false;
+        user.dailyMissionBonusClaimed = false;
+    }
+
+    private String currentWeeklyCycleKey() {
+        LocalDate today = LocalDate.now();
+        WeekFields weekFields = WeekFields.ISO;
+        return today.getYear() + "-W" + String.format(Locale.US, "%02d", today.get(weekFields.weekOfWeekBasedYear()));
+    }
+
+    private String currentMonthlyCycleKey() {
+        return new SimpleDateFormat("yyyy-MM", Locale.US).format(new Date());
+    }
+
+    private String formatCycleRange(LocalDate start, LocalDate end) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.US);
+        return start.format(formatter) + " - " + end.format(formatter);
+    }
+
+    private String currentFirebaseUserIdOrEmpty() {
+        return FirebaseAuth.getInstance().getCurrentUser() == null
+                ? ""
+                : FirebaseAuth.getInstance().getCurrentUser().getUid();
+    }
+    private String todayKey() {
+        return LocalDate.now().toString();
     }
 }

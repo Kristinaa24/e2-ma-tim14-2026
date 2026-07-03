@@ -255,49 +255,64 @@
                 android:textSize="12sp"
                 android:textStyle="bold" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="@string/my_number_player_one_expression_title"
-                android:textColor="@color/slagalica_dark_blue"
-                android:textSize="12sp"
-                android:textStyle="bold" />
-
-            <EditText
-                android:id="@+id/playerOneExpressionInput"
+            <LinearLayout
+                android:id="@+id/playerOneExpressionContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:background="@android:color/transparent"
-                android:hint="@string/enter_expression_hint"
-                android:inputType="text"
-                android:paddingBottom="8dp"
-                android:textColor="@color/slagalica_text"
-                android:textColorHint="@color/slagalica_text"
-                android:textSize="@dimen/small_text_size" />
+                android:orientation="vertical">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:text="@string/my_number_player_two_expression_title"
-                android:textColor="@color/slagalica_dark_blue"
-                android:textSize="12sp"
-                android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/playerOneExpressionTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/my_number_player_one_expression_title"
+                    android:textColor="@color/slagalica_dark_blue"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
 
-            <EditText
-                android:id="@+id/playerTwoExpressionInput"
+                <EditText
+                    android:id="@+id/playerOneExpressionInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@android:color/transparent"
+                    android:hint="@string/enter_expression_hint"
+                    android:inputType="text"
+                    android:paddingBottom="8dp"
+                    android:textColor="@color/slagalica_text"
+                    android:textColorHint="@color/slagalica_text"
+                    android:textSize="@dimen/small_text_size" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/playerTwoExpressionContainer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="6dp"
-                android:background="@android:color/transparent"
-                android:hint="@string/enter_expression_hint"
-                android:inputType="text"
-                android:paddingBottom="8dp"
-                android:textColor="@color/slagalica_text"
-                android:textColorHint="@color/slagalica_text"
-                android:textSize="@dimen/small_text_size" />
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:text="@string/my_number_player_two_expression_title"
+                    android:textColor="@color/slagalica_dark_blue"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/playerTwoExpressionInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:background="@android:color/transparent"
+                    android:hint="@string/enter_expression_hint"
+                    android:inputType="text"
+                    android:paddingBottom="8dp"
+                    android:textColor="@color/slagalica_text"
+                    android:textColorHint="@color/slagalica_text"
+                    android:textSize="@dimen/small_text_size" />
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"

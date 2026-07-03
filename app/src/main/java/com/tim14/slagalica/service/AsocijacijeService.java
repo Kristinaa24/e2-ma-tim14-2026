@@ -31,18 +31,12 @@ public class AsocijacijeService {
 
     public boolean canGuessColumn(int col) {
         if (columnSolved[col] || finalSolved || !hasOpenedFieldThisTurn) return false;
-        for (int i = 0; i < 4; i++) {
-            if (openedFields[col][i]) return true;
-        }
-        return false;
+        return true;
     }
 
     public boolean canGuessFinal() {
         if (finalSolved || !hasOpenedFieldThisTurn) return false;
-        for (int i = 0; i < 4; i++) {
-            if (columnSolved[i]) return true;
-        }
-        return false;
+        return true;
     }
 
     public int checkColumnSolution(int col, String attempt) {
@@ -58,6 +52,8 @@ public class AsocijacijeService {
             revealColumn(col);
             
             addPoints(points);
+            // After successful column guess, player can guess again
+            hasOpenedFieldThisTurn = true;
             return points;
         }
         return -1; // Wrong
@@ -106,6 +102,11 @@ public class AsocijacijeService {
 
     public void nextTurn() {
         currentPlayer = (currentPlayer == 1) ? 2 : 1;
+        hasOpenedFieldThisTurn = false;
+    }
+
+    public void resetSoloTurn() {
+        currentPlayer = 1;
         hasOpenedFieldThisTurn = false;
     }
 

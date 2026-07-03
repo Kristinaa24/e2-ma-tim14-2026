@@ -221,16 +221,13 @@ public class StatisticsService {
         }
     }
 
-    public StatisticsUiData prepareStatistics(PlayerStatistics statistics) {
-        if (statistics == null) {
-            statistics = new PlayerStatistics();
-        }
+    public StatisticsUiData prepareStatistics(PlayerStatistics stats) {
+        final PlayerStatistics statistics = stats != null ? stats : new PlayerStatistics();
 
         int totalKoZnaZnaAnswers =
                 statistics.koZnaZnaCorrect + statistics.koZnaZnaWrong;
-        int decidedMatches = statistics.wins + statistics.losses;
-        int winPercent = calculatePercent(statistics.wins, decidedMatches);
-        int lossPercent = calculatePercent(statistics.losses, decidedMatches);
+        int winPercent = calculatePercent(statistics.wins, statistics.gamesPlayed);
+        int lossPercent = calculatePercent(statistics.losses, statistics.gamesPlayed);
         int koZnaZnaSuccessPercent = calculatePercent(
                 statistics.koZnaZnaCorrect,
                 totalKoZnaZnaAnswers
@@ -272,11 +269,11 @@ public class StatisticsService {
         int[] skockoAttemptCounts = normalizeSkockoAttempts(statistics);
         int[] skockoAttemptPercents = calculateSkockoAttemptPercents(
                 skockoAttemptCounts,
-                statistics.skockoSolvedCount
+                statistics.skockoTotalRounds
         );
         int skockoSuccessPercent = calculatePercent(
                 statistics.skockoSolvedCount,
-                Math.max(statistics.skockoSolvedCount, sum(skockoAttemptCounts))
+                statistics.skockoTotalRounds
         );
         String korakPoKorakBestStep = statistics.korakPoKorakBestStep > 0
                 ? String.valueOf(statistics.korakPoKorakBestStep)
@@ -348,9 +345,9 @@ public class StatisticsService {
         }
 
         int count = Math.min(attempts.length, statistics.skockoAttemptsCount.size());
-        for (int index = 0; index < count; index++) {
-            Integer value = statistics.skockoAttemptsCount.get(index);
-            attempts[index] = value == null ? 0 : Math.max(0, value);
+        for (int i = 0; i < count; i++) {
+            Integer value = statistics.skockoAttemptsCount.get(i);
+            attempts[i] = value == null ? 0 : Math.max(0, value);
         }
 
         return attempts;

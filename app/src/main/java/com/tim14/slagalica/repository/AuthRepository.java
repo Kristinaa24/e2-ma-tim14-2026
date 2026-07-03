@@ -72,6 +72,12 @@ public class AuthRepository {
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
+    public void signInAnonymously(FirebaseCallback<FirebaseUser> callback) {
+        auth.signInAnonymously()
+                .addOnSuccessListener(result -> callback.onSuccess(result.getUser()))
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
     public void sendEmailVerification(FirebaseUser user, FirebaseCallback<Void> callback) {
         if (user == null) {
             callback.onError(text(

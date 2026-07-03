@@ -37,6 +37,7 @@ public class PlayerStatistics {
 
     public int skockoTotalScore;
     public int skockoSolvedCount;
+    public int skockoTotalRounds;
     public List<Integer> skockoAttemptsCount = new ArrayList<>(); // 0: 1st attempt, 1: 2nd, ...
 
     public int asocijacijeSolved;
@@ -75,6 +76,7 @@ public class PlayerStatistics {
         this.mojBrojTotalScore = 0;
         this.skockoTotalScore = 0;
         this.skockoSolvedCount = 0;
+        this.skockoTotalRounds = 0;
         this.asocijacijeSolved = 0;
         this.asocijacijeUnsolved = 0;
         this.asocijacijeTotalScore = 0;

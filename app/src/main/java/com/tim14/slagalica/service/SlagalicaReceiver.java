@@ -22,7 +22,7 @@ public class SlagalicaReceiver extends BroadcastReceiver {
             if (message == null) message = "You have a new update!";
 
             // Trigger the actual system notification
-            NotificationHelper.showSystemNotification(context, title, message, type);
+            NotificationHelper.showSystemNotification(context, title, message, type, false);
         }
     }
 }
