@@ -56,6 +56,7 @@ public class FirestoreRepository {
     private static final String FRIENDS_COLLECTION = "friends";
     private static final long ACTIVE_PLAYER_WINDOW_MS = 10 * 60 * 1000;
     private static final int MONTHLY_PLAYER_RANKING_PLACES = 10;
+    private static boolean rankingRewardRefreshRunning = false;
     public static final String RANKING_WEEKLY = "weekly";
     public static final String RANKING_MONTHLY = "monthly";
     public static final String MISSION_WIN_MATCH = "WIN_MATCH";
@@ -397,6 +398,14 @@ public class FirestoreRepository {
     }
 
     public void refreshRankingRewards(FirebaseCallback<Void> callback) {
+        synchronized (FirestoreRepository.class) {
+            if (rankingRewardRefreshRunning) {
+                callback.onSuccess(null);
+                return;
+            }
+            rankingRewardRefreshRunning = true;
+        }
+
         db.collection(USERS_COLLECTION)
                 .get()
                 .addOnSuccessListener(querySnapshot -> {
@@ -405,10 +414,25 @@ public class FirestoreRepository {
                     applyRankingCycleRefresh(batch, documents, RANKING_WEEKLY, currentWeeklyCycleKey());
                     applyRankingCycleRefresh(batch, documents, RANKING_MONTHLY, currentMonthlyCycleKey());
                     batch.commit()
-                            .addOnSuccessListener(unused -> callback.onSuccess(null))
-                            .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                            .addOnSuccessListener(unused -> {
+                                finishRankingRewardRefresh();
+                                callback.onSuccess(null);
+                            })
+                            .addOnFailureListener(e -> {
+                                finishRankingRewardRefresh();
+                                callback.onError(e.getMessage());
+                            });
                 })
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                .addOnFailureListener(e -> {
+                    finishRankingRewardRefresh();
+                    callback.onError(e.getMessage());
+                });
+    }
+
+    private void finishRankingRewardRefresh() {
+        synchronized (FirestoreRepository.class) {
+            rankingRewardRefreshRunning = false;
+        }
     }
 
     public void getDailyMissionStatus(FirebaseCallback<DailyMissionStatus> callback) {

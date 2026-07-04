@@ -1080,24 +1080,21 @@ public class HomeActivity extends AppCompatActivity {
                 if (notifications == null) {
                     return;
                 }
+
+                Notification rewardNotification = null;
                 for (Notification notification : notifications) {
-                    if (notification == null || notification.read) {
-                        continue;
+                    if (isUnreadRankingRewardNotification(notification)) {
+                        rewardNotification = notification;
+                        break;
                     }
-                    boolean rankingReward = "RANKING".equalsIgnoreCase(notification.typeString)
-                            && notification.title != null
-                            && notification.title.toLowerCase(Locale.US).contains("ranking reward");
-                    boolean rewardMessage = notification.message != null
-                            && (notification.message.toLowerCase(Locale.US).contains("earned")
-                            || notification.message.toLowerCase(Locale.US).contains("tokens"));
-                    if (!rankingReward || !rewardMessage) {
-                        continue;
-                    }
-                    rewardDialogShown = true;
-                    firestoreRepository.markNotificationAsRead(notification.id);
-                    showRewardAnimationDialog(notification.title, notification.message);
+                }
+                if (rewardNotification == null) {
                     return;
                 }
+
+                rewardDialogShown = true;
+                markMatchingRewardNotificationsRead(notifications, rewardNotification);
+                showRewardAnimationDialog(rewardNotification.title, rewardNotification.message);
             }
 
             @Override
@@ -1105,6 +1102,32 @@ public class HomeActivity extends AppCompatActivity {
                 Log.w(TAG, "Reward dialog lookup failed: " + error);
             }
         });
+    }
+
+    private boolean isUnreadRankingRewardNotification(Notification notification) {
+        if (notification == null || notification.read) {
+            return false;
+        }
+        boolean rankingReward = "RANKING".equalsIgnoreCase(notification.typeString)
+                && notification.title != null
+                && notification.title.toLowerCase(Locale.US).contains("ranking reward");
+        boolean rewardMessage = notification.message != null
+                && (notification.message.toLowerCase(Locale.US).contains("earned")
+                || notification.message.toLowerCase(Locale.US).contains("tokens"));
+        return rankingReward && rewardMessage;
+    }
+
+    private void markMatchingRewardNotificationsRead(List<Notification> notifications, Notification selectedNotification) {
+        for (Notification notification : notifications) {
+            if (!isUnreadRankingRewardNotification(notification)) {
+                continue;
+            }
+            boolean sameReward = TextUtils.equals(notification.title, selectedNotification.title)
+                    && TextUtils.equals(notification.message, selectedNotification.message);
+            if (sameReward) {
+                firestoreRepository.markNotificationAsRead(notification.id);
+            }
+        }
     }
 
     private void showRewardAnimationDialog(String title, String message) {

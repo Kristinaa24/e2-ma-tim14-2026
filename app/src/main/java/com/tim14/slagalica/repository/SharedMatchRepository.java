@@ -842,9 +842,15 @@ public class SharedMatchRepository {
             } else {
                 if (!playerOneGuest) {
                     applyCompetitiveOutcome(playerOne, playerOneStarDelta);
+                    if (playerOneWon) {
+                        completeDailyMissionForTransaction(playerOne, FirestoreRepository.MISSION_WIN_MATCH);
+                    }
                 }
                 if (!playerTwoGuest) {
                     applyCompetitiveOutcome(playerTwo, playerTwoStarDelta);
+                    if (playerTwoWon) {
+                        completeDailyMissionForTransaction(playerTwo, FirestoreRepository.MISSION_WIN_MATCH);
+                    }
                 }
             }
             playerOne.currentMatchId = "";
@@ -1938,12 +1944,14 @@ public class SharedMatchRepository {
         java.time.temporal.WeekFields weekFields = java.time.temporal.WeekFields.ISO;
         String currentWeeklyCycleKey = today.getYear() + "-W" + String.format(Locale.US, "%02d", today.get(weekFields.weekOfWeekBasedYear()));
         String currentMonthlyCycleKey = new java.text.SimpleDateFormat("yyyy-MM", Locale.US).format(new java.util.Date());
-        if (!currentWeeklyCycleKey.equals(user.weeklyCycleKey)) {
+        if (!currentWeeklyCycleKey.equals(user.weeklyCycleKey)
+                && canMoveToNewRankingCycle(user.weeklyCycleKey, user.lastWeeklyRewardCycle, user.weeklyGames)) {
             user.weeklyCycleKey = currentWeeklyCycleKey;
             user.weeklyStars = 0;
             user.weeklyGames = 0;
         }
-        if (!currentMonthlyCycleKey.equals(user.monthlyCycleKey)) {
+        if (!currentMonthlyCycleKey.equals(user.monthlyCycleKey)
+                && canMoveToNewRankingCycle(user.monthlyCycleKey, user.lastMonthlyRewardCycle, user.monthlyGames)) {
             user.monthlyCycleKey = currentMonthlyCycleKey;
             user.monthlyStars = 0;
             user.monthlyGames = 0;
@@ -1958,6 +1966,10 @@ public class SharedMatchRepository {
             user.dailyMissionBonusClaimed = false;
         }
     }
+    private boolean canMoveToNewRankingCycle(String cycleKey, String lastRewardCycle, int cycleGames) {
+        return TextUtils.isEmpty(cycleKey) || cycleGames <= 0 || cycleKey.equals(lastRewardCycle);
+    }
+
     private void completeTournamentWinMissionsForTransaction(User user) {
         completeDailyMissionForTransaction(user, FirestoreRepository.MISSION_WIN_MATCH);
         completeDailyMissionForTransaction(user, FirestoreRepository.MISSION_WIN_TOURNAMENT);
