@@ -40,6 +40,8 @@ public class SharedMatchRepository {
     private static final String MATCHES_COLLECTION = "sharedMatches";
     private static final String USERS_COLLECTION = "users";
     private static final String STATISTICS_COLLECTION = "statistics";
+    private static final int REQUIRED_SHARED_QUIZ_QUESTIONS = 5;
+    private static final int REQUIRED_SHARED_ROUNDS = 2;
     private static final long FRIENDLY_INVITE_EXPIRATION_MS = 10L * 1000L;
     private static final long COMPETITIVE_WAITING_EXPIRATION_MS = 2L * 60L * 1000L;
     private static final long TOURNAMENT_WAITING_EXPIRATION_MS = 10L * 60L * 1000L;
@@ -49,10 +51,258 @@ public class SharedMatchRepository {
     private final FirestoreRepository firestoreRepository;
     private final LocalGameRepository localGameRepository;
 
+    private static final class MatchContentBundle {
+        final List<KoZnaZnaQuestion> quizQuestions;
+        final List<SpojniceRound> spojniceRounds;
+        final List<AsocijacijeRound> asocijacijeRounds;
+        final List<KorakPoKorakRound> korakRounds;
+
+        private MatchContentBundle(
+                List<KoZnaZnaQuestion> quizQuestions,
+                List<SpojniceRound> spojniceRounds,
+                List<AsocijacijeRound> asocijacijeRounds,
+                List<KorakPoKorakRound> korakRounds
+        ) {
+            this.quizQuestions = quizQuestions == null ? new ArrayList<>() : quizQuestions;
+            this.spojniceRounds = spojniceRounds == null ? new ArrayList<>() : spojniceRounds;
+            this.asocijacijeRounds = asocijacijeRounds == null ? new ArrayList<>() : asocijacijeRounds;
+            this.korakRounds = korakRounds == null ? new ArrayList<>() : korakRounds;
+        }
+    }
+
     public SharedMatchRepository() {
         db = FirebaseFirestore.getInstance();
         firestoreRepository = new FirestoreRepository();
         localGameRepository = new LocalGameRepository();
+    }
+
+    private MatchContentBundle createLocalMatchContentBundle() {
+        return new MatchContentBundle(
+                localGameRepository.getKoZnaZnaMatchQuestions(),
+                localGameRepository.getSpojniceMatchRounds(),
+                localGameRepository.getAsocijacijeRounds(),
+                localGameRepository.getKorakPoKorakMatchRounds()
+        );
+    }
+
+    private void loadMatchContentBundle(FirebaseCallback<MatchContentBundle> callback) {
+        loadKoZnaZnaMatchQuestions(new FirebaseCallback<List<KoZnaZnaQuestion>>() {
+            @Override
+            public void onSuccess(List<KoZnaZnaQuestion> quizQuestions) {
+                loadSpojniceMatchRounds(new FirebaseCallback<List<SpojniceRound>>() {
+                    @Override
+                    public void onSuccess(List<SpojniceRound> spojniceRounds) {
+                        loadAsocijacijeMatchRounds(new FirebaseCallback<List<AsocijacijeRound>>() {
+                            @Override
+                            public void onSuccess(List<AsocijacijeRound> asocijacijeRounds) {
+                                loadKorakPoKorakMatchRounds(new FirebaseCallback<List<KorakPoKorakRound>>() {
+                                    @Override
+                                    public void onSuccess(List<KorakPoKorakRound> korakRounds) {
+                                        callback.onSuccess(new MatchContentBundle(
+                                                quizQuestions,
+                                                spojniceRounds,
+                                                asocijacijeRounds,
+                                                korakRounds
+                                        ));
+                                    }
+
+                                    @Override
+                                    public void onError(String error) {
+                                        callback.onSuccess(createLocalMatchContentBundle());
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onError(String error) {
+                                callback.onSuccess(createLocalMatchContentBundle());
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(String error) {
+                        callback.onSuccess(createLocalMatchContentBundle());
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onSuccess(createLocalMatchContentBundle());
+            }
+        });
+    }
+
+    private void loadKoZnaZnaMatchQuestions(FirebaseCallback<List<KoZnaZnaQuestion>> callback) {
+        firestoreRepository.getKoZnaZnaQuestions(new FirebaseCallback<List<KoZnaZnaQuestion>>() {
+            @Override
+            public void onSuccess(List<KoZnaZnaQuestion> result) {
+                callback.onSuccess(selectKoZnaZnaMatchQuestions(result));
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onSuccess(localGameRepository.getKoZnaZnaMatchQuestions());
+            }
+        });
+    }
+
+    private List<KoZnaZnaQuestion> selectKoZnaZnaMatchQuestions(List<KoZnaZnaQuestion> sourceQuestions) {
+        List<KoZnaZnaQuestion> availableQuestions = createKoZnaZnaQuestionCopies(sourceQuestions);
+        if (availableQuestions.size() < REQUIRED_SHARED_QUIZ_QUESTIONS) {
+            return localGameRepository.getKoZnaZnaMatchQuestions();
+        }
+
+        Collections.shuffle(availableQuestions);
+        return new ArrayList<>(availableQuestions.subList(0, REQUIRED_SHARED_QUIZ_QUESTIONS));
+    }
+
+    private List<KoZnaZnaQuestion> createKoZnaZnaQuestionCopies(List<KoZnaZnaQuestion> sourceQuestions) {
+        List<KoZnaZnaQuestion> copies = new ArrayList<>();
+        if (sourceQuestions == null) {
+            return copies;
+        }
+
+        for (KoZnaZnaQuestion question : sourceQuestions) {
+            if (question == null
+                    || TextUtils.isEmpty(question.id)
+                    || TextUtils.isEmpty(question.question)
+                    || question.answers == null
+                    || question.answers.size() < 2
+                    || question.correctIndex < 0
+                    || question.correctIndex >= question.answers.size()) {
+                continue;
+            }
+
+            copies.add(new KoZnaZnaQuestion(
+                    question.id,
+                    question.question,
+                    new ArrayList<>(question.answers),
+                    question.correctIndex
+            ));
+        }
+
+        return copies;
+    }
+
+    private void loadSpojniceMatchRounds(FirebaseCallback<List<SpojniceRound>> callback) {
+        firestoreRepository.getSpojniceRounds(new FirebaseCallback<List<SpojniceRound>>() {
+            @Override
+            public void onSuccess(List<SpojniceRound> result) {
+                callback.onSuccess(selectSpojniceMatchRounds(result));
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onSuccess(localGameRepository.getSpojniceMatchRounds());
+            }
+        });
+    }
+
+    private List<SpojniceRound> selectSpojniceMatchRounds(List<SpojniceRound> sourceRounds) {
+        List<SpojniceRound> availableRounds = createSpojniceRoundCopies(sourceRounds);
+        if (availableRounds.size() < REQUIRED_SHARED_ROUNDS) {
+            return localGameRepository.getSpojniceMatchRounds();
+        }
+
+        Collections.shuffle(availableRounds);
+        return new ArrayList<>(availableRounds.subList(0, REQUIRED_SHARED_ROUNDS));
+    }
+
+    private List<SpojniceRound> createSpojniceRoundCopies(List<SpojniceRound> sourceRounds) {
+        List<SpojniceRound> copies = new ArrayList<>();
+        if (sourceRounds == null) {
+            return copies;
+        }
+
+        for (SpojniceRound round : sourceRounds) {
+            if (round == null
+                    || TextUtils.isEmpty(round.getId())
+                    || TextUtils.isEmpty(round.getTitle())
+                    || round.getLeftItems() == null
+                    || round.getLeftItems().isEmpty()
+                    || round.getCorrectRightItems() == null
+                    || round.getCorrectRightItems().isEmpty()
+                    || round.getDisplayedRightItems() == null
+                    || round.getDisplayedRightItems().isEmpty()) {
+                continue;
+            }
+
+            copies.add(new SpojniceRound(
+                    round.getId(),
+                    round.getTitle(),
+                    new ArrayList<>(round.getLeftItems()),
+                    new ArrayList<>(round.getCorrectRightItems()),
+                    new ArrayList<>(round.getDisplayedRightItems())
+            ));
+        }
+
+        return copies;
+    }
+
+    private void loadAsocijacijeMatchRounds(FirebaseCallback<List<AsocijacijeRound>> callback) {
+        firestoreRepository.getAsocijacijeRounds(new FirebaseCallback<List<AsocijacijeRound>>() {
+            @Override
+            public void onSuccess(List<AsocijacijeRound> result) {
+                callback.onSuccess(selectAsocijacijeMatchRounds(result));
+            }
+
+            @Override
+            public void onError(String error) {
+                callback.onSuccess(localGameRepository.getAsocijacijeRounds());
+            }
+        });
+    }
+
+    private List<AsocijacijeRound> selectAsocijacijeMatchRounds(List<AsocijacijeRound> sourceRounds) {
+        List<AsocijacijeRound> availableRounds = createAsocijacijeRoundCopies(sourceRounds);
+        if (availableRounds.size() < REQUIRED_SHARED_ROUNDS) {
+            return localGameRepository.getAsocijacijeRounds();
+        }
+
+        Collections.shuffle(availableRounds);
+        return new ArrayList<>(availableRounds.subList(0, REQUIRED_SHARED_ROUNDS));
+    }
+
+    private List<AsocijacijeRound> createAsocijacijeRoundCopies(List<AsocijacijeRound> sourceRounds) {
+        List<AsocijacijeRound> copies = new ArrayList<>();
+        if (sourceRounds == null) {
+            return copies;
+        }
+
+        for (AsocijacijeRound round : sourceRounds) {
+            if (round == null
+                    || TextUtils.isEmpty(round.finalSolution)
+                    || TextUtils.isEmpty(round.columnA_solution)
+                    || TextUtils.isEmpty(round.columnB_solution)
+                    || TextUtils.isEmpty(round.columnC_solution)
+                    || TextUtils.isEmpty(round.columnD_solution)
+                    || round.columnA_clues == null
+                    || round.columnA_clues.isEmpty()
+                    || round.columnB_clues == null
+                    || round.columnB_clues.isEmpty()
+                    || round.columnC_clues == null
+                    || round.columnC_clues.isEmpty()
+                    || round.columnD_clues == null
+                    || round.columnD_clues.isEmpty()) {
+                continue;
+            }
+
+            copies.add(new AsocijacijeRound(
+                    round.finalSolution,
+                    round.columnA_solution,
+                    new ArrayList<>(round.columnA_clues),
+                    round.columnB_solution,
+                    new ArrayList<>(round.columnB_clues),
+                    round.columnC_solution,
+                    new ArrayList<>(round.columnC_clues),
+                    round.columnD_solution,
+                    new ArrayList<>(round.columnD_clues)
+            ));
+        }
+
+        return copies;
     }
 
     private void loadKorakPoKorakMatchRounds(FirebaseCallback<List<KorakPoKorakRound>> callback) {
@@ -71,12 +321,12 @@ public class SharedMatchRepository {
 
     private List<KorakPoKorakRound> selectKorakPoKorakMatchRounds(List<KorakPoKorakRound> sourceRounds) {
         List<KorakPoKorakRound> availableRounds = createKorakPoKorakRoundCopies(sourceRounds);
-        if (availableRounds.size() < 2) {
+        if (availableRounds.size() < REQUIRED_SHARED_ROUNDS) {
             return localGameRepository.getKorakPoKorakMatchRounds();
         }
 
         Collections.shuffle(availableRounds);
-        return new ArrayList<>(availableRounds.subList(0, 2));
+        return new ArrayList<>(availableRounds.subList(0, REQUIRED_SHARED_ROUNDS));
     }
 
     private List<KorakPoKorakRound> createKorakPoKorakRoundCopies(List<KorakPoKorakRound> sourceRounds) {
@@ -264,16 +514,16 @@ public class SharedMatchRepository {
                             return;
                         }
 
-                        loadKorakPoKorakMatchRounds(new FirebaseCallback<List<KorakPoKorakRound>>() {
+                        loadMatchContentBundle(new FirebaseCallback<MatchContentBundle>() {
                             @Override
-                            public void onSuccess(List<KorakPoKorakRound> korakRounds) {
+                            public void onSuccess(MatchContentBundle matchContent) {
                                 DocumentReference reference = db.collection(MATCHES_COLLECTION).document();
                                 SharedMatchState state = buildInitialState(
                                         reference.getId(),
                                         currentUserId,
                                         safeUserName(sender),
                                         SharedMatchState.MATCH_TYPE_FRIENDLY,
-                                        korakRounds
+                                        matchContent
                                 );
                                 state.playerTwoId = targetUserId;
                                 state.playerTwoName = safeUserName(targetUser);
@@ -636,313 +886,328 @@ public class SharedMatchRepository {
         }
 
         DocumentReference matchReference = db.collection(MATCHES_COLLECTION).document(matchId);
+        loadMatchContentBundle(new FirebaseCallback<MatchContentBundle>() {
+            @Override
+            public void onSuccess(MatchContentBundle matchContent) {
+                db.runTransaction((Transaction.Function<MatchFinalizationResult>) transaction -> {
+                    DocumentSnapshot matchSnapshot = transaction.get(matchReference);
+                    SharedMatchState state = matchSnapshot.toObject(SharedMatchState.class);
 
-        db.runTransaction((Transaction.Function<MatchFinalizationResult>) transaction -> {
-            DocumentSnapshot matchSnapshot = transaction.get(matchReference);
-            SharedMatchState state = matchSnapshot.toObject(SharedMatchState.class);
+                    if (state == null) {
+                        throw new IllegalStateException("Match was not found.");
+                    }
 
-            if (state == null) {
-                throw new IllegalStateException("Match was not found.");
-            }
+                    if (state.resultApplied) {
+                        return buildFinalizationResult(false, state, currentUserId);
+                    }
 
-            if (state.resultApplied) {
-                return buildFinalizationResult(false, state, currentUserId);
-            }
+                    if (SharedMatchState.MATCH_TYPE_FRIENDLY.equals(state.matchType)) {
+                        DocumentReference playerOneUserReference =
+                                db.collection(USERS_COLLECTION).document(state.playerOneId);
+                        DocumentReference playerTwoUserReference =
+                                db.collection(USERS_COLLECTION).document(state.playerTwoId);
+                        User playerOne = transaction.get(playerOneUserReference).toObject(User.class);
+                        User playerTwo = transaction.get(playerTwoUserReference).toObject(User.class);
+                        if (playerOne == null || playerTwo == null) {
+                            throw new IllegalStateException("Players could not be loaded.");
+                        }
 
-            if (SharedMatchState.MATCH_TYPE_FRIENDLY.equals(state.matchType)) {
-                DocumentReference playerOneUserReference =
-                        db.collection(USERS_COLLECTION).document(state.playerOneId);
-                DocumentReference playerTwoUserReference =
-                        db.collection(USERS_COLLECTION).document(state.playerTwoId);
-                User playerOne = transaction.get(playerOneUserReference).toObject(User.class);
-                User playerTwo = transaction.get(playerTwoUserReference).toObject(User.class);
-                if (playerOne == null || playerTwo == null) {
-                    throw new IllegalStateException("Players could not be loaded.");
-                }
+                        ensureUserDefaultsForTransaction(playerOne, state.playerOneId);
+                        ensureUserDefaultsForTransaction(playerTwo, state.playerTwoId);
+                        int playerOnePreviousLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerOne.stars);
+                        int playerTwoPreviousLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerTwo.stars);
 
-                ensureUserDefaultsForTransaction(playerOne, state.playerOneId);
-                ensureUserDefaultsForTransaction(playerTwo, state.playerTwoId);
-                int playerOnePreviousLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerOne.stars);
-                int playerTwoPreviousLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerTwo.stars);
+                        boolean playerOneWon = state.playerOneScore > state.playerTwoScore;
+                        boolean playerTwoWon = state.playerTwoScore > state.playerOneScore;
+                        if (state.forfeitedPlayer == 1) {
+                            playerOneWon = false;
+                            playerTwoWon = true;
+                        } else if (state.forfeitedPlayer == 2) {
+                            playerOneWon = true;
+                            playerTwoWon = false;
+                        }
 
-                boolean playerOneWon = state.playerOneScore > state.playerTwoScore;
-                boolean playerTwoWon = state.playerTwoScore > state.playerOneScore;
-                if (state.forfeitedPlayer == 1) {
-                    playerOneWon = false;
-                    playerTwoWon = true;
-                } else if (state.forfeitedPlayer == 2) {
-                    playerOneWon = true;
-                    playerTwoWon = false;
-                }
+                        completeDailyMissionForTransaction(playerOne, FirestoreRepository.MISSION_PLAY_FRIENDLY);
+                        completeDailyMissionForTransaction(playerTwo, FirestoreRepository.MISSION_PLAY_FRIENDLY);
 
-                completeDailyMissionForTransaction(playerOne, FirestoreRepository.MISSION_PLAY_FRIENDLY);
-                completeDailyMissionForTransaction(playerTwo, FirestoreRepository.MISSION_PLAY_FRIENDLY);
+                        String winnerId = playerOneWon ? state.playerOneId : (playerTwoWon ? state.playerTwoId : "");
+                        int playerOneCurrentLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerOne.stars);
+                        int playerTwoCurrentLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerTwo.stars);
+                        playerOne.currentMatchId = "";
+                        playerTwo.currentMatchId = "";
+                        transaction.set(playerOneUserReference, playerOne);
+                        transaction.set(playerTwoUserReference, playerTwo);
+                        transaction.update(matchReference, new HashMap<String, Object>() {{
+                            put("resultApplied", true);
+                            put("winnerId", winnerId);
+                            put("playerOnePreviousLeague", playerOnePreviousLeague);
+                            put("playerOneCurrentLeague", playerOneCurrentLeague);
+                            put("playerTwoPreviousLeague", playerTwoPreviousLeague);
+                            put("playerTwoCurrentLeague", playerTwoCurrentLeague);
+                            put("updatedAt", System.currentTimeMillis());
+                        }});
+                        if (currentUserId.equals(state.playerOneId)) {
+                            return new MatchFinalizationResult(
+                                    true,
+                                    true,
+                                    "",
+                                    winnerId,
+                                    playerOnePreviousLeague,
+                                    playerOneCurrentLeague
+                            );
+                        }
 
-                String winnerId = playerOneWon ? state.playerOneId : (playerTwoWon ? state.playerTwoId : "");
-                int playerOneCurrentLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerOne.stars);
-                int playerTwoCurrentLeague = com.tim14.slagalica.LeagueUtils.calculateLeague(playerTwo.stars);
-                playerOne.currentMatchId = "";
-                playerTwo.currentMatchId = "";
-                transaction.set(playerOneUserReference, playerOne);
-                transaction.set(playerTwoUserReference, playerTwo);
-                transaction.update(matchReference, new HashMap<String, Object>() {{
-                    put("resultApplied", true);
-                    put("winnerId", winnerId);
-                    put("playerOnePreviousLeague", playerOnePreviousLeague);
-                    put("playerOneCurrentLeague", playerOneCurrentLeague);
-                    put("playerTwoPreviousLeague", playerTwoPreviousLeague);
-                    put("playerTwoCurrentLeague", playerTwoCurrentLeague);
-                    put("updatedAt", System.currentTimeMillis());
-                }});
-                if (currentUserId.equals(state.playerOneId)) {
-                    return new MatchFinalizationResult(
-                            true,
-                            true,
-                            "",
-                            winnerId,
-                            playerOnePreviousLeague,
-                            playerOneCurrentLeague
+                        if (currentUserId.equals(state.playerTwoId)) {
+                            return new MatchFinalizationResult(
+                                    true,
+                                    true,
+                                    "",
+                                    winnerId,
+                                    playerTwoPreviousLeague,
+                                    playerTwoCurrentLeague
+                            );
+                        }
+
+                        return new MatchFinalizationResult(true, true, "", winnerId);
+                    }
+                    DocumentReference playerOneUserReference =
+                            db.collection(USERS_COLLECTION).document(state.playerOneId);
+                    DocumentReference playerTwoUserReference =
+                            db.collection(USERS_COLLECTION).document(state.playerTwoId);
+                    DocumentReference playerOneStatsReference =
+                            db.collection(STATISTICS_COLLECTION).document(state.playerOneId);
+                    DocumentReference playerTwoStatsReference =
+                            db.collection(STATISTICS_COLLECTION).document(state.playerTwoId);
+
+                    User playerOne = transaction.get(playerOneUserReference).toObject(User.class);
+                    User playerTwo = transaction.get(playerTwoUserReference).toObject(User.class);
+                    PlayerStatistics playerOneStatistics =
+                            transaction.get(playerOneStatsReference).toObject(PlayerStatistics.class);
+                    PlayerStatistics playerTwoStatistics =
+                            transaction.get(playerTwoStatsReference).toObject(PlayerStatistics.class);
+
+                    if (playerOne == null || playerTwo == null) {
+                        throw new IllegalStateException("Players could not be loaded.");
+                    }
+
+                    ensureUserDefaultsForTransaction(playerOne, state.playerOneId);
+                    ensureUserDefaultsForTransaction(playerTwo, state.playerTwoId);
+                    boolean playerOneGuest = isGuestUser(playerOne);
+                    boolean playerTwoGuest = isGuestUser(playerTwo);
+                    if (!playerOneGuest) {
+                        applyDailyTokenGrantForTransaction(playerOne);
+                    }
+                    if (!playerTwoGuest) {
+                        applyDailyTokenGrantForTransaction(playerTwo);
+                    }
+                    int playerOnePreviousLeague = playerOneGuest
+                            ? 0
+                            : com.tim14.slagalica.LeagueUtils.calculateLeague(playerOne.stars);
+                    int playerTwoPreviousLeague = playerTwoGuest
+                            ? 0
+                            : com.tim14.slagalica.LeagueUtils.calculateLeague(playerTwo.stars);
+
+                    if (playerOneStatistics == null) {
+                        playerOneStatistics = new PlayerStatistics(state.playerOneId);
+                    }
+
+                    if (playerTwoStatistics == null) {
+                        playerTwoStatistics = new PlayerStatistics(state.playerTwoId);
+                    }
+
+                    boolean playerOneWon = state.playerOneScore > state.playerTwoScore;
+                    boolean playerTwoWon = state.playerTwoScore > state.playerOneScore;
+
+                    if (state.forfeitedPlayer == 1) {
+                        playerOneWon = false;
+                        playerTwoWon = true;
+                    } else if (state.forfeitedPlayer == 2) {
+                        playerOneWon = true;
+                        playerTwoWon = false;
+                    }
+
+                    boolean draw = !playerOneWon && !playerTwoWon;
+                    boolean tournamentMatch = SharedMatchState.MATCH_TYPE_TOURNAMENT.equals(state.matchType);
+                    if (!playerOneGuest) {
+                        markRankingGamePlayedForTransaction(playerOne);
+                    }
+                    if (!playerTwoGuest) {
+                        markRankingGamePlayedForTransaction(playerTwo);
+                    }
+
+                    int playerOneStarDelta = calculateStarDelta(
+                            state.playerOneScore,
+                            playerOneWon,
+                            !draw && !playerOneWon,
+                            state.forfeitedPlayer == 1
                     );
-                }
-
-                if (currentUserId.equals(state.playerTwoId)) {
-                    return new MatchFinalizationResult(
-                            true,
-                            true,
-                            "",
-                            winnerId,
-                            playerTwoPreviousLeague,
-                            playerTwoCurrentLeague
+                    int playerTwoStarDelta = calculateStarDelta(
+                            state.playerTwoScore,
+                            playerTwoWon,
+                            !draw && !playerTwoWon,
+                            state.forfeitedPlayer == 2
                     );
-                }
 
-                return new MatchFinalizationResult(true, true, "", winnerId);
-            }
-            DocumentReference playerOneUserReference =
-                    db.collection(USERS_COLLECTION).document(state.playerOneId);
-            DocumentReference playerTwoUserReference =
-                    db.collection(USERS_COLLECTION).document(state.playerTwoId);
-            DocumentReference playerOneStatsReference =
-                    db.collection(STATISTICS_COLLECTION).document(state.playerOneId);
-            DocumentReference playerTwoStatsReference =
-                    db.collection(STATISTICS_COLLECTION).document(state.playerTwoId);
-
-            User playerOne = transaction.get(playerOneUserReference).toObject(User.class);
-            User playerTwo = transaction.get(playerTwoUserReference).toObject(User.class);
-            PlayerStatistics playerOneStatistics =
-                    transaction.get(playerOneStatsReference).toObject(PlayerStatistics.class);
-            PlayerStatistics playerTwoStatistics =
-                    transaction.get(playerTwoStatsReference).toObject(PlayerStatistics.class);
-
-            if (playerOne == null || playerTwo == null) {
-                throw new IllegalStateException("Players could not be loaded.");
-            }
-
-            ensureUserDefaultsForTransaction(playerOne, state.playerOneId);
-            ensureUserDefaultsForTransaction(playerTwo, state.playerTwoId);
-            boolean playerOneGuest = isGuestUser(playerOne);
-            boolean playerTwoGuest = isGuestUser(playerTwo);
-            if (!playerOneGuest) {
-                applyDailyTokenGrantForTransaction(playerOne);
-            }
-            if (!playerTwoGuest) {
-                applyDailyTokenGrantForTransaction(playerTwo);
-            }
-            int playerOnePreviousLeague = playerOneGuest
-                    ? 0
-                    : com.tim14.slagalica.LeagueUtils.calculateLeague(playerOne.stars);
-            int playerTwoPreviousLeague = playerTwoGuest
-                    ? 0
-                    : com.tim14.slagalica.LeagueUtils.calculateLeague(playerTwo.stars);
-
-            if (playerOneStatistics == null) {
-                playerOneStatistics = new PlayerStatistics(state.playerOneId);
-            }
-
-            if (playerTwoStatistics == null) {
-                playerTwoStatistics = new PlayerStatistics(state.playerTwoId);
-            }
-
-            boolean playerOneWon = state.playerOneScore > state.playerTwoScore;
-            boolean playerTwoWon = state.playerTwoScore > state.playerOneScore;
-
-            if (state.forfeitedPlayer == 1) {
-                playerOneWon = false;
-                playerTwoWon = true;
-            } else if (state.forfeitedPlayer == 2) {
-                playerOneWon = true;
-                playerTwoWon = false;
-            }
-
-            boolean draw = !playerOneWon && !playerTwoWon;
-            boolean tournamentMatch = SharedMatchState.MATCH_TYPE_TOURNAMENT.equals(state.matchType);
-            if (!playerOneGuest) {
-                markRankingGamePlayedForTransaction(playerOne);
-            }
-            if (!playerTwoGuest) {
-                markRankingGamePlayedForTransaction(playerTwo);
-            }
-
-            int playerOneStarDelta = calculateStarDelta(
-                    state.playerOneScore,
-                    playerOneWon,
-                    !draw && !playerOneWon,
-                    state.forfeitedPlayer == 1
-            );
-            int playerTwoStarDelta = calculateStarDelta(
-                    state.playerTwoScore,
-                    playerTwoWon,
-                    !draw && !playerTwoWon,
-                    state.forfeitedPlayer == 2
-            );
-
-            if (tournamentMatch) {
-                boolean finalMatch = "FINAL".equals(state.tournamentStage);
-                if (finalMatch) {
-                    if (playerOneWon) {
+                    if (tournamentMatch) {
+                        boolean finalMatch = "FINAL".equals(state.tournamentStage);
+                        if (finalMatch) {
+                            if (playerOneWon) {
+                                if (!playerOneGuest) {
+                                    applyTournamentFinalWinnerOutcome(playerOne, playerOneStarDelta);
+                                    completeTournamentWinMissionsForTransaction(playerOne);
+                                    playerOneStatistics.wins++;
+                                }
+                                if (!playerTwoGuest) {
+                                    applyCompetitiveOutcome(playerTwo, playerTwoStarDelta);
+                                    playerTwoStatistics.losses++;
+                                }
+                            } else if (playerTwoWon) {
+                                if (!playerTwoGuest) {
+                                    applyTournamentFinalWinnerOutcome(playerTwo, playerTwoStarDelta);
+                                    completeTournamentWinMissionsForTransaction(playerTwo);
+                                    playerTwoStatistics.wins++;
+                                }
+                                if (!playerOneGuest) {
+                                    applyCompetitiveOutcome(playerOne, playerOneStarDelta);
+                                    playerOneStatistics.losses++;
+                                }
+                            }
+                        } else if (playerOneWon) {
+                            if (!playerOneGuest) {
+                                applyTournamentSemiWinnerOutcome(playerOne, playerOneStarDelta);
+                                completeTournamentWinMissionsForTransaction(playerOne);
+                                playerOneStatistics.wins++;
+                            }
+                            if (!playerTwoGuest) {
+                                playerTwoStatistics.losses++;
+                            }
+                        } else if (playerTwoWon) {
+                            if (!playerTwoGuest) {
+                                applyTournamentSemiWinnerOutcome(playerTwo, playerTwoStarDelta);
+                                completeTournamentWinMissionsForTransaction(playerTwo);
+                                playerTwoStatistics.wins++;
+                            }
+                            if (!playerOneGuest) {
+                                playerOneStatistics.losses++;
+                            }
+                        }
+                    } else {
                         if (!playerOneGuest) {
-                            applyTournamentFinalWinnerOutcome(playerOne, playerOneStarDelta);
-                            completeTournamentWinMissionsForTransaction(playerOne);
-                            playerOneStatistics.wins++;
+                            applyCompetitiveOutcome(playerOne, playerOneStarDelta);
+                            if (playerOneWon) {
+                                completeDailyMissionForTransaction(playerOne, FirestoreRepository.MISSION_WIN_MATCH);
+                            }
                         }
                         if (!playerTwoGuest) {
                             applyCompetitiveOutcome(playerTwo, playerTwoStarDelta);
-                            playerTwoStatistics.losses++;
-                        }
-                    } else if (playerTwoWon) {
-                        if (!playerTwoGuest) {
-                            applyTournamentFinalWinnerOutcome(playerTwo, playerTwoStarDelta);
-                            completeTournamentWinMissionsForTransaction(playerTwo);
-                            playerTwoStatistics.wins++;
-                        }
-                        if (!playerOneGuest) {
-                            applyCompetitiveOutcome(playerOne, playerOneStarDelta);
-                            playerOneStatistics.losses++;
+                            if (playerTwoWon) {
+                                completeDailyMissionForTransaction(playerTwo, FirestoreRepository.MISSION_WIN_MATCH);
+                            }
                         }
                     }
-                } else if (playerOneWon) {
+                    playerOne.currentMatchId = "";
+                    playerTwo.currentMatchId = "";
+
                     if (!playerOneGuest) {
-                        applyTournamentSemiWinnerOutcome(playerOne, playerOneStarDelta);
-                        completeTournamentWinMissionsForTransaction(playerOne);
-                        playerOneStatistics.wins++;
+                        playerOneStatistics.gamesPlayed++;
                     }
                     if (!playerTwoGuest) {
-                        playerTwoStatistics.losses++;
+                        playerTwoStatistics.gamesPlayed++;
                     }
-                } else if (playerTwoWon) {
-                    if (!playerTwoGuest) {
-                        applyTournamentSemiWinnerOutcome(playerTwo, playerTwoStarDelta);
-                        completeTournamentWinMissionsForTransaction(playerTwo);
-                        playerTwoStatistics.wins++;
+
+                    if (!tournamentMatch) {
+                        if (playerOneWon) {
+                            if (!playerOneGuest) {
+                                playerOneStatistics.wins++;
+                            }
+                            if (!playerTwoGuest) {
+                                playerTwoStatistics.losses++;
+                            }
+                        } else if (playerTwoWon) {
+                            if (!playerTwoGuest) {
+                                playerTwoStatistics.wins++;
+                            }
+                            if (!playerOneGuest) {
+                                playerOneStatistics.losses++;
+                            }
+                        }
                     }
+                    String winnerId = playerOneWon ? state.playerOneId : (playerTwoWon ? state.playerTwoId : "");
+                    String finalMatchId = "";
+                    int playerOneCurrentLeague = playerOneGuest
+                            ? 0
+                            : com.tim14.slagalica.LeagueUtils.calculateLeague(playerOne.stars);
+                    int playerTwoCurrentLeague = playerTwoGuest
+                            ? 0
+                            : com.tim14.slagalica.LeagueUtils.calculateLeague(playerTwo.stars);
+                    Map<String, Object> resultUpdates = new HashMap<>();
+                    resultUpdates.put("resultApplied", true);
+                    resultUpdates.put("winnerId", winnerId);
+                    resultUpdates.put("playerOnePreviousLeague", playerOnePreviousLeague);
+                    resultUpdates.put("playerOneCurrentLeague", playerOneCurrentLeague);
+                    resultUpdates.put("playerTwoPreviousLeague", playerTwoPreviousLeague);
+                    resultUpdates.put("playerTwoCurrentLeague", playerTwoCurrentLeague);
+                    resultUpdates.put("updatedAt", System.currentTimeMillis());
+                    if (tournamentMatch && "SEMI".equals(state.tournamentStage) && !TextUtils.isEmpty(winnerId)) {
+                        finalMatchId = createTournamentFinalIfReady(
+                                transaction,
+                                matchReference,
+                                state,
+                                winnerId,
+                                matchContent
+                        );
+                        if (!TextUtils.isEmpty(finalMatchId)) {
+                            resultUpdates.put("finalMatchId", finalMatchId);
+                            if (winnerId.equals(state.playerOneId)) {
+                                playerOne.currentMatchId = finalMatchId;
+                            } else if (winnerId.equals(state.playerTwoId)) {
+                                playerTwo.currentMatchId = finalMatchId;
+                            }
+                        }
+                    }
+
+                    transaction.set(playerOneUserReference, playerOne);
+                    transaction.set(playerTwoUserReference, playerTwo);
                     if (!playerOneGuest) {
-                        playerOneStatistics.losses++;
-                    }
-                }
-            } else {
-                if (!playerOneGuest) {
-                    applyCompetitiveOutcome(playerOne, playerOneStarDelta);
-                    if (playerOneWon) {
-                        completeDailyMissionForTransaction(playerOne, FirestoreRepository.MISSION_WIN_MATCH);
-                    }
-                }
-                if (!playerTwoGuest) {
-                    applyCompetitiveOutcome(playerTwo, playerTwoStarDelta);
-                    if (playerTwoWon) {
-                        completeDailyMissionForTransaction(playerTwo, FirestoreRepository.MISSION_WIN_MATCH);
-                    }
-                }
-            }
-            playerOne.currentMatchId = "";
-            playerTwo.currentMatchId = "";
-
-            if (!playerOneGuest) {
-                playerOneStatistics.gamesPlayed++;
-            }
-            if (!playerTwoGuest) {
-                playerTwoStatistics.gamesPlayed++;
-            }
-
-            if (!tournamentMatch) {
-                if (playerOneWon) {
-                    if (!playerOneGuest) {
-                        playerOneStatistics.wins++;
+                        transaction.set(playerOneStatsReference, playerOneStatistics);
                     }
                     if (!playerTwoGuest) {
-                        playerTwoStatistics.losses++;
+                        transaction.set(playerTwoStatsReference, playerTwoStatistics);
                     }
-                } else if (playerTwoWon) {
-                    if (!playerTwoGuest) {
-                        playerTwoStatistics.wins++;
+                    transaction.update(matchReference, resultUpdates);
+
+                    if (currentUserId.equals(state.playerOneId)) {
+                        return new MatchFinalizationResult(
+                                true,
+                                false,
+                                finalMatchId,
+                                winnerId,
+                                playerOnePreviousLeague,
+                                playerOneCurrentLeague
+                        );
                     }
-                    if (!playerOneGuest) {
-                        playerOneStatistics.losses++;
+
+                    if (currentUserId.equals(state.playerTwoId)) {
+                        return new MatchFinalizationResult(
+                                true,
+                                false,
+                                finalMatchId,
+                                winnerId,
+                                playerTwoPreviousLeague,
+                                playerTwoCurrentLeague
+                        );
                     }
-                }
-            }
-            String winnerId = playerOneWon ? state.playerOneId : (playerTwoWon ? state.playerTwoId : "");
-            String finalMatchId = "";
-            int playerOneCurrentLeague = playerOneGuest
-                    ? 0
-                    : com.tim14.slagalica.LeagueUtils.calculateLeague(playerOne.stars);
-            int playerTwoCurrentLeague = playerTwoGuest
-                    ? 0
-                    : com.tim14.slagalica.LeagueUtils.calculateLeague(playerTwo.stars);
-            Map<String, Object> resultUpdates = new HashMap<>();
-            resultUpdates.put("resultApplied", true);
-            resultUpdates.put("winnerId", winnerId);
-            resultUpdates.put("playerOnePreviousLeague", playerOnePreviousLeague);
-            resultUpdates.put("playerOneCurrentLeague", playerOneCurrentLeague);
-            resultUpdates.put("playerTwoPreviousLeague", playerTwoPreviousLeague);
-            resultUpdates.put("playerTwoCurrentLeague", playerTwoCurrentLeague);
-            resultUpdates.put("updatedAt", System.currentTimeMillis());
-            if (tournamentMatch && "SEMI".equals(state.tournamentStage) && !TextUtils.isEmpty(winnerId)) {
-                finalMatchId = createTournamentFinalIfReady(transaction, matchReference, state, winnerId);
-                if (!TextUtils.isEmpty(finalMatchId)) {
-                    resultUpdates.put("finalMatchId", finalMatchId);
-                    if (winnerId.equals(state.playerOneId)) {
-                        playerOne.currentMatchId = finalMatchId;
-                    } else if (winnerId.equals(state.playerTwoId)) {
-                        playerTwo.currentMatchId = finalMatchId;
-                    }
-                }
+
+                    return new MatchFinalizationResult(true, false, finalMatchId, winnerId);
+                }).addOnSuccessListener(callback::onSuccess)
+                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
             }
 
-            transaction.set(playerOneUserReference, playerOne);
-            transaction.set(playerTwoUserReference, playerTwo);
-            if (!playerOneGuest) {
-                transaction.set(playerOneStatsReference, playerOneStatistics);
+            @Override
+            public void onError(String error) {
+                callback.onError(error);
             }
-            if (!playerTwoGuest) {
-                transaction.set(playerTwoStatsReference, playerTwoStatistics);
-            }
-            transaction.update(matchReference, resultUpdates);
-
-            if (currentUserId.equals(state.playerOneId)) {
-                return new MatchFinalizationResult(
-                        true,
-                        false,
-                        finalMatchId,
-                        winnerId,
-                        playerOnePreviousLeague,
-                        playerOneCurrentLeague
-                );
-            }
-
-            if (currentUserId.equals(state.playerTwoId)) {
-                return new MatchFinalizationResult(
-                        true,
-                        false,
-                        finalMatchId,
-                        winnerId,
-                        playerTwoPreviousLeague,
-                        playerTwoCurrentLeague
-                );
-            }
-
-            return new MatchFinalizationResult(true, false, finalMatchId, winnerId);
-        }).addOnSuccessListener(callback::onSuccess)
-                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+        });
     }
 
     public void createStudentOneMatch(FirebaseCallback<MatchJoinResult> callback) {
@@ -957,16 +1222,16 @@ public class SharedMatchRepository {
         firestoreRepository.getCurrentUser(new FirebaseCallback<User>() {
             @Override
             public void onSuccess(User user) {
-                loadKorakPoKorakMatchRounds(new FirebaseCallback<List<KorakPoKorakRound>>() {
+                loadMatchContentBundle(new FirebaseCallback<MatchContentBundle>() {
                     @Override
-                    public void onSuccess(List<KorakPoKorakRound> korakRounds) {
+                    public void onSuccess(MatchContentBundle matchContent) {
                         DocumentReference reference = db.collection(MATCHES_COLLECTION).document();
                         SharedMatchState state = buildInitialState(
                                 reference.getId(),
                                 userId,
                                 safeUserName(user),
                                 SharedMatchState.MATCH_TYPE_COMPETITIVE,
-                                korakRounds
+                                matchContent
                         );
 
                         reference.set(state)
@@ -1115,15 +1380,15 @@ public class SharedMatchRepository {
             return;
         }
 
-        loadKorakPoKorakMatchRounds(new FirebaseCallback<List<KorakPoKorakRound>>() {
+        loadMatchContentBundle(new FirebaseCallback<MatchContentBundle>() {
             @Override
-            public void onSuccess(List<KorakPoKorakRound> korakRounds) {
+            public void onSuccess(MatchContentBundle matchContent) {
                 SharedMatchState resetState = buildInitialState(
                         matchId,
                         previousState.playerOneId,
                         previousState.playerOneName,
                         previousState.matchType,
-                        korakRounds
+                        matchContent
                 );
 
                 resetState.playerTwoId = previousState.playerTwoId;
@@ -1249,7 +1514,7 @@ public class SharedMatchRepository {
                 playerOneId,
                 playerOneName,
                 matchType,
-                localGameRepository.getKorakPoKorakMatchRounds()
+                createLocalMatchContentBundle()
         );
     }
 
@@ -1258,8 +1523,10 @@ public class SharedMatchRepository {
             String playerOneId,
             String playerOneName,
             String matchType,
-            List<KorakPoKorakRound> korakPoKorakRounds
+            MatchContentBundle matchContent
     ) {
+        MatchContentBundle safeMatchContent =
+                matchContent == null ? createLocalMatchContentBundle() : matchContent;
         SharedMatchState state = new SharedMatchState();
         state.roomCode = documentId.substring(0, Math.min(6, documentId.length())).toUpperCase(Locale.US);
         state.status = SharedMatchState.STATUS_WAITING;
@@ -1289,7 +1556,7 @@ public class SharedMatchRepository {
         state.matchStartedAt = 0L;
         state.updatedAt = System.currentTimeMillis();
 
-        for (KoZnaZnaQuestion question : localGameRepository.getKoZnaZnaMatchQuestions()) {
+        for (KoZnaZnaQuestion question : safeMatchContent.quizQuestions) {
             state.quizQuestions.add(new KoZnaZnaQuestion(
                     question.id,
                     question.question,
@@ -1298,7 +1565,7 @@ public class SharedMatchRepository {
             ));
         }
 
-        List<SpojniceRound> spojniceSourceRounds = localGameRepository.getSpojniceMatchRounds();
+        List<SpojniceRound> spojniceSourceRounds = safeMatchContent.spojniceRounds;
         for (int roundIndex = 0; roundIndex < spojniceSourceRounds.size(); roundIndex++) {
             SpojniceRound round = spojniceSourceRounds.get(roundIndex);
             SharedSpojniceRound sharedRound = new SharedSpojniceRound();
@@ -1320,7 +1587,7 @@ public class SharedMatchRepository {
             state.skockoRounds.add(sharedRound);
         }
 
-        List<AsocijacijeRound> asocijacijeSourceRounds = localGameRepository.getAsocijacijeRounds();
+        List<AsocijacijeRound> asocijacijeSourceRounds = safeMatchContent.asocijacijeRounds;
         for (int roundIndex = 0; roundIndex < asocijacijeSourceRounds.size(); roundIndex++) {
             AsocijacijeRound sourceRound = asocijacijeSourceRounds.get(roundIndex);
             SharedAsocijacijeRound sharedRound = new SharedAsocijacijeRound();
@@ -1347,7 +1614,7 @@ public class SharedMatchRepository {
             state.asocijacijeRounds.add(sharedRound);
         }
 
-        for (KorakPoKorakRound round : selectKorakPoKorakMatchRounds(korakPoKorakRounds)) {
+        for (KorakPoKorakRound round : safeMatchContent.korakRounds) {
             state.korakRounds.add(new SharedKorakPoKorakRound(
                     round.getAnswer(),
                     round.getCluesList()
@@ -1463,9 +1730,9 @@ public class SharedMatchRepository {
             User user,
             FirebaseCallback<MatchJoinResult> callback
     ) {
-        loadKorakPoKorakMatchRounds(new FirebaseCallback<List<KorakPoKorakRound>>() {
+        loadMatchContentBundle(new FirebaseCallback<MatchContentBundle>() {
             @Override
-            public void onSuccess(List<KorakPoKorakRound> korakRounds) {
+            public void onSuccess(MatchContentBundle matchContent) {
                 DocumentReference reference = db.collection(MATCHES_COLLECTION).document();
                 DocumentReference userReference = db.collection(USERS_COLLECTION).document(user.id);
 
@@ -1490,7 +1757,7 @@ public class SharedMatchRepository {
                             user.id,
                             safeUserName(currentUser),
                             SharedMatchState.MATCH_TYPE_TOURNAMENT,
-                            korakRounds
+                            matchContent
                     );
                     state.phaseMessage = "Waiting for three more tournament players...";
                     state.tournamentId = reference.getId();
@@ -1610,9 +1877,9 @@ public class SharedMatchRepository {
             User user,
             FirebaseCallback<MatchJoinResult> callback
     ) {
-        loadKorakPoKorakMatchRounds(new FirebaseCallback<List<KorakPoKorakRound>>() {
+        loadMatchContentBundle(new FirebaseCallback<MatchContentBundle>() {
             @Override
-            public void onSuccess(List<KorakPoKorakRound> korakRounds) {
+            public void onSuccess(MatchContentBundle matchContent) {
                 DocumentReference secondReference = db.collection(MATCHES_COLLECTION).document();
                 DocumentReference userReference = db.collection(USERS_COLLECTION).document(user.id);
 
@@ -1646,7 +1913,7 @@ public class SharedMatchRepository {
                             user.id,
                             safeUserName(currentUser),
                             SharedMatchState.MATCH_TYPE_TOURNAMENT,
-                            korakRounds
+                            matchContent
                     );
                     secondState.phaseMessage = "Waiting for one more tournament player...";
                     secondState.tournamentId = latestFirstState.tournamentId;
@@ -1678,16 +1945,16 @@ public class SharedMatchRepository {
             User user,
             FirebaseCallback<MatchJoinResult> callback
     ) {
-        loadKorakPoKorakMatchRounds(new FirebaseCallback<List<KorakPoKorakRound>>() {
+        loadMatchContentBundle(new FirebaseCallback<MatchContentBundle>() {
             @Override
-            public void onSuccess(List<KorakPoKorakRound> korakRounds) {
+            public void onSuccess(MatchContentBundle matchContent) {
                 DocumentReference reference = db.collection(MATCHES_COLLECTION).document();
                 SharedMatchState state = buildInitialState(
                         reference.getId(),
                         user.id,
                         safeUserName(user),
                         SharedMatchState.MATCH_TYPE_COMPETITIVE,
-                        korakRounds
+                        matchContent
                 );
                 state.phaseMessage = "Searching for an opponent...";
 
@@ -1793,7 +2060,8 @@ public class SharedMatchRepository {
             Transaction transaction,
             DocumentReference currentMatchReference,
             SharedMatchState currentState,
-            String currentWinnerId
+            String currentWinnerId,
+            MatchContentBundle matchContent
     ) throws com.google.firebase.firestore.FirebaseFirestoreException {
         if (TextUtils.isEmpty(currentState.siblingMatchId)) {
             return "";
@@ -1829,7 +2097,8 @@ public class SharedMatchRepository {
                 finalReference.getId(),
                 firstWinnerId,
                 firstWinnerName,
-                SharedMatchState.MATCH_TYPE_TOURNAMENT
+                SharedMatchState.MATCH_TYPE_TOURNAMENT,
+                matchContent
         );
         finalState.korakRounds = currentState.tournamentSemiNumber == 1
                 ? copySharedKorakRounds(currentState.korakRounds)
